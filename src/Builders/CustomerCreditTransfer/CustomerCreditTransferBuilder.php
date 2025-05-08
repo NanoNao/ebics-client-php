@@ -340,7 +340,7 @@ final class CustomerCreditTransferBuilder
         string $currency,
         ?string $purposeText = null,
         ?string $endToEndId = null,
-        ?string $purposeCode = null,
+        ?string $purposeCode = null
     ): CustomerCreditTransferBuilder {
         if ($currency !== 'EUR') {
             throw new InvalidArgumentException('The SEPA transaction is restricted to EUR currency.');
