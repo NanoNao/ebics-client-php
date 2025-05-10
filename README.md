@@ -17,15 +17,18 @@ Supported EBICS versions: 2.4, 2.5, 3.0; Encryption versions: E002, X002, A005, 
 <img src="./doc/ebics_api_client.png" align="left" width="210" style="padding-right:20px">
 
 EBICS API Client - https://sites.google.com/view/ebics-api-client  
-**For quick integration** EBICS Client can be deployed as a standalone service on a webserver or within a Docker container and provides:
+Accelerate your financial connectivity with powerful EBICS API Client, designed for seamless integration into your infrastructure.
+Whether deployed as a standalone web service or via Docker, it’s the fastest way to connect to banks using the EBICS protocol.  
 <br clear="left"/>
-- :100: Support for EBICS Integration
-- :white_check_mark: RESTful API to operate with orders, connections, keyrings, access logs, fetched files
-- :white_check_mark: Extended Access Policy
-- :white_check_mark: Execute order transactions directly from the App
-- :white_check_mark: Manage Connections and Monitor access logs
-- :white_check_mark: Scheduler Jobs, Fetched files secure storage
-<br clear="left"/>
+:white_check_mark: Integrate effortlessly with banks across Europe using the trusted EBICS standard.  
+:white_check_mark: Easily integrate with applications written in any programming language — thanks to a clean, well-documented REST API.  
+:white_check_mark: Apply fine-grained control over users and connections for compliance and security.  
+:white_check_mark: Create, send, and manage EBICS orders directly from your app or backend system.  
+:white_check_mark: View and manage all bank connections and monitor access logs in real time.  
+:white_check_mark: Automate EBICS operations, fetch files on schedule, and store them securely.  
+:white_check_mark: Automatically backs up fetched files and keyring data to ensure reliability and disaster recovery readiness.  
+
+Perfect for fintechs, ERPs, payment processors, and enterprises needing a robust, future-proof EBICS integration — without vendor lock-in.
 
 ## License
 
