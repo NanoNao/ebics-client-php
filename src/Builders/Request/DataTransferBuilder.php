@@ -15,31 +15,29 @@ use EbicsApi\Ebics\Services\ZipService;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class DataTransferBuilder
+abstract class DataTransferBuilder extends XmlBuilder
 {
     protected DOMElement $instance;
-    protected ?DOMDocument $dom;
     protected ZipService $zipService;
     protected CryptService $cryptService;
 
-    public function __construct(ZipService $zipService, CryptService $cryptService, ?DOMDocument $dom = null)
+    public function __construct(ZipService $zipService, CryptService $cryptService, DOMDocument $dom)
     {
-        $this->dom = $dom;
         $this->zipService = $zipService;
         $this->cryptService = $cryptService;
+        parent::__construct($dom);
     }
 
     public function createInstance(): DataTransferBuilder
     {
-        $this->instance = $this->dom->createElement('DataTransfer');
+        $this->instance = $this->createEmptyElement('DataTransfer');
 
         return $this;
     }
 
     public function addOrderData(?string $orderData = null, ?string $transactionKey = null): DataTransferBuilder
     {
-        $xmlDataTransfer = $this->dom->createElement('OrderData');
-        $this->instance->appendChild($xmlDataTransfer);
+        $xmlOrderData = $this->appendEmptyElementTo('OrderData', $this->instance);
 
         if (null !== $orderData) {
             $orderDataCompressed = $this->zipService->compress($orderData);
@@ -54,7 +52,7 @@ abstract class DataTransferBuilder
                 $orderDataNodeValue = base64_encode($orderDataCompressed);
             }
 
-            $xmlDataTransfer->nodeValue = $orderDataNodeValue;
+            $xmlOrderData->nodeValue = $orderDataNodeValue;
         }
 
         return $this;
@@ -79,10 +77,9 @@ abstract class DataTransferBuilder
         );
         $signatureDataNodeValue = base64_encode($userSignatureCompressedEncrypted);
 
-        $xmlSignatureData = $this->dom->createElement('SignatureData');
-        $xmlSignatureData->setAttribute('authenticate', 'true');
-        $xmlSignatureData->nodeValue = $signatureDataNodeValue;
-        $this->instance->appendChild($xmlSignatureData);
+        $this->appendElementTo('SignatureData', $signatureDataNodeValue, $this->instance, [
+            'authenticate' => 'true',
+        ]);
 
         return $this;
     }

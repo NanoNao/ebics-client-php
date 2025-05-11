@@ -4,7 +4,7 @@ namespace EbicsApi\Ebics\Factories;
 
 use EbicsApi\Ebics\Builders\Request\OrderDetailsBuilder;
 use EbicsApi\Ebics\Builders\Request\RequestBuilder;
-use EbicsApi\Ebics\Builders\Request\XmlBuilderV24;
+use EbicsApi\Ebics\Builders\Request\RootBuilderV24;
 use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\UploadTransaction;
@@ -22,7 +22,7 @@ final class RequestFactoryV24 extends RequestFactoryV2
     {
         return $this->requestBuilder
             ->createInstance(function (Request $request) {
-                return new XmlBuilderV24($this->zipService, $this->cryptService, $request);
+                return new RootBuilderV24($this->zipService, $this->cryptService, $request);
             });
     }
 

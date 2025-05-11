@@ -1,5 +1,8 @@
 ## 2.4
 
+* Validation schema for Request.
+* Update CustomerCreditTransferBuilder.
+* Add debugger for requests option.
 * Support specify custom keyring details for Authorization & Encryption.
 * Add support upload txt file.
 * Added `BKA` order type.

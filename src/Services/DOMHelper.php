@@ -14,6 +14,20 @@ final class DOMHelper
     /**
      * @param DOMNodeList|false $domNodeList
      *
+     * @return DOMNodeList
+     */
+    public static function safeItems($domNodeList): DOMNodeList
+    {
+        if (false === $domNodeList) {
+            throw new RuntimeException('DOM Node List should not be empty.');
+        }
+
+        return $domNodeList;
+    }
+
+    /**
+     * @param DOMNodeList|false $domNodeList
+     *
      * @return DOMNode
      */
     public static function safeItem($domNodeList): DOMNode

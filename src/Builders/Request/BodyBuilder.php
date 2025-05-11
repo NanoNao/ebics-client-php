@@ -14,23 +14,22 @@ use EbicsApi\Ebics\Services\ZipService;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class BodyBuilder
+abstract class BodyBuilder extends XmlBuilder
 {
     protected ZipService $zipService;
     protected CryptService $cryptService;
     protected DOMElement $instance;
-    protected ?DOMDocument $dom;
 
-    public function __construct(ZipService $zipService, CryptService $cryptService, ?DOMDocument $dom = null)
+    public function __construct(ZipService $zipService, CryptService $cryptService, DOMDocument $dom)
     {
         $this->zipService = $zipService;
         $this->cryptService = $cryptService;
-        $this->dom = $dom;
+        parent::__construct($dom);
     }
 
     public function createInstance(): BodyBuilder
     {
-        $this->instance = $this->dom->createElement('body');
+        $this->instance = $this->createEmptyElement('body');
 
         return $this;
     }

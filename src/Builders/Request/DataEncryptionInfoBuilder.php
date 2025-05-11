@@ -14,16 +14,15 @@ use EbicsApi\Ebics\Services\CryptService;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-final class DataEncryptionInfoBuilder
+final class DataEncryptionInfoBuilder extends XmlBuilder
 {
     private DOMElement $instance;
-    private ?DOMDocument $dom;
     private CryptService $cryptService;
 
-    public function __construct(CryptService $cryptService, ?DOMDocument $dom = null)
+    public function __construct(CryptService $cryptService, DOMDocument $dom)
     {
         $this->cryptService = $cryptService;
-        $this->dom = $dom;
+        parent::__construct($dom);
     }
 
     /**
@@ -33,8 +32,7 @@ final class DataEncryptionInfoBuilder
      */
     public function createInstance(): DataEncryptionInfoBuilder
     {
-        $this->instance = $this->dom->createElement('DataEncryptionInfo');
-        $this->instance->setAttribute('authenticate', 'true');
+        $this->instance = $this->createEmptyElement('DataEncryptionInfo', ['authenticate' => 'true']);
 
         return $this;
     }
@@ -56,14 +54,10 @@ final class DataEncryptionInfoBuilder
         $certificateEDigest = $this->cryptService->calculateDigest($signatureE, $algorithm);
         $encryptionPubKeyDigestNodeValue = base64_encode($certificateEDigest);
 
-        $xmlEncryptionPubKeyDigest = $this->dom->createElement('EncryptionPubKeyDigest');
-        $xmlEncryptionPubKeyDigest->setAttribute('Version', $keyring->getBankSignatureEVersion());
-        $xmlEncryptionPubKeyDigest->setAttribute(
-            'Algorithm',
-            sprintf('http://www.w3.org/2001/04/xmlenc#%s', $algorithm)
-        );
-        $xmlEncryptionPubKeyDigest->nodeValue = $encryptionPubKeyDigestNodeValue;
-        $this->instance->appendChild($xmlEncryptionPubKeyDigest);
+        $this->appendElementTo('EncryptionPubKeyDigest', $encryptionPubKeyDigestNodeValue, $this->instance, [
+            'Version' => $keyring->getBankSignatureEVersion(),
+            'Algorithm' => sprintf('http://www.w3.org/2001/04/xmlenc#%s', $algorithm),
+        ]);
 
         return $this;
     }
@@ -76,9 +70,7 @@ final class DataEncryptionInfoBuilder
         );
         $transactionKeyNodeValue = base64_encode($transactionKeyEncrypted);
 
-        $xmlTransactionKey = $this->dom->createElement('TransactionKey');
-        $xmlTransactionKey->nodeValue = $transactionKeyNodeValue;
-        $this->instance->appendChild($xmlTransactionKey);
+        $this->appendElementTo('TransactionKey', $transactionKeyNodeValue, $this->instance);
 
         return $this;
     }

@@ -7,7 +7,6 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMNodeList;
-use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Crypt\X509;

@@ -9,13 +9,13 @@ use EbicsApi\Ebics\Builders\Request\HeaderBuilder;
 use EbicsApi\Ebics\Builders\Request\MutableBuilder;
 use EbicsApi\Ebics\Builders\Request\OrderDetailsBuilder;
 use EbicsApi\Ebics\Builders\Request\RequestBuilder;
+use EbicsApi\Ebics\Builders\Request\RootBuilder;
 use EbicsApi\Ebics\Builders\Request\StaticBuilder;
 use EbicsApi\Ebics\Builders\Request\TransferReceiptBuilder;
-use EbicsApi\Ebics\Builders\Request\XmlBuilder;
 use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
-use EbicsApi\Ebics\Handlers\AuthSignatureHandler;
+use EbicsApi\Ebics\Exceptions\SchemaEbicsException;
 use EbicsApi\Ebics\Handlers\OrderDataHandler;
 use EbicsApi\Ebics\Handlers\UserSignatureHandler;
 use EbicsApi\Ebics\Models\Bank;
@@ -45,7 +45,6 @@ abstract class RequestFactory
     protected RequestBuilder $requestBuilder;
     protected OrderDataHandler $orderDataHandler;
     protected DigestResolver $digestResolver;
-    protected AuthSignatureHandler $authSignatureHandler;
     protected UserSignatureHandler $userSignatureHandler;
     protected CryptService $cryptService;
     protected ZipService $zipService;
@@ -54,7 +53,6 @@ abstract class RequestFactory
         Bank $bank,
         User $user,
         Keyring $keyring,
-        AuthSignatureHandler $authSignatureHandler,
         UserSignatureHandler $userSignatureHandler,
         OrderDataHandler $orderDataHandler,
         DigestResolver $digestResolver,
@@ -65,7 +63,6 @@ abstract class RequestFactory
         $this->bank = $bank;
         $this->user = $user;
         $this->keyring = $keyring;
-        $this->authSignatureHandler = $authSignatureHandler;
         $this->userSignatureHandler = $userSignatureHandler;
         $this->orderDataHandler = $orderDataHandler;
         $this->digestResolver = $digestResolver;
@@ -86,14 +83,12 @@ abstract class RequestFactory
     {
         $context->setBank($this->bank);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerHEV(function (XmlBuilder $builder) use ($context) {
+            ->addContainerHEV(function (RootBuilder $builder) use ($context) {
                 $builder->addHostId($context->getBank()->getHostId());
             })
             ->popInstance();
-
-        return $request;
     }
 
     public function createINI(SignatureInterface $certificateA, RequestContext $context): Request
@@ -111,9 +106,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setOrderData($orderData->getContent());
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerUnsecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerUnsecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -133,8 +128,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        return $request;
     }
 
     public function createHIA(
@@ -156,9 +149,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setOrderData($orderData->getContent());
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerUnsecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerUnsecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -178,8 +171,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        return $request;
     }
 
     public function createH3K(
@@ -210,9 +201,9 @@ abstract class RequestFactory
             ->setOrderData($orderData->getContent())
             ->setSignatureData($signatureData);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerUnsigned(function (XmlBuilder $builder) use ($context) {
+            ->addContainerUnsigned(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -233,8 +224,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        return $request;
     }
 
     /**
@@ -247,9 +236,9 @@ abstract class RequestFactory
             ->setBank($this->bank)
             ->setUser($this->user);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecuredNoPubKeyDigests(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecuredNoPubKeyDigests(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -267,10 +256,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     public function createSPR(UploadTransaction $transaction, RequestContext $context): Request
@@ -287,9 +272,9 @@ abstract class RequestFactory
             ->setNumSegments($transaction->getNumSegments())
             ->setSignatureData($signatureData);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -329,10 +314,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -396,9 +377,9 @@ abstract class RequestFactory
      */
     private function buildStandardRequest(RequestContext $context): Request
     {
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -427,10 +408,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -444,9 +421,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setKeyring($this->keyring);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -475,10 +452,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -492,9 +465,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setKeyring($this->keyring);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -531,10 +504,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -554,9 +523,9 @@ abstract class RequestFactory
             ->setNumSegments($transaction->getNumSegments())
             ->setSignatureData($signatureData);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -599,10 +568,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     abstract public function createBTD(RequestContext $context): Request;
@@ -617,12 +582,14 @@ abstract class RequestFactory
         $context = (new RequestContext())
             ->setBank($this->bank)
             ->setTransactionId($transactionId)
-            ->setReceiptCode(true === $acknowledged ?
-                TransferReceiptBuilder::CODE_RECEIPT_POSITIVE : TransferReceiptBuilder::CODE_RECEIPT_NEGATIVE);
+            ->setReceiptCode(
+                true === $acknowledged ?
+                    TransferReceiptBuilder::CODE_RECEIPT_POSITIVE : TransferReceiptBuilder::CODE_RECEIPT_NEGATIVE
+            );
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -638,10 +605,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -662,9 +625,9 @@ abstract class RequestFactory
             ->setSegmentNumber($segmentNumber)
             ->setIsLastSegment($isLastSegment);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -682,10 +645,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -702,9 +661,9 @@ abstract class RequestFactory
             ->setSegmentNumber($segmentNumber)
             ->setIsLastSegment($isLastSegment);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -718,10 +677,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     abstract public function createVMK(RequestContext $context): Request;
@@ -771,9 +726,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setKeyring($this->keyring);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -802,10 +757,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -819,9 +770,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setKeyring($this->keyring);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -850,10 +801,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -873,9 +820,9 @@ abstract class RequestFactory
             ->setNumSegments($transaction->getNumSegments())
             ->setSignatureData($signatureData);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -915,10 +862,6 @@ abstract class RequestFactory
                 });
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     public function createHVD(RequestContext $context): Request
@@ -929,9 +872,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setKeyring($this->keyring);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -960,10 +903,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     public function createHVT(RequestContext $context): Request
@@ -974,9 +913,9 @@ abstract class RequestFactory
             ->setUser($this->user)
             ->setKeyring($this->keyring);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -1005,10 +944,6 @@ abstract class RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     public function prepareStandardContext(?RequestContext $requestContext = null): RequestContext

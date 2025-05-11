@@ -3,7 +3,6 @@
 namespace EbicsApi\Ebics;
 
 use DateTimeInterface;
-use EbicsApi\Ebics\Builders\Request\RequestBuilder;
 use EbicsApi\Ebics\Contexts\BTDContext;
 use EbicsApi\Ebics\Contexts\BTUContext;
 use EbicsApi\Ebics\Contexts\FDLContext;
@@ -51,6 +50,7 @@ use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\ContentX509Generator;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\CurlHttpClient;
+use EbicsApi\Ebics\Services\SchemaValidator;
 use EbicsApi\Ebics\Services\XmlService;
 use EbicsApi\Ebics\Services\ZipService;
 use LogicException;
@@ -119,15 +119,16 @@ final class EbicsClient implements EbicsClientInterface
             new BigIntegerFactory()
         );
 
+        $schemaValidator = new SchemaValidator($options['schema_dir'] ?? null);
+
         $this->requestFactory = $ebicsFactory->createRequestFactory(
             $bank,
             $user,
             $keyring,
-            $ebicsFactory->createAuthSignatureHandler($keyring, $this->cryptService),
-            $ebicsFactory->createUserSignatureHandler($user, $keyring, $this->cryptService),
+            $ebicsFactory->createUserSignatureHandler($user, $keyring, $this->cryptService, $schemaValidator),
             $this->orderDataHandler,
             $ebicsFactory->createDigestResolver($this->cryptService),
-            new RequestBuilder(),
+            $ebicsFactory->createRequestBuilder($keyring, $this->cryptService, $schemaValidator),
             $this->cryptService,
             $this->zipService
         );

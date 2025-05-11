@@ -34,6 +34,8 @@ abstract class AbstractEbicsTestCase extends TestCase
 
     protected $fixtures = __DIR__ . '/_fixtures';
 
+    protected $schema = __DIR__ . '/../doc/schema';
+
     protected function setupClientV24(
         int $credentialsId,
         bool $fake = false,
@@ -88,6 +90,8 @@ abstract class AbstractEbicsTestCase extends TestCase
         if (true === $debug) {
             $options['http_client'] = new DebuggerHttpClient();
         }
+
+        $options['schema_dir'] = $this->schema;
 
         $ebicsClient = new EbicsClient($bank, $user, $keyring, $options);
 

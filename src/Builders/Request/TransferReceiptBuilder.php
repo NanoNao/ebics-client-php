@@ -2,7 +2,6 @@
 
 namespace EbicsApi\Ebics\Builders\Request;
 
-use DOMDocument;
 use DOMElement;
 
 /**
@@ -11,7 +10,7 @@ use DOMElement;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-final class TransferReceiptBuilder
+final class TransferReceiptBuilder extends XmlBuilder
 {
     // The value of the acknowledgement is 0 (“positive acknowledgement”)
     // if download and processing of the order data was successful
@@ -21,26 +20,17 @@ final class TransferReceiptBuilder
     const CODE_RECEIPT_NEGATIVE = '1';
 
     private DOMElement $instance;
-    private ?DOMDocument $dom;
-
-    public function __construct(?DOMDocument $dom = null)
-    {
-        $this->dom = $dom;
-    }
 
     public function createInstance(): TransferReceiptBuilder
     {
-        $this->instance = $this->dom->createElement('TransferReceipt');
-        $this->instance->setAttribute('authenticate', 'true');
+        $this->instance = $this->createEmptyElement('TransferReceipt', ['authenticate' => 'true']);
 
         return $this;
     }
 
     public function addReceiptCode(string $receiptCode): TransferReceiptBuilder
     {
-        $xmlReceiptCode = $this->dom->createElement('ReceiptCode');
-        $xmlReceiptCode->nodeValue = $receiptCode;
-        $this->instance->appendChild($xmlReceiptCode);
+        $this->appendElementTo('ReceiptCode', $receiptCode, $this->instance);
 
         return $this;
     }

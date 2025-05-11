@@ -13,6 +13,7 @@ use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolver;
+use EbicsApi\Ebics\Services\SchemaValidator;
 use EbicsApi\Ebics\Services\ZipService;
 
 /**
@@ -27,7 +28,6 @@ abstract class EbicsFactory
         Bank $bank,
         User $user,
         Keyring $keyring,
-        AuthSignatureHandler $authSignatureHandler,
         UserSignatureHandler $userSignatureHandler,
         OrderDataHandler $orderDataHandler,
         DigestResolver $digestResolver,
@@ -44,7 +44,8 @@ abstract class EbicsFactory
     abstract public function createUserSignatureHandler(
         User $user,
         Keyring $keyring,
-        CryptService $cryptService
+        CryptService $cryptService,
+        SchemaValidator $schemaValidator
     ): UserSignatureHandler;
 
     abstract public function createOrderDataHandler(
@@ -64,4 +65,12 @@ abstract class EbicsFactory
     ): ResponseHandler;
 
     abstract public function createDigestResolver(CryptService $cryptService): DigestResolver;
+
+    public function createRequestBuilder(
+        Keyring $keyring,
+        CryptService $cryptService,
+        SchemaValidator $schemaValidator
+    ): RequestBuilder {
+        return new RequestBuilder($this->createAuthSignatureHandler($keyring, $cryptService), $schemaValidator);
+    }
 }

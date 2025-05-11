@@ -3,7 +3,6 @@
 namespace EbicsApi\Ebics\Builders\Request;
 
 use DateTimeInterface;
-use DOMDocument;
 use DOMElement;
 use EbicsApi\Ebics\Contexts\BTDContext;
 use EbicsApi\Ebics\Contexts\BTUContext;
@@ -19,7 +18,7 @@ use EbicsApi\Ebics\Contexts\HVTContext;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class OrderDetailsBuilder
+abstract class OrderDetailsBuilder extends XmlBuilder
 {
     const ORDER_ATTRIBUTE_DZNNN = 'DZNNN';
     const ORDER_ATTRIBUTE_DZHNN = 'DZHNN';
@@ -27,21 +26,10 @@ abstract class OrderDetailsBuilder
     const ORDER_ATTRIBUTE_OZHNN = 'OZHNN';
 
     protected DOMElement $instance;
-    protected ?DOMDocument $dom;
 
-    public function __construct(?DOMDocument $dom = null)
-    {
-        $this->dom = $dom;
-    }
-
-    /**
-     * Create body for UnsecuredRequest.
-     *
-     * @return $this
-     */
     public function createInstance(): OrderDetailsBuilder
     {
-        $this->instance = $this->dom->createElement('OrderDetails');
+        $this->instance = $this->createEmptyElement('OrderDetails');
 
         return $this;
     }
@@ -52,9 +40,7 @@ abstract class OrderDetailsBuilder
 
     public function addOrderId(string $orderId): OrderDetailsBuilder
     {
-        $xmlOrderID = $this->dom->createElement('OrderID');
-        $xmlOrderID->nodeValue = $orderId;
-        $this->instance->appendChild($xmlOrderID);
+        $this->appendElementTo('OrderID', $orderId, $this->instance);
 
         return $this;
     }
@@ -65,12 +51,9 @@ abstract class OrderDetailsBuilder
         ?DateTimeInterface $startDateTime = null,
         ?DateTimeInterface $endDateTime = null
     ): OrderDetailsBuilder {
-        // Add StandardOrderParams to OrderDetails.
-        $xmlStandardOrderParams = $this->dom->createElement('StandardOrderParams');
-        $this->instance->appendChild($xmlStandardOrderParams);
+        $xmlStandardOrderParams = $this->appendEmptyElementTo('StandardOrderParams', $this->instance);
 
         if (null !== $startDateTime && null !== $endDateTime) {
-            // Add DateRange to StandardOrderParams.
             $xmlDateRange = $this->createDateRange($startDateTime, $endDateTime);
             $xmlStandardOrderParams->appendChild($xmlDateRange);
         }
@@ -83,42 +66,31 @@ abstract class OrderDetailsBuilder
         ?DateTimeInterface $startDateTime,
         ?DateTimeInterface $endDateTime
     ): OrderDetailsBuilder {
-        // Add FDLOrderParams to OrderDetails.
-        $xmlFDLOrderParams = $this->dom->createElement('FDLOrderParams');
-        $this->instance->appendChild($xmlFDLOrderParams);
+        $xmlFDLOrderParams = $this->appendEmptyElementTo('FDLOrderParams', $this->instance);
 
         if (null !== $startDateTime && null !== $endDateTime) {
-            // Add DateRange to FDLOrderParams.
             $xmlDateRange = $this->createDateRange($startDateTime, $endDateTime);
             $xmlFDLOrderParams->appendChild($xmlDateRange);
         }
 
         $this->addParameters($xmlFDLOrderParams, $fdlContext->getParameters());
 
-        // Add FileFormat to FDLOrderParams.
-        $xmlFileFormat = $this->dom->createElement('FileFormat');
-        $xmlFileFormat->nodeValue = $fdlContext->getFileFormat();
-        $xmlFDLOrderParams->appendChild($xmlFileFormat);
-
-        $xmlFileFormat->setAttribute('CountryCode', $fdlContext->getCountryCode());
+        $this->appendElementTo('FileFormat', $fdlContext->getFileFormat(), $xmlFDLOrderParams, [
+            'CountryCode' => $fdlContext->getCountryCode(),
+        ]);
 
         return $this;
     }
 
     public function addFULOrderParams(FULContext $fulContext): OrderDetailsBuilder
     {
-        // Add FULOrderParams to OrderDetails.
-        $xmlFULOrderParams = $this->dom->createElement('FULOrderParams');
-        $this->instance->appendChild($xmlFULOrderParams);
+        $xmlFULOrderParams = $this->appendEmptyElementTo('FULOrderParams', $this->instance);
 
         $this->addParameters($xmlFULOrderParams, $fulContext->getParameters());
 
-        // Add FileFormat to FULOrderParams.
-        $xmlFileFormat = $this->dom->createElement('FileFormat');
-        $xmlFileFormat->nodeValue = $fulContext->getFileFormat();
-        $xmlFULOrderParams->appendChild($xmlFileFormat);
-
-        $xmlFileFormat->setAttribute('CountryCode', $fulContext->getCountryCode());
+        $this->appendElementTo('FileFormat', $fulContext->getFileFormat(), $xmlFULOrderParams, [
+            'CountryCode' => $fulContext->getCountryCode(),
+        ]);
 
         return $this;
     }
@@ -126,21 +98,10 @@ abstract class OrderDetailsBuilder
     private function addParameters(DOMElement $orderParams, array $parameters): void
     {
         foreach ($parameters as $name => $value) {
-            // Add Parameter to FULOrderParams.
-            $xmlParameter = $this->dom->createElement('Parameter');
-            $orderParams->appendChild($xmlParameter);
+            $xmlParameter = $this->appendEmptyElementTo('Parameter', $orderParams);
 
-            // Add Name to Parameter.
-            $xmlName = $this->dom->createElement('Name');
-            $xmlParameter->appendChild($xmlName);
-            $xmlName->nodeValue = $name;
-
-            // Add Value to Parameter.
-            $xmlValue = $this->dom->createElement('Value');
-            $xmlParameter->appendChild($xmlValue);
-            $xmlValue->nodeValue = $value;
-
-            $xmlValue->setAttribute('Type', 'string');
+            $this->appendElementTo('Name', $name, $xmlParameter);
+            $this->appendElementTo('Value', $value, $xmlParameter, ['Type' => 'string']);
         }
     }
 
@@ -153,18 +114,14 @@ abstract class OrderDetailsBuilder
 
     public function addHVUOrderParams(): OrderDetailsBuilder
     {
-        // Add HVUOrderParams to OrderDetails.
-        $xmlHVUOrderParams = $this->dom->createElement('HVUOrderParams');
-        $this->instance->appendChild($xmlHVUOrderParams);
+        $this->appendEmptyElementTo('HVUOrderParams', $this->instance);
 
         return $this;
     }
 
     public function addHVZOrderParams(): OrderDetailsBuilder
     {
-        // Add HVZOrderParams to OrderDetails.
-        $xmlHVZOrderParams = $this->dom->createElement('HVZOrderParams');
-        $this->instance->appendChild($xmlHVZOrderParams);
+        $this->appendEmptyElementTo('HVZOrderParams', $this->instance);
 
         return $this;
     }
@@ -183,17 +140,10 @@ abstract class OrderDetailsBuilder
 
     protected function createDateRange(DateTimeInterface $startDateTime, DateTimeInterface $endDateTime): DOMElement
     {
-        $xmlDateRange = $this->dom->createElement('DateRange');
+        $xmlDateRange = $this->createEmptyElement('DateRange');
 
-        // Add Start to StandardOrderParams.
-        $xmlStart = $this->dom->createElement('Start');
-        $xmlStart->nodeValue = $startDateTime->format('Y-m-d');
-        $xmlDateRange->appendChild($xmlStart);
-
-        // Add End to StandardOrderParams.
-        $xmlEnd = $this->dom->createElement('End');
-        $xmlEnd->nodeValue = $endDateTime->format('Y-m-d');
-        $xmlDateRange->appendChild($xmlEnd);
+        $this->appendElementTo('Start', $startDateTime->format('Y-m-d'), $xmlDateRange);
+        $this->appendElementTo('End', $endDateTime->format('Y-m-d'), $xmlDateRange);
 
         return $xmlDateRange;
     }

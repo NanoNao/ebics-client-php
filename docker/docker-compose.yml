@@ -3,6 +3,7 @@ services:
     container_name: php-cli-ebics-client-php
     build:
       context: php-cli
+    image: php-cli-ebics-client-php:8.1.6-cli
     volumes:
       - ~/.ssh:/home/root/.ssh
       - ../:/var/www/ebics-client-php

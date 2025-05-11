@@ -63,6 +63,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
      * @dataProvider serversDataProvider
      *
      * @group HEV
+     * @group HEV-V25
      *
      * @param int $credentialsId
      * @param array $codes

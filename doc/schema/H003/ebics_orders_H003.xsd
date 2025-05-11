@@ -4,7 +4,7 @@
 		<documentation xml:lang="de">ebics_orders.xsd enthält auftragsbezogene Referenzelemente und auftragsbezogene Typdefinitionen für EBICS.</documentation>
 		<documentation xml:lang="en">ebics_orders.xsd contains order-based reference elements and order-based type definitions for EBICS.</documentation>
 	</annotation>
-	<import namespace="http://www.ebics.org/S001" schemaLocation="ebics_signature.xsd"/>
+	<import namespace="http://www.ebics.org/S001" schemaLocation="ebics_signature_S001.xsd"/>
 	<include schemaLocation="ebics_types_H003.xsd"/>
 	<!--Es folgen die Elementdefinitionen für neue EBICS-Auftragsarten (Hxx). Die XML-Klartext-Struktur wird im EBICS-Auftragsdatenkontext binär interpretiert.-->
 	<element name="EBICSOrderData" abstract="true">

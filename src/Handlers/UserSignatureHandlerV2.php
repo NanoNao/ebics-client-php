@@ -14,11 +14,13 @@ use EbicsApi\Ebics\Models\UserSignature;
  */
 final class UserSignatureHandlerV2 extends UserSignatureHandler
 {
-    public function handle(UserSignature $xml, string $digest): void
+    public function handleXml(UserSignature $xml, string $digest): void
     {
+        $ns = 'http://www.ebics.org/S001';
+
         // Add UserSignatureData to root.
         $xmlUserSignatureData = $xml->createElementNS(
-            'http://www.ebics.org/S001',
+            $ns,
             'UserSignatureData'
         );
         $xmlUserSignatureData->setAttributeNS(
@@ -34,11 +36,11 @@ final class UserSignatureHandlerV2 extends UserSignatureHandler
         $xml->appendChild($xmlUserSignatureData);
 
         // Add OrderSignatureData to UserSignatureData.
-        $xmlOrderSignatureData = $xml->createElement('OrderSignatureData');
+        $xmlOrderSignatureData = $xml->createElementNS($ns, 'OrderSignatureData');
         $xmlUserSignatureData->appendChild($xmlOrderSignatureData);
 
         // Add SignatureVersion to OrderSignatureData.
-        $xmlSignatureVersion = $xml->createElement('SignatureVersion');
+        $xmlSignatureVersion = $xml->createElementNS($ns, 'SignatureVersion');
         $xmlSignatureVersion->nodeValue = $this->keyring->getUserSignatureAVersion();
         $xmlOrderSignatureData->appendChild($xmlSignatureVersion);
 
@@ -51,19 +53,19 @@ final class UserSignatureHandlerV2 extends UserSignatureHandler
         $signatureValueNodeValue = base64_encode($canonicalizedUserSignatureDataHashSigned);
 
         // Add SignatureValue to OrderSignatureData.
-        $xmlSignatureValue = $xml->createElement('SignatureValue');
+        $xmlSignatureValue = $xml->createElementNS($ns, 'SignatureValue');
         $xmlSignatureValue->nodeValue = $signatureValueNodeValue;
         $xmlOrderSignatureData->appendChild($xmlSignatureValue);
 
         $this->insertAfter($xmlSignatureValue, $xmlSignatureVersion);
 
         // Add PartnerID to OrderSignatureData.
-        $xmlPartnerID = $xml->createElement('PartnerID');
+        $xmlPartnerID = $xml->createElementNS($ns, 'PartnerID');
         $xmlPartnerID->nodeValue = $this->user->getPartnerId();
         $xmlOrderSignatureData->appendChild($xmlPartnerID);
 
         // Add UserID to OrderSignatureData.
-        $xmlUserID = $xml->createElement('UserID');
+        $xmlUserID = $xml->createElementNS($ns, 'UserID');
         $xmlUserID->nodeValue = $this->user->getUserId();
         $xmlOrderSignatureData->appendChild($xmlUserID);
     }

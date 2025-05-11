@@ -9,9 +9,9 @@ use EbicsApi\Ebics\Builders\Request\HeaderBuilder;
 use EbicsApi\Ebics\Builders\Request\MutableBuilder;
 use EbicsApi\Ebics\Builders\Request\OrderDetailsBuilder;
 use EbicsApi\Ebics\Builders\Request\RequestBuilder;
+use EbicsApi\Ebics\Builders\Request\RootBuilder;
+use EbicsApi\Ebics\Builders\Request\RootBuilderV30;
 use EbicsApi\Ebics\Builders\Request\StaticBuilder;
-use EbicsApi\Ebics\Builders\Request\XmlBuilder;
-use EbicsApi\Ebics\Builders\Request\XmlBuilderV30;
 use EbicsApi\Ebics\Contexts\BTDContext;
 use EbicsApi\Ebics\Contexts\BTUContext;
 use EbicsApi\Ebics\Contexts\RequestContext;
@@ -32,7 +32,7 @@ final class RequestFactoryV30 extends RequestFactory
     {
         return $this->requestBuilder
             ->createInstance(function (Request $request) {
-                return new XmlBuilderV30($this->zipService, $this->cryptService, $request);
+                return new RootBuilderV30($this->zipService, $this->cryptService, $request);
             });
     }
 
@@ -55,9 +55,9 @@ final class RequestFactoryV30 extends RequestFactory
             ->setUser($this->user)
             ->setKeyring($this->keyring);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -90,10 +90,6 @@ final class RequestFactoryV30 extends RequestFactory
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     public function createBTU(UploadTransaction $transaction, RequestContext $context): Request
@@ -121,9 +117,9 @@ final class RequestFactoryV30 extends RequestFactory
             ->setSignatureVersion($signatureVersion)
             ->setDataDigest($dataDigest);
 
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -167,10 +163,6 @@ final class RequestFactoryV30 extends RequestFactory
                 });
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     public function createVMK(RequestContext $context): Request

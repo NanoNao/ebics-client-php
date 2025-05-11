@@ -25,9 +25,7 @@ final class OrderDetailsBuilderV3 extends OrderDetailsBuilder
 
     public function addAdminOrderType(string $orderType): OrderDetailsBuilder
     {
-        $xmlOrderType = $this->dom->createElement('AdminOrderType');
-        $xmlOrderType->nodeValue = $orderType;
-        $this->instance->appendChild($xmlOrderType);
+        $this->appendElementTo('AdminOrderType', $orderType, $this->instance);
 
         return $this;
     }
@@ -43,78 +41,45 @@ final class OrderDetailsBuilderV3 extends OrderDetailsBuilder
         ?DateTimeInterface $startDateTime = null,
         ?DateTimeInterface $endDateTime = null
     ): OrderDetailsBuilder {
-        // Add BTDOrderParams to OrderDetails.
-        $xmlBTDOrderParams = $this->dom->createElement('BTDOrderParams');
-        $this->instance->appendChild($xmlBTDOrderParams);
+        $xmlBTDOrderParams = $this->appendEmptyElementTo('BTDOrderParams', $this->instance);
 
-        // Add Service to BTDOrderParams.
-        $xmlService = $this->dom->createElement('Service');
-        $xmlBTDOrderParams->appendChild($xmlService);
+        $xmlService = $this->appendEmptyElementTo('Service', $xmlBTDOrderParams);
 
-        // Add ServiceName to Service.
-        $xmlServiceName = $this->dom->createElement('ServiceName');
-        $xmlServiceName->nodeValue = $btfContext->getServiceName();
-        $xmlService->appendChild($xmlServiceName);
+        $this->appendElementTo('ServiceName', $btfContext->getServiceName(), $xmlService);
 
-        // Add optional Scope to Service.
         if (null !== $btfContext->getScope()) {
-            $xmlScope = $this->dom->createElement('Scope');
-            $xmlScope->nodeValue = $btfContext->getScope();
-            $xmlService->appendChild($xmlScope);
+            $this->appendElementTo('Scope', $btfContext->getScope(), $xmlService);
         }
 
-        // Add optional ServiceOption to Service.
         if (null !== $btfContext->getServiceOption()) {
-            $xmlServiceOption = $this->dom->createElement('ServiceOption');
-            $xmlServiceOption->nodeValue = $btfContext->getServiceOption();
-            $xmlService->appendChild($xmlServiceOption);
+            $this->appendElementTo('ServiceOption', $btfContext->getServiceOption(), $xmlService);
         }
 
-        // Add optional ContainerFlag to Service.
         if (null !== $btfContext->getContainerFlag()) {
-            $xmlContainerFlag = $this->dom->createElement('ContainerFlag');
-            $xmlContainerFlag->nodeValue = $btfContext->getContainerFlag();
-            $xmlService->appendChild($xmlContainerFlag);
+            $this->appendElementTo('ContainerFlag', $btfContext->getContainerFlag(), $xmlService);
         }
 
         if (null !== $btfContext->getContainerType()) {
-            // Add optional Container to Service.
-            $xmlContainer = $this->dom->createElement('Container');
-            $xmlContainer->setAttribute('containerType', $btfContext->getContainerType());
-            $xmlService->appendChild($xmlContainer);
+            $this->appendEmptyElementTo('Container', $xmlService, [
+                'containerType' => $btfContext->getContainerType(),
+            ]);
         }
 
-        // Add MsgName to Service.
-        $xmlMsgName = $this->dom->createElement('MsgName');
-        $xmlMsgName->nodeValue = $btfContext->getMsgName();
-        $xmlService->appendChild($xmlMsgName);
+        $xmlMsgName = $this->appendElementTo('MsgName', $btfContext->getMsgName(), $xmlService);
 
-        // Add optional MsgName version attribute
         if (null !== $btfContext->getMsgNameVersion()) {
-            $xmlMsgName->setAttribute(
-                'version',
-                $btfContext->getMsgNameVersion()
-            );
+            $xmlMsgName->setAttribute('version', $btfContext->getMsgNameVersion());
         }
 
-        // Add optional MsgName variant attribute
         if (null !== $btfContext->getMsgNameVariant()) {
-            $xmlMsgName->setAttribute(
-                'variant',
-                $btfContext->getMsgNameVariant()
-            );
+            $xmlMsgName->setAttribute('variant', $btfContext->getMsgNameVariant());
         }
 
-        // Add optional MsgName format attribute
         if (null !== $btfContext->getMsgNameFormat()) {
-            $xmlMsgName->setAttribute(
-                'format',
-                $btfContext->getMsgNameFormat()
-            );
+            $xmlMsgName->setAttribute('format', $btfContext->getMsgNameFormat());
         }
 
         if (null !== $startDateTime && null !== $endDateTime) {
-            // Add DateRange to BTDOrderParams.
             $xmlDateRange = $this->createDateRange(
                 $startDateTime,
                 $endDateTime
@@ -125,239 +90,130 @@ final class OrderDetailsBuilderV3 extends OrderDetailsBuilder
         return $this;
     }
 
-    public function addBTUOrderParams(
-        BTUContext $btuContext
-    ): OrderDetailsBuilder {
-        // Add BTUOrderParams to OrderDetails.
-        $xmlBTUOrderParams = $this->dom->createElement('BTUOrderParams');
-        $xmlBTUOrderParams->setAttribute('fileName', $btuContext->getFileName());
-        $this->instance->appendChild($xmlBTUOrderParams);
+    public function addBTUOrderParams(BTUContext $btuContext): OrderDetailsBuilder
+    {
+        $xmlBTUOrderParams = $this->appendEmptyElementTo('BTUOrderParams', $this->instance, [
+            'fileName' => $btuContext->getFileName(),
+        ]);
 
-        // Add Service to BTUOrderParams.
-        $xmlService = $this->dom->createElement('Service');
-        $xmlBTUOrderParams->appendChild($xmlService);
+        $xmlService = $this->appendEmptyElementTo('Service', $xmlBTUOrderParams);
 
-        // Add ServiceName to Service.
-        $xmlServiceName = $this->dom->createElement('ServiceName');
-        $xmlServiceName->nodeValue = $btuContext->getServiceName();
-        $xmlService->appendChild($xmlServiceName);
+        $this->appendElementTo('ServiceName', $btuContext->getServiceName(), $xmlService);
 
-        // Add optional Scope to Service.
         if (null !== $btuContext->getScope()) {
-            $xmlScope = $this->dom->createElement('Scope');
-            $xmlScope->nodeValue = $btuContext->getScope();
-            $xmlService->appendChild($xmlScope);
+            $this->appendElementTo('Scope', $btuContext->getScope(), $xmlService);
         }
 
-        // Add optional ServiceOption to Service.
         if (null !== $btuContext->getServiceOption()) {
-            $xmlServiceOption = $this->dom->createElement('ServiceOption');
-            $xmlServiceOption->nodeValue = $btuContext->getServiceOption();
-            $xmlService->appendChild($xmlServiceOption);
+            $this->appendElementTo('ServiceOption', $btuContext->getServiceOption(), $xmlService);
         }
 
-        // Add optional ContainerFlag to Service.
         if (null !== $btuContext->getContainerFlag()) {
-            $xmlContainerFlag = $this->dom->createElement('ContainerFlag');
-            $xmlContainerFlag->nodeValue = $btuContext->getContainerFlag();
-            $xmlService->appendChild($xmlContainerFlag);
+            $this->appendElementTo('ContainerFlag', $btuContext->getContainerFlag(), $xmlService);
         }
 
-        // Add MsgName to Service.
-        $xmlMsgName = $this->dom->createElement('MsgName');
-        $xmlMsgName->nodeValue = $btuContext->getMsgName();
-        $xmlService->appendChild($xmlMsgName);
+        $xmlMsgName = $this->appendElementTo('MsgName', $btuContext->getMsgName(), $xmlService);
 
-        // Add optional MsgName version attribute
         if (null !== $btuContext->getMsgNameVersion()) {
-            $xmlMsgName->setAttribute(
-                'version',
-                $btuContext->getMsgNameVersion()
-            );
+            $xmlMsgName->setAttribute('version', $btuContext->getMsgNameVersion());
         }
 
-        // Add optional MsgName variant attribute
         if (null !== $btuContext->getMsgNameVariant()) {
-            $xmlMsgName->setAttribute(
-                'variant',
-                $btuContext->getMsgNameVariant()
-            );
+            $xmlMsgName->setAttribute('variant', $btuContext->getMsgNameVariant());
         }
 
-        // Add optional MsgName format attribute
         if (null !== $btuContext->getMsgNameFormat()) {
-            $xmlMsgName->setAttribute(
-                'format',
-                $btuContext->getMsgNameFormat()
-            );
+            $xmlMsgName->setAttribute('format', $btuContext->getMsgNameFormat());
         }
 
         if (true === $btuContext->getSignatureFlag()) {
-            $xmlSignatureFlag = $this->dom->createElement('SignatureFlag');
+            $xmlSignatureFlag = $this->appendEmptyElementTo('SignatureFlag', $xmlBTUOrderParams);
 
             if (true === $btuContext->getSignatureFlagEds()) {
                 $xmlSignatureFlag->setAttribute('requestEDS', 'true');
             }
-
-            $xmlBTUOrderParams->appendChild($xmlSignatureFlag);
         }
 
         return $this;
     }
 
-    public function addHVEOrderParams(
-        HVEContext $hveContext
-    ): OrderDetailsBuilder {
-        // Add HVEOrderParams to OrderDetails.
-        $xmlHVEOrderParams = $this->dom->createElement('HVEOrderParams');
-        $this->instance->appendChild($xmlHVEOrderParams);
+    public function addHVEOrderParams(HVEContext $hveContext): OrderDetailsBuilder
+    {
+        $xmlHVEOrderParams = $this->appendEmptyElementTo('HVEOrderParams', $this->instance);
 
-        $xmlPartnerID = $this->dom->createElement('PartnerID');
-        $xmlPartnerID->nodeValue = $hveContext->getPartnerId();
-        $xmlHVEOrderParams->appendChild($xmlPartnerID);
+        $this->appendElementTo('PartnerID', $hveContext->getPartnerId(), $xmlHVEOrderParams);
 
-        // Add Service to HVEOrderParams.
-        $xmlService = $this->dom->createElement('Service');
-        $xmlHVEOrderParams->appendChild($xmlService);
+        $xmlService = $this->appendEmptyElementTo('Service', $xmlHVEOrderParams);
 
-        // Add ServiceName to Service.
-        $xmlServiceName = $this->dom->createElement('ServiceName');
-        $xmlServiceName->nodeValue = $hveContext->getServiceName();
-        $xmlService->appendChild($xmlServiceName);
+        $this->appendElementTo('ServiceName', $hveContext->getServiceName(), $xmlService);
 
-        // Add optional Scope to Service.
         if (null !== $hveContext->getScope()) {
-            $xmlScope = $this->dom->createElement('Scope');
-            $xmlScope->nodeValue = $hveContext->getScope();
-            $xmlService->appendChild($xmlScope);
+            $this->appendElementTo('Scope', $hveContext->getScope(), $xmlService);
         }
 
-        // Add optional ServiceOption to Service.
         if (null !== $hveContext->getServiceOption()) {
-            $xmlServiceOption = $this->dom->createElement('ServiceOption');
-            $xmlServiceOption->nodeValue = $hveContext->getServiceOption();
-            $xmlService->appendChild($xmlServiceOption);
+            $this->appendElementTo('ServiceOption', $hveContext->getServiceOption(), $xmlService);
         }
 
-        // Add MsgName to Service.
-        $xmlMsgName = $this->dom->createElement('MsgName');
-        $xmlMsgName->nodeValue = $hveContext->getMsgName();
-        $xmlService->appendChild($xmlMsgName);
+        $this->appendElementTo('MsgName', $hveContext->getMsgName(), $xmlService);
 
-        // Add OrderID to HVEOrderParams.
-        $xmlOrderID = $this->dom->createElement('OrderID');
-        $xmlOrderID->nodeValue = $hveContext->getOrderId();
-        $xmlHVEOrderParams->appendChild($xmlOrderID);
+        $this->appendElementTo('OrderID', $hveContext->getOrderId(), $xmlHVEOrderParams);
 
         return $this;
     }
 
-    public function addHVDOrderParams(
-        HVDContext $hvdContext
-    ): OrderDetailsBuilder {
-        // Add HVDOrderParams to OrderDetails.
-        $xmlHVDOrderParams = $this->dom->createElement('HVDOrderParams');
-        $this->instance->appendChild($xmlHVDOrderParams);
+    public function addHVDOrderParams(HVDContext $hvdContext): OrderDetailsBuilder
+    {
+        $xmlHVDOrderParams = $this->appendEmptyElementTo('HVDOrderParams', $this->instance);
 
-        $xmlPartnerID = $this->dom->createElement('PartnerID');
-        $xmlPartnerID->nodeValue = $hvdContext->getPartnerId();
-        $xmlHVDOrderParams->appendChild($xmlPartnerID);
+        $this->appendElementTo('PartnerID', $hvdContext->getPartnerId(), $xmlHVDOrderParams);
 
-        // Add Service to HVDOrderParams.
-        $xmlService = $this->dom->createElement('Service');
-        $xmlHVDOrderParams->appendChild($xmlService);
+        $xmlService = $this->appendEmptyElementTo('Service', $xmlHVDOrderParams);
 
-        // Add ServiceName to Service.
-        $xmlServiceName = $this->dom->createElement('ServiceName');
-        $xmlServiceName->nodeValue = $hvdContext->getServiceName();
-        $xmlService->appendChild($xmlServiceName);
+        $this->appendElementTo('ServiceName', $hvdContext->getServiceName(), $xmlService);
 
-        // Add optional Scope to Service.
         if (null !== $hvdContext->getScope()) {
-            $xmlScope = $this->dom->createElement('Scope');
-            $xmlScope->nodeValue = $hvdContext->getScope();
-            $xmlService->appendChild($xmlScope);
+            $this->appendElementTo('Scope', $hvdContext->getScope(), $xmlService);
         }
 
-        // Add optional ServiceOption to Service.
         if (null !== $hvdContext->getServiceOption()) {
-            $xmlServiceOption = $this->dom->createElement('ServiceOption');
-            $xmlServiceOption->nodeValue = $hvdContext->getServiceOption();
-            $xmlService->appendChild($xmlServiceOption);
+            $this->appendElementTo('ServiceOption', $hvdContext->getServiceOption(), $xmlService);
         }
 
-        // Add MsgName to Service.
-        $xmlMsgName = $this->dom->createElement('MsgName');
-        $xmlMsgName->nodeValue = $hvdContext->getMsgName();
-        $xmlService->appendChild($xmlMsgName);
+        $this->appendElementTo('MsgName', $hvdContext->getMsgName(), $xmlService);
 
-        // Add OrderID to HVDOrderParams.
-        $xmlOrderID = $this->dom->createElement('OrderID');
-        $xmlOrderID->nodeValue = $hvdContext->getOrderId();
-        $xmlHVDOrderParams->appendChild($xmlOrderID);
+        $this->appendElementTo('OrderID', $hvdContext->getOrderId(), $xmlHVDOrderParams);
 
         return $this;
     }
 
-    public function addHVTOrderParams(
-        HVTContext $hvtContext
-    ): OrderDetailsBuilder {
-        // Add HVTOrderParams to OrderDetails.
-        $xmlHVTOrderParams = $this->dom->createElement('HVTOrderParams');
-        $this->instance->appendChild($xmlHVTOrderParams);
+    public function addHVTOrderParams(HVTContext $hvtContext): OrderDetailsBuilder
+    {
+        $xmlHVTOrderParams = $this->appendEmptyElementTo('HVTOrderParams', $this->instance);
 
-        $xmlPartnerID = $this->dom->createElement('PartnerID');
-        $xmlPartnerID->nodeValue = $hvtContext->getPartnerId();
-        $xmlHVTOrderParams->appendChild($xmlPartnerID);
+        $this->appendElementTo('PartnerID', $hvtContext->getPartnerId(), $xmlHVTOrderParams);
 
-        // Add Service to HVDOrderParams.
-        $xmlService = $this->dom->createElement('Service');
-        $xmlHVTOrderParams->appendChild($xmlService);
+        $xmlService = $this->appendEmptyElementTo('Service', $xmlHVTOrderParams);
 
-        // Add ServiceName to Service.
-        $xmlServiceName = $this->dom->createElement('ServiceName');
-        $xmlServiceName->nodeValue = $hvtContext->getServiceName();
-        $xmlService->appendChild($xmlServiceName);
+        $this->appendElementTo('ServiceName', $hvtContext->getServiceName(), $xmlService);
 
-        // Add optional Scope to Service.
         if (null !== $hvtContext->getScope()) {
-            $xmlScope = $this->dom->createElement('Scope');
-            $xmlScope->nodeValue = $hvtContext->getScope();
-            $xmlService->appendChild($xmlScope);
+            $this->appendElementTo('Scope', $hvtContext->getScope(), $xmlService);
         }
 
-        // Add optional ServiceOption to Service.
         if (null !== $hvtContext->getServiceOption()) {
-            $xmlServiceOption = $this->dom->createElement('ServiceOption');
-            $xmlServiceOption->nodeValue = $hvtContext->getServiceOption();
-            $xmlService->appendChild($xmlServiceOption);
+            $this->appendElementTo('ServiceOption', $hvtContext->getServiceOption(), $xmlService);
         }
 
-        // Add MsgName to Service.
-        $xmlMsgName = $this->dom->createElement('MsgName');
-        $xmlMsgName->nodeValue = $hvtContext->getMsgName();
-        $xmlService->appendChild($xmlMsgName);
+        $this->appendElementTo('MsgName', $hvtContext->getMsgName(), $xmlService);
 
-        // Add OrderID to HVTOrderParams.
-        $xmlOrderID = $this->dom->createElement('OrderID');
-        $xmlOrderID->nodeValue = $hvtContext->getOrderId();
-        $xmlHVTOrderParams->appendChild($xmlOrderID);
+        $this->appendElementTo('OrderID', $hvtContext->getOrderId(), $xmlHVTOrderParams);
 
-        // Add OrderFlags to HVTOrderParams.
-        $xmlOrderFlags = $this->dom->createElement('OrderFlags');
-        $xmlOrderFlags->setAttribute(
-            'completeOrderData',
-            $hvtContext->getCompleteOrderData() ? 'true' : 'false'
-        );
-        $xmlOrderFlags->setAttribute(
-            'fetchLimit',
-            (string)$hvtContext->getFetchLimit()
-        );
-        $xmlOrderFlags->setAttribute(
-            'fetchOffset',
-            (string)$hvtContext->getFetchOffset()
-        );
-        $xmlHVTOrderParams->appendChild($xmlOrderFlags);
+        $this->appendEmptyElementTo('OrderFlags', $xmlHVTOrderParams, [
+            'completeOrderData' => $hvtContext->getCompleteOrderData() ? 'true' : 'false',
+            'fetchLimit' => (string)$hvtContext->getFetchLimit(),
+            'fetchOffset' => (string)$hvtContext->getFetchOffset(),
+        ]);
 
         return $this;
     }

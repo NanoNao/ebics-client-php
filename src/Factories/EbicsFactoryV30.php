@@ -18,6 +18,7 @@ use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolver;
 use EbicsApi\Ebics\Services\DigestResolverV3;
+use EbicsApi\Ebics\Services\SchemaValidator;
 use EbicsApi\Ebics\Services\ZipService;
 
 /**
@@ -32,7 +33,6 @@ final class EbicsFactoryV30 extends EbicsFactory
         Bank $bank,
         User $user,
         Keyring $keyring,
-        AuthSignatureHandler $authSignatureHandler,
         UserSignatureHandler $userSignatureHandler,
         OrderDataHandler $orderDataHandler,
         DigestResolver $digestResolver,
@@ -44,7 +44,6 @@ final class EbicsFactoryV30 extends EbicsFactory
             $bank,
             $user,
             $keyring,
-            $authSignatureHandler,
             $userSignatureHandler,
             $orderDataHandler,
             $digestResolver,
@@ -64,9 +63,10 @@ final class EbicsFactoryV30 extends EbicsFactory
     public function createUserSignatureHandler(
         User $user,
         Keyring $keyring,
-        CryptService $cryptService
+        CryptService $cryptService,
+        SchemaValidator $schemaValidator
     ): UserSignatureHandler {
-        return new UserSignatureHandlerV3($user, $keyring, $cryptService);
+        return new UserSignatureHandlerV3($user, $keyring, $cryptService, $schemaValidator);
     }
 
     public function createOrderDataHandler(

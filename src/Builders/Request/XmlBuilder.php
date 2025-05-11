@@ -2,11 +2,8 @@
 
 namespace EbicsApi\Ebics\Builders\Request;
 
-use Closure;
 use DOMDocument;
 use DOMElement;
-use EbicsApi\Ebics\Services\CryptService;
-use EbicsApi\Ebics\Services\ZipService;
 
 /**
  * Class XmlBuilder builder for request container.
@@ -16,96 +13,65 @@ use EbicsApi\Ebics\Services\ZipService;
  */
 abstract class XmlBuilder
 {
-    private const EBICS_REQUEST = 'ebicsRequest';
-    private const EBICS_UNSECURED_REQUEST = 'ebicsUnsecuredRequest';
-    private const EBICS_UNSIGNED_REQUEST = 'ebicsUnsignedRequest';
-    private const EBICS_NO_PUB_KEY_DIGESTS = 'ebicsNoPubKeyDigestsRequest';
-    private const EBICS_HEV = 'ebicsHEVRequest';
+    protected DOMDocument $dom;
 
-    protected ZipService $zipService;
-    protected CryptService $cryptService;
-    protected DOMElement $instance;
-    protected ?DOMDocument $dom;
-
-    public function __construct(ZipService $zipService, CryptService $cryptService, ?DOMDocument $dom = null)
+    public function __construct(DOMDocument $dom)
     {
-        $this->zipService = $zipService;
-        $this->cryptService = $cryptService;
         $this->dom = $dom;
     }
 
-    public function createUnsecured(): XmlBuilder
-    {
-        return $this->createH00X(self::EBICS_UNSECURED_REQUEST);
-    }
-
-    public function createSecuredNoPubKeyDigests(): XmlBuilder
-    {
-        return $this->createH00X(self::EBICS_NO_PUB_KEY_DIGESTS, true);
-    }
-
-    public function createSecured(): XmlBuilder
-    {
-        return $this->createH00X(self::EBICS_REQUEST, true);
-    }
-
-    public function createUnsigned(): XmlBuilder
-    {
-        return $this->createH00X(self::EBICS_UNSIGNED_REQUEST);
-    }
-
-    abstract protected function getH00XVersion(): string;
-
-    abstract protected function getH00XNamespace(): string;
-
-    private function createH00X(string $container, bool $secured = false): XmlBuilder
-    {
-        $this->instance = $this->dom->createElementNS($this->getH00XNamespace(), $container);
-        if ($secured) {
-            $this->instance->setAttributeNS(
-                'http://www.w3.org/2000/xmlns/',
-                'xmlns:ds',
-                'http://www.w3.org/2000/09/xmldsig#'
-            );
-        }
-        $this->instance->setAttribute('Version', $this->getH00XVersion());
-        $this->instance->setAttribute('Revision', '1');
-
-        return $this;
-    }
-
-    public function createHEV(): XmlBuilder
-    {
-        return $this->createH000(self::EBICS_HEV);
-    }
-
-    private function createH000(string $container): XmlBuilder
-    {
-        $this->instance = $this->dom->createElementNS('http://www.ebics.org/H000', $container);
-        $this->instance->setAttributeNS(
-            'http://www.w3.org/2001/XMLSchema-instance',
-            'xsi:schemaLocation',
-            'http://www.ebics.org/H000 http://www.ebics.org/H000/ebics_hev.xsd'
+    protected function createEmptyElement(
+        string $qualifiedName,
+        array $attributes = [],
+        string $namespace = null
+    ): DOMElement {
+        $element = $this->dom->createElementNS(
+            $namespace ?? $this->dom->documentElement->namespaceURI,
+            $qualifiedName
         );
 
-        return $this;
+        foreach ($attributes as $attribute => $value) {
+            $element->setAttribute($attribute, $value);
+        }
+
+        return $element;
     }
 
-    abstract public function addHeader(Closure $callback): XmlBuilder;
+    protected function createElement(
+        string $qualifiedName,
+        string $value,
+        array $attributes = [],
+        string $namespace = null
+    ): DOMElement {
+        $element = $this->createEmptyElement($qualifiedName, $attributes, $namespace);
 
-    abstract public function addBody(?Closure $callback = null): XmlBuilder;
+        $element->nodeValue = $value;
 
-    public function addHostId(string $hostId): XmlBuilder
-    {
-        $xmlHostId = $this->dom->createElement('HostID');
-        $xmlHostId->nodeValue = $hostId;
-        $this->instance->appendChild($xmlHostId);
-
-        return $this;
+        return $element;
     }
 
-    public function getInstance(): DOMElement
-    {
-        return $this->instance;
+    protected function appendEmptyElementTo(
+        string $qualifiedName,
+        DOMElement $parent,
+        array $attributes = []
+    ): DOMElement {
+        $element = $this->createEmptyElement($qualifiedName, $attributes);
+
+        $parent->appendChild($element);
+
+        return $element;
+    }
+
+    protected function appendElementTo(
+        string $qualifiedName,
+        string $value,
+        DOMElement $parent,
+        array $attributes = []
+    ): DOMElement {
+        $element = $this->createElement($qualifiedName, $value, $attributes);
+
+        $parent->appendChild($element);
+
+        return $element;
     }
 }

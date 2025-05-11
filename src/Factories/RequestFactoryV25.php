@@ -9,9 +9,9 @@ use EbicsApi\Ebics\Builders\Request\HeaderBuilder;
 use EbicsApi\Ebics\Builders\Request\MutableBuilder;
 use EbicsApi\Ebics\Builders\Request\OrderDetailsBuilder;
 use EbicsApi\Ebics\Builders\Request\RequestBuilder;
+use EbicsApi\Ebics\Builders\Request\RootBuilder;
+use EbicsApi\Ebics\Builders\Request\RootBuilderV25;
 use EbicsApi\Ebics\Builders\Request\StaticBuilder;
-use EbicsApi\Ebics\Builders\Request\XmlBuilder;
-use EbicsApi\Ebics\Builders\Request\XmlBuilderV25;
 use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Models\Http\Request;
@@ -31,7 +31,7 @@ final class RequestFactoryV25 extends RequestFactoryV2
     {
         return $this->requestBuilder
             ->createInstance(function (Request $request) {
-                return new XmlBuilderV25($this->zipService, $this->cryptService, $request);
+                return new RootBuilderV25($this->zipService, $this->cryptService, $request);
             });
     }
 
@@ -329,9 +329,9 @@ final class RequestFactoryV25 extends RequestFactoryV2
      */
     private function buildDownloadRequest(RequestContext $context): Request
     {
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -364,10 +364,6 @@ final class RequestFactoryV25 extends RequestFactoryV2
                 })->addBody();
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     /**
@@ -375,9 +371,9 @@ final class RequestFactoryV25 extends RequestFactoryV2
      */
     private function buildUploadRequest(RequestContext $context): Request
     {
-        $request = $this
+        return $this
             ->createRequestBuilderInstance()
-            ->addContainerSecured(function (XmlBuilder $builder) use ($context) {
+            ->addContainerSecured(function (RootBuilder $builder) use ($context) {
                 $builder->addHeader(function (HeaderBuilder $builder) use ($context) {
                     $builder->addStatic(function (StaticBuilder $builder) use ($context) {
                         $builder
@@ -420,10 +416,6 @@ final class RequestFactoryV25 extends RequestFactoryV2
                 });
             })
             ->popInstance();
-
-        $this->authSignatureHandler->handle($request);
-
-        return $request;
     }
 
     public function createYCT(UploadTransaction $transaction, RequestContext $context): Request

@@ -12,9 +12,9 @@ final class DataTransferBuilderV3 extends DataTransferBuilder
 {
     public function addDataDigest(string $signatureVersion, ?string $digest = null): DataTransferBuilder
     {
-        $xmlDataDigest = $this->dom->createElement('DataDigest');
-        $xmlDataDigest->setAttribute('SignatureVersion', $signatureVersion);
-        $this->instance->appendChild($xmlDataDigest);
+        $xmlDataDigest = $this->appendEmptyElementTo('DataDigest', $this->instance, [
+            'SignatureVersion' => $signatureVersion,
+        ]);
 
         if (null !== $digest) {
             $xmlDataDigest->nodeValue = base64_encode($digest);
@@ -25,8 +25,7 @@ final class DataTransferBuilderV3 extends DataTransferBuilder
 
     public function addAdditionalOrderInfo(): DataTransferBuilder
     {
-        $xmlAdditionalOrderInfo = $this->dom->createElement('AdditionalOrderInfo');
-        $this->instance->appendChild($xmlAdditionalOrderInfo);
+        $this->appendEmptyElementTo('AdditionalOrderInfo', $this->instance);
 
         return $this;
     }

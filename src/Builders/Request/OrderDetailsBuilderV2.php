@@ -20,9 +20,7 @@ final class OrderDetailsBuilderV2 extends OrderDetailsBuilder
 {
     public function addOrderType(string $orderType): OrderDetailsBuilder
     {
-        $xmlOrderType = $this->dom->createElement('OrderType');
-        $xmlOrderType->nodeValue = $orderType;
-        $this->instance->appendChild($xmlOrderType);
+        $this->appendElementTo('OrderType', $orderType, $this->instance);
 
         return $this;
     }
@@ -34,9 +32,7 @@ final class OrderDetailsBuilderV2 extends OrderDetailsBuilder
 
     public function addOrderAttribute(string $orderAttribute): OrderDetailsBuilder
     {
-        $xmlOrderAttribute = $this->dom->createElement('OrderAttribute');
-        $xmlOrderAttribute->nodeValue = $orderAttribute;
-        $this->instance->appendChild($xmlOrderAttribute);
+        $this->appendElementTo('OrderAttribute', $orderAttribute, $this->instance);
 
         return $this;
     }
@@ -56,74 +52,38 @@ final class OrderDetailsBuilderV2 extends OrderDetailsBuilder
 
     public function addHVEOrderParams(HVEContext $hveContext): OrderDetailsBuilder
     {
-        // Add HVEOrderParams to OrderDetails.
-        $xmlHVEOrderParams = $this->dom->createElement('HVEOrderParams');
-        $this->instance->appendChild($xmlHVEOrderParams);
+        $xmlHVEOrderParams = $this->appendEmptyElementTo('HVEOrderParams', $this->instance);
 
-        $xmlPartnerID = $this->dom->createElement('PartnerID');
-        $xmlPartnerID->nodeValue = $hveContext->getPartnerId();
-        $xmlHVEOrderParams->appendChild($xmlPartnerID);
-
-        $xmlOrderType = $this->dom->createElement('OrderType');
-        $xmlOrderType->nodeValue = $hveContext->getOrderType();
-        $xmlHVEOrderParams->appendChild($xmlOrderType);
-
-        // Add OrderID to HVEOrderParams.
-        $xmlOrderID = $this->dom->createElement('OrderID');
-        $xmlOrderID->nodeValue = $hveContext->getOrderId();
-        $xmlHVEOrderParams->appendChild($xmlOrderID);
+        $this->appendElementTo('PartnerID', $hveContext->getPartnerId(), $xmlHVEOrderParams);
+        $this->appendElementTo('OrderType', $hveContext->getOrderType(), $xmlHVEOrderParams);
+        $this->appendElementTo('OrderID', $hveContext->getOrderId(), $xmlHVEOrderParams);
 
         return $this;
     }
 
     public function addHVDOrderParams(HVDContext $hvdContext): OrderDetailsBuilder
     {
-        // Add HVDOrderParams to OrderDetails.
-        $xmlHVDOrderParams = $this->dom->createElement('HVDOrderParams');
-        $this->instance->appendChild($xmlHVDOrderParams);
+        $xmlHVDOrderParams = $this->appendEmptyElementTo('HVDOrderParams', $this->instance);
 
-        $xmlPartnerID = $this->dom->createElement('PartnerID');
-        $xmlPartnerID->nodeValue = $hvdContext->getPartnerId();
-        $xmlHVDOrderParams->appendChild($xmlPartnerID);
-
-        $xmlOrderType = $this->dom->createElement('OrderType');
-        $xmlOrderType->nodeValue = $hvdContext->getOrderType();
-        $xmlHVDOrderParams->appendChild($xmlOrderType);
-
-        // Add OrderID to HVDOrderParams.
-        $xmlOrderID = $this->dom->createElement('OrderID');
-        $xmlOrderID->nodeValue = $hvdContext->getOrderId();
-        $xmlHVDOrderParams->appendChild($xmlOrderID);
+        $this->appendElementTo('PartnerID', $hvdContext->getPartnerId(), $xmlHVDOrderParams);
+        $this->appendElementTo('OrderType', $hvdContext->getOrderType(), $xmlHVDOrderParams);
+        $this->appendElementTo('OrderID', $hvdContext->getOrderId(), $xmlHVDOrderParams);
 
         return $this;
     }
 
     public function addHVTOrderParams(HVTContext $hvtContext): OrderDetailsBuilder
     {
-        // Add HVTOrderParams to OrderDetails.
-        $xmlHVTOrderParams = $this->dom->createElement('HVTOrderParams');
-        $this->instance->appendChild($xmlHVTOrderParams);
+        $xmlHVTOrderParams = $this->appendEmptyElementTo('HVTOrderParams', $this->instance);
 
-        $xmlPartnerID = $this->dom->createElement('PartnerID');
-        $xmlPartnerID->nodeValue = $hvtContext->getPartnerId();
-        $xmlHVTOrderParams->appendChild($xmlPartnerID);
-
-        $xmlOrderType = $this->dom->createElement('OrderType');
-        $xmlOrderType->nodeValue = $hvtContext->getOrderType();
-        $xmlHVTOrderParams->appendChild($xmlOrderType);
-
-
-        // Add OrderID to HVTOrderParams.
-        $xmlOrderID = $this->dom->createElement('OrderID');
-        $xmlOrderID->nodeValue = $hvtContext->getOrderId();
-        $xmlHVTOrderParams->appendChild($xmlOrderID);
-
-        // Add OrderFlags to HVTOrderParams.
-        $xmlOrderFlags = $this->dom->createElement('OrderFlags');
-        $xmlOrderFlags->setAttribute('completeOrderData', $hvtContext->getCompleteOrderData() ? 'true' : 'false');
-        $xmlOrderFlags->setAttribute('fetchLimit', (string)$hvtContext->getFetchLimit());
-        $xmlOrderFlags->setAttribute('fetchOffset', (string)$hvtContext->getFetchOffset());
-        $xmlHVTOrderParams->appendChild($xmlOrderFlags);
+        $this->appendElementTo('PartnerID', $hvtContext->getPartnerId(), $xmlHVTOrderParams);
+        $this->appendElementTo('OrderType', $hvtContext->getOrderType(), $xmlHVTOrderParams);
+        $this->appendElementTo('OrderID', $hvtContext->getOrderId(), $xmlHVTOrderParams);
+        $this->appendEmptyElementTo('OrderFlags', $xmlHVTOrderParams, [
+            'completeOrderData' => $hvtContext->getCompleteOrderData() ? 'true' : 'false',
+            'fetchLimit' => (string)$hvtContext->getFetchLimit(),
+            'fetchOffset' => (string)$hvtContext->getFetchOffset(),
+        ]);
 
         return $this;
     }

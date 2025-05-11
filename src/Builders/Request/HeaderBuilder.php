@@ -13,27 +13,20 @@ use EbicsApi\Ebics\Services\CryptService;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class HeaderBuilder
+abstract class HeaderBuilder extends XmlBuilder
 {
     protected CryptService $cryptService;
     protected DOMElement $instance;
-    protected ?DOMDocument $dom;
 
-    public function __construct(CryptService $cryptService, ?DOMDocument $dom = null)
+    public function __construct(CryptService $cryptService, DOMDocument $dom)
     {
         $this->cryptService = $cryptService;
-        $this->dom = $dom;
+        parent::__construct($dom);
     }
 
-    /**
-     * Create body for UnsecuredRequest.
-     *
-     * @return $this
-     */
     public function createInstance(): HeaderBuilder
     {
-        $this->instance = $this->dom->createElement('header');
-        $this->instance->setAttribute('authenticate', 'true');
+        $this->instance = $this->createEmptyElement('header', ['authenticate' => 'true']);
 
         return $this;
     }

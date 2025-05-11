@@ -97,10 +97,7 @@ abstract class ResponseHandler
 
     public function retrieveH00XRequestOrderId(DOMDocument $xml): string
     {
-        $xpath = $this->prepareH00XXPath($xml);
-        $value = $xpath->query("//header/static/OrderDetails/OrderID");
-
-        return DOMHelper::safeItemValueOrNull($value);
+        return DOMHelper::safeItemValueOrNull($this->queryH00XXpath($xml, '//OrderID'));
     }
 
     public function retrieveH00XResponseOrderId(DOMDocument $xml): string

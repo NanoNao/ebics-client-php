@@ -2,7 +2,6 @@
 
 namespace EbicsApi\Ebics\Builders\Request;
 
-use DOMDocument;
 use DOMElement;
 
 /**
@@ -11,19 +10,13 @@ use DOMElement;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-final class MutableBuilder
+final class MutableBuilder extends XmlBuilder
 {
     const PHASE_INITIALIZATION = 'Initialisation';
     const PHASE_RECEIPT = 'Receipt';
     const PHASE_TRANSFER = 'Transfer';
 
     private DOMElement $instance;
-    private ?DOMDocument $dom;
-
-    public function __construct(?DOMDocument $dom = null)
-    {
-        $this->dom = $dom;
-    }
 
     /**
      * Create body for UnsecuredRequest.
@@ -32,17 +25,14 @@ final class MutableBuilder
      */
     public function createInstance(): MutableBuilder
     {
-        $this->instance = $this->dom->createElement('mutable');
+        $this->instance = $this->createEmptyElement('mutable');
 
         return $this;
     }
 
     public function addTransactionPhase(string $transactionPhase): MutableBuilder
     {
-        $xmlTransactionPhase = $this->dom->createElement('TransactionPhase');
-        $xmlTransactionPhase->nodeValue = $transactionPhase;
-
-        $this->instance->appendChild($xmlTransactionPhase);
+        $this->appendElementTo('TransactionPhase', $transactionPhase, $this->instance);
 
         return $this;
     }
@@ -50,10 +40,9 @@ final class MutableBuilder
     public function addSegmentNumber(?int $segmentNumber = null, ?bool $isLastSegment = null): MutableBuilder
     {
         if (null !== $segmentNumber) {
-            $xmlSegmentNumber = $this->dom->createElement('SegmentNumber');
-            $xmlSegmentNumber->setAttribute('lastSegment', $isLastSegment ? 'true' : 'false');
-            $xmlSegmentNumber->nodeValue = (string)$segmentNumber;
-            $this->instance->appendChild($xmlSegmentNumber);
+            $this->appendElementTo('SegmentNumber', (string)$segmentNumber, $this->instance, [
+                'lastSegment' => $isLastSegment ? 'true' : 'false',
+            ]);
         }
 
         return $this;
