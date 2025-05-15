@@ -450,46 +450,18 @@ final class CryptService
     }
 
     /**
-     * Generate order id from A000 to ZZZZ
-     * Unique value per partner for customer.
-     *
-     * @param string $partnerId
+     * Generate random order id from A000 to ZZZZ.
      *
      * @return string
      */
-    public function generateOrderId(string $partnerId): string
+    public function generateOrderId(): string
     {
-        $hash = $this->hash($partnerId, 'crc32', false);
+        $first = chr(rand(65, 90));
+        $num = rand(0, pow(36, 3) - 1);
+        $suffix = strtoupper(base_convert((string)$num, 10, 36));
+        $suffix = str_pad($suffix, 3, '0', STR_PAD_LEFT);
 
-        $decs = str_split($hash, 2);
-
-        $first = true;
-        $letOf = 65;
-        $letLim = 90;
-        $dgLim = 9;
-        $letRng = $letLim - $letOf;
-        $letDecRng = $letLim - $letOf + $dgLim;
-
-        $chrs = [];
-        foreach ($decs as $dec) {
-            $dec = hexdec($dec);
-
-            if ($first) {
-                $chrs[] = chr(($dec % $letRng) + $letOf);
-                $first = false;
-                continue;
-            }
-
-            $chrCode = $dec % $letDecRng;
-
-            if ($chrCode > $letRng) {
-                $chrs[] = $chrCode - $letRng;
-            } else {
-                $chrs[] = chr($chrCode + $letOf);
-            }
-        }
-
-        return implode($chrs);
+        return $first . $suffix;
     }
 
     /**
