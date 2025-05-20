@@ -1,5 +1,6 @@
 ## 2.4
 
+* Fixed HVE order type.
 * Change algo to generate OrderId for EBICS 2.4
 * Validation schema for Request.
 * Update CustomerCreditTransferBuilder.
