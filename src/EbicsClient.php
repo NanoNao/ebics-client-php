@@ -915,6 +915,7 @@ final class EbicsClient implements EbicsClientInterface
             function (UploadTransaction $transaction) use ($context) {
                 $transaction->setDigest($context->getHVEContext()->getDigest());
                 $transaction->setNumSegments(0);
+                $transaction->setOrderData("");
 
                 return $this->requestFactory->createHVE($transaction, $context);
             }
