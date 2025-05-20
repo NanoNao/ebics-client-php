@@ -46,7 +46,7 @@ You will need to have this information from your Bank: `HostID`, `HostURL`, `Par
 
 ```php
 <?php
-
+use EbicsApi\Ebics\Factories\KeyringFactory;
 use EbicsApi\Ebics\Services\FileKeyringManager;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\User;
@@ -56,7 +56,7 @@ use EbicsApi\Ebics\Models\X509\BankX509Generator;
 // Prepare `workspace` dir in the __PATH_TO_WORKSPACES_DIR__ manually.
 // "__EBICS_VERSION__" should have value "VERSION_30" for EBICS 3.0
 $keyringPath = __PATH_TO_WORKSPACES_DIR__ . '/workspace/keyring.json';
-$keyringManager = new FileKeyringManager();
+$keyringManager = new FileKeyringManager(new KeyringFactory);
 if (is_file($keyringPath)) {
     $keyring = $keyringManager->loadKeyring($keyringPath, __PASSWORD__, __EBICS_VERSION__);
 } else {
