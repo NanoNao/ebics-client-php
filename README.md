@@ -20,6 +20,7 @@ EBICS API Client - https://sites.google.com/view/ebics-api-client
 Accelerate your financial connectivity with powerful EBICS API Client, designed for seamless integration into your infrastructure.
 Whether deployed as a standalone web service or via Docker, it’s the fastest way to connect to banks using the EBICS protocol.  
 <br clear="left"/>
+:white_check_mark: Check the <a href="https://tinyurl.com/safe-ebics" target="_blank">DEMO</a> to see if it meets your needs.  
 :white_check_mark: Integrate effortlessly with banks across Europe using the trusted EBICS standard.  
 :white_check_mark: Easily integrate with applications written in any programming language — thanks to a clean, well-documented REST API.  
 :white_check_mark: Apply fine-grained control over users and connections for compliance and security.  
