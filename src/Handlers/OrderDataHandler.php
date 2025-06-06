@@ -14,10 +14,12 @@ use EbicsApi\Ebics\Factories\Crypt\BigIntegerFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\CustomerH3K;
+use EbicsApi\Ebics\Models\CustomerHCS;
 use EbicsApi\Ebics\Models\CustomerHIA;
 use EbicsApi\Ebics\Models\CustomerINI;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
+use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Models\XmlDocument;
 use EbicsApi\Ebics\Services\CryptService;
 
@@ -56,13 +58,16 @@ abstract class OrderDataHandler
         $this->bigIntegerFactory = $bigIntegerFactory;
     }
 
-    abstract protected function createSignaturePubKeyOrderData(CustomerINI $xml): DOMElement;
+    abstract protected function createSignaturePubKeyOrderData(XmlData $xml): DOMElement;
 
-    abstract protected function handleINISignaturePubKey(
+    abstract protected function createHCSRequestOrderData(XmlData $xml): DOMElement;
+
+    abstract protected function handleSignaturePubKey(
         DOMElement $xmlSignaturePubKeyInfo,
-        CustomerINI $xml,
+        XmlData $xml,
         SignatureInterface $certificateA,
-        DateTimeInterface $dateTime
+        DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void;
 
     /**
@@ -89,7 +94,7 @@ abstract class OrderDataHandler
             $this->handleX509Data($xmlSignaturePubKeyInfo, $xml, $certificateA);
         }
 
-        $this->handleINISignaturePubKey($xmlSignaturePubKeyInfo, $xml, $certificateA, $dateTime);
+        $this->handleSignaturePubKey($xmlSignaturePubKeyInfo, $xml, $certificateA, $dateTime);
 
         // Add SignatureVersion to SignaturePubKeyInfo.
         $xmlSignatureVersion = $xml->createElement('SignatureVersion');
@@ -111,18 +116,20 @@ abstract class OrderDataHandler
         );
     }
 
-    abstract protected function handleHIAAuthenticationPubKey(
+    abstract protected function handleAuthenticationPubKey(
         DOMElement $xmlAuthenticationPubKeyInfo,
-        CustomerHIA $xml,
+        XmlData $xml,
         SignatureInterface $certificateX,
-        DateTimeInterface $dateTime
+        DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void;
 
-    abstract protected function handleHIAEncryptionPubKey(
+    abstract protected function handleEncryptionPubKey(
         DOMElement $xmlEncryptionPubKeyInfo,
-        CustomerHIA $xml,
+        XmlData $xml,
         SignatureInterface $certificateE,
-        DateTimeInterface $dateTime
+        DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void;
 
     /**
@@ -154,7 +161,7 @@ abstract class OrderDataHandler
             $this->handleX509Data($xmlAuthenticationPubKeyInfo, $xml, $certificateX);
         }
 
-        $this->handleHIAAuthenticationPubKey($xmlAuthenticationPubKeyInfo, $xml, $certificateX, $dateTime);
+        $this->handleAuthenticationPubKey($xmlAuthenticationPubKeyInfo, $xml, $certificateX, $dateTime);
 
         // Add AuthenticationVersion to AuthenticationPubKeyInfo.
         $xmlAuthenticationVersion = $xml->createElement('AuthenticationVersion');
@@ -169,7 +176,7 @@ abstract class OrderDataHandler
             $this->handleX509Data($xmlEncryptionPubKeyInfo, $xml, $certificateE);
         }
 
-        $this->handleHIAEncryptionPubKey($xmlEncryptionPubKeyInfo, $xml, $certificateE, $dateTime);
+        $this->handleEncryptionPubKey($xmlEncryptionPubKeyInfo, $xml, $certificateE, $dateTime);
 
         // Add EncryptionVersion to EncryptionPubKeyInfo.
         $xmlEncryptionVersion = $xml->createElement('EncryptionVersion');
@@ -181,6 +188,78 @@ abstract class OrderDataHandler
 
         // Add UserID to HIARequestOrderData.
         $this->handleUserId($xmlHIARequestOrderData, $xml);
+    }
+
+    /**
+     * Adds OrderData DOM elements to XML DOM for HCS request.
+     *
+     * @throws EbicsException
+     */
+    public function handleHCS(
+        CustomerHCS $xml,
+        Keyring $keyring,
+        DateTimeInterface $dateTime
+    ): void {
+        $certificateA = $keyring->getUserSignatureA();
+        $certificateE = $keyring->getUserSignatureE();
+        $certificateX = $keyring->getUserSignatureX();
+        // Add HCSRequestOrderData to root.
+        $xmlHCSRequestOrderData = $this->createHCSRequestOrderData($xml);
+        $xml->appendChild($xmlHCSRequestOrderData);
+
+
+        // Add AuthenticationPubKeyInfo to HCSRequestOrderData.
+        $xmlAuthenticationPubKeyInfo = $xml->createElement('AuthenticationPubKeyInfo');
+        $xmlHCSRequestOrderData->appendChild($xmlAuthenticationPubKeyInfo);
+
+        if ($this->keyring->isCertified()) {
+            $this->handleX509Data($xmlAuthenticationPubKeyInfo, $xml, $certificateX);
+        }
+
+        $this->handleAuthenticationPubKey($xmlAuthenticationPubKeyInfo, $xml, $certificateX, $dateTime);
+
+        // Add AuthenticationVersion to AuthenticationPubKeyInfo.
+        $xmlAuthenticationVersion = $xml->createElement('AuthenticationVersion');
+        $xmlAuthenticationVersion->nodeValue = $this->keyring->getUserSignatureXVersion();
+        $xmlAuthenticationPubKeyInfo->appendChild($xmlAuthenticationVersion);
+
+
+        // Add EncryptionPubKeyInfo to HCSRequestOrderData.
+        $xmlEncryptionPubKeyInfo = $xml->createElement('EncryptionPubKeyInfo');
+        $xmlHCSRequestOrderData->appendChild($xmlEncryptionPubKeyInfo);
+
+        if ($this->keyring->isCertified()) {
+            $this->handleX509Data($xmlEncryptionPubKeyInfo, $xml, $certificateE);
+        }
+
+        $this->handleEncryptionPubKey($xmlEncryptionPubKeyInfo, $xml, $certificateE, $dateTime);
+
+        // Add EncryptionVersion to EncryptionPubKeyInfo.
+        $xmlEncryptionVersion = $xml->createElement('EncryptionVersion');
+        $xmlEncryptionVersion->nodeValue = $this->keyring->getUserSignatureEVersion();
+        $xmlEncryptionPubKeyInfo->appendChild($xmlEncryptionVersion);
+
+
+        // Add SignaturePubKeyInfo to SignaturePubKeyOrderData.
+        $xmlSignaturePubKeyInfo = $xml->createElement('esig:SignaturePubKeyInfo');
+        $xmlHCSRequestOrderData->appendChild($xmlSignaturePubKeyInfo);
+
+        if ($this->keyring->isCertified()) {
+            $this->handleX509Data($xmlSignaturePubKeyInfo, $xml, $certificateA);
+        }
+
+        $this->handleSignaturePubKey($xmlSignaturePubKeyInfo, $xml, $certificateA, $dateTime, 'esig');
+
+        // Add SignatureVersion to SignaturePubKeyInfo.
+        $xmlSignatureVersion = $xml->createElement('esig:SignatureVersion');
+        $xmlSignatureVersion->nodeValue = $this->keyring->getUserSignatureAVersion();
+        $xmlSignaturePubKeyInfo->appendChild($xmlSignatureVersion);
+
+        // Add PartnerID to HCSRequestOrderData.
+        $this->handlePartnerId($xmlHCSRequestOrderData, $xml);
+
+        // Add UserID to HCSRequestOrderData.
+        $this->handleUserId($xmlHCSRequestOrderData, $xml);
     }
 
     /**

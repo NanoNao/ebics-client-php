@@ -28,7 +28,7 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
 {
     use H00XTrait;
 
-    protected function createSignaturePubKeyOrderData(CustomerINI $xml): DOMElement
+    protected function createSignaturePubKeyOrderData(XmlData $xml): DOMElement
     {
         return $xml->createElementNS(
             'http://www.ebics.org/S001',
@@ -36,31 +36,34 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         );
     }
 
-    protected function handleINISignaturePubKey(
+    protected function handleSignaturePubKey(
         DOMElement $xmlSignaturePubKeyInfo,
-        CustomerINI $xml,
+        XmlData $xml,
         SignatureInterface $certificateA,
-        DateTimeInterface $dateTime
+        DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void {
-        $this->handlePubKeyValue($xmlSignaturePubKeyInfo, $xml, $certificateA, $dateTime);
+        $this->handlePubKeyValue($xmlSignaturePubKeyInfo, $xml, $certificateA, $dateTime, $ns);
     }
 
-    protected function handleHIAAuthenticationPubKey(
+    protected function handleAuthenticationPubKey(
         DOMElement $xmlAuthenticationPubKeyInfo,
-        CustomerHIA $xml,
+        XmlData $xml,
         SignatureInterface $certificateX,
-        DateTimeInterface $dateTime
+        DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void {
-        $this->handlePubKeyValue($xmlAuthenticationPubKeyInfo, $xml, $certificateX, $dateTime);
+        $this->handlePubKeyValue($xmlAuthenticationPubKeyInfo, $xml, $certificateX, $dateTime, $ns);
     }
 
-    protected function handleHIAEncryptionPubKey(
+    protected function handleEncryptionPubKey(
         DOMElement $xmlEncryptionPubKeyInfo,
-        CustomerHIA $xml,
+        XmlData $xml,
         SignatureInterface $certificateE,
-        DateTimeInterface $dateTime
+        DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void {
-        $this->handlePubKeyValue($xmlEncryptionPubKeyInfo, $xml, $certificateE, $dateTime);
+        $this->handlePubKeyValue($xmlEncryptionPubKeyInfo, $xml, $certificateE, $dateTime, $ns);
     }
 
     /**
@@ -70,12 +73,14 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         DOMNode $xmlPublicKeyInfo,
         DOMDocument $xml,
         SignatureInterface $signature,
-        ?DateTimeInterface $dateTime
+        ?DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void {
         $publicKeyDetails = $this->cryptService->decomposePublicKey($signature->getPublicKey());
+        $nsPrefix = null === $ns ? '' : $ns . ':';
 
         // Add PubKeyValue to Signature.
-        $xmlPubKeyValue = $xml->createElement('PubKeyValue');
+        $xmlPubKeyValue = $xml->createElement($nsPrefix . 'PubKeyValue');
         $xmlPublicKeyInfo->appendChild($xmlPubKeyValue);
 
         // Add ds:RSAKeyValue to PubKeyValue.
@@ -93,7 +98,7 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         $xmlRSAKeyValue->appendChild($xmlExponent);
 
         // Add TimeStamp to PubKeyValue.
-        $xmlTimeStamp = $xml->createElement('TimeStamp');
+        $xmlTimeStamp = $xml->createElement($nsPrefix . 'TimeStamp');
         $xmlTimeStamp->nodeValue = $dateTime->format('Y-m-d\TH:i:s\Z');
         $xmlPubKeyValue->appendChild($xmlTimeStamp);
     }
@@ -182,5 +187,15 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         }
 
         return $signature;
+    }
+
+    protected function createHCSRequestOrderData(XmlData $xml): DOMElement
+    {
+        $element = $xml->createElementNS($this->getH00XNamespace(), 'HCSRequestOrderData');
+
+        $element->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:esig', 'http://www.ebics.org/S001');
+        $element->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ds', 'http://www.w3.org/2000/09/xmldsig#');
+
+        return $element;
     }
 }

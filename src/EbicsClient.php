@@ -39,6 +39,7 @@ use EbicsApi\Ebics\Handlers\ResponseHandler;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
+use EbicsApi\Ebics\Models\CustomerHCS;
 use EbicsApi\Ebics\Models\DownloadOrderResult;
 use EbicsApi\Ebics\Models\DownloadSegment;
 use EbicsApi\Ebics\Models\DownloadTransaction;
@@ -153,6 +154,42 @@ final class EbicsClient implements EbicsClientInterface
         $this->transactionFactory = new TransactionFactory();
         $this->httpClient = $options['http_client'] ?? new CurlHttpClient();
     }
+
+    public function HCS(
+        Keyring $keyring,
+        ?RequestContext $context = null
+    ): UploadOrderResult {
+        $context = $this->requestFactory->prepareStandardContext($context);
+        $context->setWithES(true);
+
+        $orderData = new CustomerHCS();
+        $this->orderDataHandler->handleHCS(
+            $orderData,
+            $keyring,
+            $context->getDateTime()
+        );
+
+        $transaction = $this->uploadTransaction(
+            function (UploadTransaction $transaction) use ($orderData, $context) {
+                $transaction->setOrderData($orderData->getContent());
+                $transaction->setNumSegments(1);
+                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
+
+                return $this->requestFactory->createHCS($transaction, $context);
+            }
+        );
+
+        $signatureA = $keyring->getUserSignatureA();
+        $signatureE = $keyring->getUserSignatureE();
+        $signatureX = $keyring->getUserSignatureX();
+
+        $this->keyring->setUserSignatureA($signatureA);
+        $this->keyring->setUserSignatureE($signatureE);
+        $this->keyring->setUserSignatureX($signatureX);
+
+        return $this->createUploadOrderResult($transaction, $orderData);
+    }
+
 
     /**
      * @inheritDoc
