@@ -5,6 +5,8 @@ namespace EbicsApi\Ebics;
 use EbicsApi\Ebics\Contracts\BankLetter\FormatterInterface;
 use EbicsApi\Ebics\Factories\BankLetterFactory;
 use EbicsApi\Ebics\Factories\CertificateX509Factory;
+use EbicsApi\Ebics\Factories\Crypt\AESFactory;
+use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\EbicsFactoryV24;
 use EbicsApi\Ebics\Factories\EbicsFactoryV25;
 use EbicsApi\Ebics\Factories\EbicsFactoryV30;
@@ -18,6 +20,8 @@ use EbicsApi\Ebics\Services\BankLetter\Formatter\PdfBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\TxtBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetterService;
 use EbicsApi\Ebics\Services\CryptService;
+use EbicsApi\Ebics\Services\KeyStorageLocator;
+use EbicsApi\Ebics\Services\RandomService;
 use LogicException;
 
 /**
@@ -33,9 +37,13 @@ final class EbicsBankLetter
     private BankLetterFactory $bankLetterFactory;
     private CryptService $cryptService;
 
-    public function __construct()
+    public function __construct(array $options = [])
     {
-        $this->cryptService = new CryptService();
+        $this->cryptService = new CryptService(
+            new RSAFactory($options['rsa_class_map'] ?? null),
+            new AESFactory(),
+            new RandomService()
+        );
         $this->bankLetterService = new BankLetterService(
             $this->cryptService,
             new SignatureBankLetterFactory(),

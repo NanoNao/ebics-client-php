@@ -10,24 +10,22 @@ namespace EbicsApi\Ebics\Models\Crypt;
  */
 final class KeyPair
 {
-    private string $publicKey;
-    /**
-     * Private key null to represent bank signature.
-     */
-    private ?string $privateKey;
+    private Key $publicKey;
 
-    public function __construct(string $publicKey, ?string $privateKey)
+    private Key $privateKey;
+
+    public function __construct(Key $publicKey, Key $privateKey)
     {
         $this->publicKey = $publicKey;
         $this->privateKey = $privateKey;
     }
 
-    public function getPublicKey(): string
+    public function getPublicKey(): Key
     {
         return $this->publicKey;
     }
 
-    public function getPrivateKey(): string
+    public function getPrivateKey(): Key
     {
         return $this->privateKey;
     }

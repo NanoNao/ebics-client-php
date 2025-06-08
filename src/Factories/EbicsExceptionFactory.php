@@ -33,11 +33,13 @@ final class EbicsExceptionFactory
         if (($exceptionClass = EbicsErrorCodeMapping::resolveClass($errorCode))) {
             $exception = new $exceptionClass($errorText);
         } else {
-            throw new IncorrectResponseEbicsException(sprintf(
-                'Incorrect Response Exception %s %s',
-                $errorCode,
-                $errorText
-            ));
+            throw new IncorrectResponseEbicsException(
+                sprintf(
+                    'Incorrect Response Exception %s %s',
+                    $errorCode,
+                    $errorText
+                )
+            );
         }
 
         if (null !== $request) {

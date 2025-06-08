@@ -56,7 +56,7 @@ final class FakerHttpClient implements HttpClientInterface
                 [
                     'file_format' => $fileFormatMatches['file_format'] ??
                             (!empty($btfOrderParamsMatches) ?
-                                $btfOrderParamsMatches['service_name'].'.'.$btfOrderParamsMatches['msg_name']
+                                $btfOrderParamsMatches['service_name'] . '.' . $btfOrderParamsMatches['msg_name']
                                 : null) ??
                             null,
                 ]
@@ -103,7 +103,7 @@ final class FakerHttpClient implements HttpClientInterface
             case 'FDL':
             case 'BTU':
             case 'BTD':
-                $fileName = sprintf(strtolower($orderType).'.%s.xml', strtolower($options['file_format']));
+                $fileName = sprintf(strtolower($orderType) . '.%s.xml', strtolower($options['file_format']));
                 break;
             case 'INI':
             case 'HIA':
@@ -132,7 +132,7 @@ final class FakerHttpClient implements HttpClientInterface
             case 'XE2':
             case 'XE3':
             case 'YCT':
-                $fileName = strtolower($orderType).'.xml';
+                $fileName = strtolower($orderType) . '.xml';
                 break;
             default:
                 throw new LogicException(sprintf('Faked order type `%s` not supported.', $orderType));
@@ -153,7 +153,7 @@ final class FakerHttpClient implements HttpClientInterface
         switch ($transactionPhase) {
             case 'Receipt':
             case 'Transfer':
-                $fileName = strtolower($transactionPhase).'.xml';
+                $fileName = strtolower($transactionPhase) . '.xml';
                 break;
             default:
                 throw new LogicException(sprintf('Faked transaction phase `%s` not supported.', $transactionPhase));
@@ -164,7 +164,7 @@ final class FakerHttpClient implements HttpClientInterface
 
     private function readFixture(string $fileName): Response
     {
-        $fixturePath = $this->fixturesDir.'/'.$fileName;
+        $fixturePath = $this->fixturesDir . '/' . $fileName;
 
         if (!is_file($fixturePath)) {
             throw new LogicException(sprintf('Fixtures file %s does not exists.', $fileName));

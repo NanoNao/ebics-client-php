@@ -3,7 +3,9 @@
 namespace EbicsApi\Ebics\Services;
 
 use EbicsApi\Ebics\Contracts\KeyringManagerInterface;
+use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\KeyringFactory;
+use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Keyring;
 
 /**
@@ -19,9 +21,12 @@ abstract class KeyringManager implements KeyringManagerInterface
 {
     protected KeyringFactory $keyringFactory;
 
-    public function __construct(KeyringFactory $keyringFactory)
+    public function __construct(?KeyringFactory $keyringFactory = null)
     {
-        $this->keyringFactory = $keyringFactory;
+        $this->keyringFactory = $keyringFactory ?? new KeyringFactory(
+            new SignatureFactory(new RSAFactory()),
+            new CryptoStorage(new KeyStorageLocator())
+        );
     }
 
     public function createKeyring(string $version): Keyring

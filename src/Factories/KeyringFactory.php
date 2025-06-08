@@ -4,6 +4,7 @@ namespace EbicsApi\Ebics\Factories;
 
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Models\Keyring;
+use EbicsApi\Ebics\Services\CryptoStorage;
 
 /**
  * Class KeyringFactory represents producers for the @see Keyring
@@ -15,9 +16,12 @@ final class KeyringFactory
 {
     private SignatureFactory $signatureFactory;
 
-    public function __construct()
+    private CryptoStorage $cryptoStorage;
+
+    public function __construct(SignatureFactory $signatureFactory, CryptoStorage $cryptoStorage)
     {
-        $this->signatureFactory = new SignatureFactory();
+        $this->signatureFactory = $signatureFactory;
+        $this->cryptoStorage = $cryptoStorage;
     }
 
     /**
@@ -72,19 +76,19 @@ final class KeyringFactory
         }
         $certificateContent
             = $data[$typePrefix][$signaturePrefix][Keyring::CERTIFICATE_PREFIX];
-        $signaturePublicKey
+        $publicKey
             = $data[$typePrefix][$signaturePrefix][Keyring::PUBLIC_KEY_PREFIX];
-        $signaturePrivateKey
+        $privateKey
             = $data[$typePrefix][$signaturePrefix][Keyring::PRIVATE_KEY_PREFIX];
 
         $signature = $this->signatureFactory->create(
             $signaturePrefix,
-            $this->decodeValue($signaturePublicKey),
-            !empty($signaturePrivateKey) ? $this->decodeValue($signaturePrivateKey) : null
+            $this->cryptoStorage->readPublicKey($publicKey),
+            $this->cryptoStorage->readPrivateKey($privateKey),
         );
 
         if (!empty($certificateContent)) {
-            $signature->setCertificateContent($this->decodeValue($certificateContent));
+            $signature->setCertificateContent($this->cryptoStorage->readCertificate($certificateContent));
         }
 
         return $signature;
@@ -128,68 +132,48 @@ final class KeyringFactory
             Keyring::USER_PREFIX => [
                 Keyring::SIGNATURE_PREFIX_A => [
                     Keyring::VERSION_PREFIX => $keyring->getUserSignatureAVersion(),
-                    Keyring::CERTIFICATE_PREFIX => isset($userSignatureAB64) ?
-                        $this->encodeValue($userSignatureAB64) : null,
-                    Keyring::PUBLIC_KEY_PREFIX => isset($userSignatureAPublicKey) ?
-                        $this->encodeValue($userSignatureAPublicKey) : null,
-                    Keyring::PRIVATE_KEY_PREFIX => isset($userSignatureAPrivateKey) ?
-                        $this->encodeValue($userSignatureAPrivateKey) : null,
+                    Keyring::CERTIFICATE_PREFIX => $this->cryptoStorage
+                        ->writeCertificate($userSignatureAB64 ?? null),
+                    Keyring::PUBLIC_KEY_PREFIX => $this->cryptoStorage
+                        ->writePublicKey($userSignatureAPublicKey ?? null),
+                    Keyring::PRIVATE_KEY_PREFIX => $this->cryptoStorage
+                        ->writePrivateKey($userSignatureAPrivateKey ?? null),
                 ],
                 Keyring::SIGNATURE_PREFIX_E => [
-                    Keyring::CERTIFICATE_PREFIX => isset($userSignatureEB64) ?
-                        $this->encodeValue($userSignatureEB64) : null,
-                    Keyring::PUBLIC_KEY_PREFIX => isset($userSignatureEPublicKey) ?
-                        $this->encodeValue($userSignatureEPublicKey) : null,
-                    Keyring::PRIVATE_KEY_PREFIX => isset($userSignatureEPrivateKey) ?
-                        $this->encodeValue($userSignatureEPrivateKey) : null,
+                    Keyring::CERTIFICATE_PREFIX => $this->cryptoStorage
+                        ->writeCertificate($userSignatureEB64 ?? null),
+                    Keyring::PUBLIC_KEY_PREFIX => $this->cryptoStorage
+                        ->writePublicKey($userSignatureEPublicKey ?? null),
+                    Keyring::PRIVATE_KEY_PREFIX => $this->cryptoStorage
+                        ->writePrivateKey($userSignatureEPrivateKey ?? null),
                 ],
                 Keyring::SIGNATURE_PREFIX_X => [
-                    Keyring::CERTIFICATE_PREFIX => isset($userSignatureXB64) ?
-                        $this->encodeValue($userSignatureXB64) : null,
-                    Keyring::PUBLIC_KEY_PREFIX => isset($userSignatureXPublicKey) ?
-                        $this->encodeValue($userSignatureXPublicKey) : null,
-                    Keyring::PRIVATE_KEY_PREFIX => isset($userSignatureXPrivateKey) ?
-                        $this->encodeValue($userSignatureXPrivateKey) : null,
+                    Keyring::CERTIFICATE_PREFIX => $this->cryptoStorage
+                        ->writeCertificate($userSignatureXB64 ?? null),
+                    Keyring::PUBLIC_KEY_PREFIX => $this->cryptoStorage
+                        ->writePublicKey($userSignatureXPublicKey ?? null),
+                    Keyring::PRIVATE_KEY_PREFIX => $this->cryptoStorage
+                        ->writePrivateKey($userSignatureXPrivateKey ?? null),
                 ],
             ],
             Keyring::BANK_PREFIX => [
                 Keyring::SIGNATURE_PREFIX_E => [
-                    Keyring::CERTIFICATE_PREFIX => isset($bankSignatureEB64) ?
-                        $this->encodeValue($bankSignatureEB64) : null,
-                    Keyring::PUBLIC_KEY_PREFIX => isset($bankSignatureEPublicKey) ?
-                        $this->encodeValue($bankSignatureEPublicKey) : null,
-                    Keyring::PRIVATE_KEY_PREFIX => isset($bankSignatureEPrivateKey) ?
-                        $this->encodeValue($bankSignatureEPrivateKey) : null,
+                    Keyring::CERTIFICATE_PREFIX => $this->cryptoStorage
+                        ->writeCertificate($bankSignatureEB64 ?? null),
+                    Keyring::PUBLIC_KEY_PREFIX => $this->cryptoStorage
+                        ->writePublicKey($bankSignatureEPublicKey ?? null),
+                    Keyring::PRIVATE_KEY_PREFIX => $this->cryptoStorage
+                        ->writePrivateKey($bankSignatureEPrivateKey ?? null),
                 ],
                 Keyring::SIGNATURE_PREFIX_X => [
-                    Keyring::CERTIFICATE_PREFIX => isset($bankSignatureXB64) ?
-                        $this->encodeValue($bankSignatureXB64) : null,
-                    Keyring::PUBLIC_KEY_PREFIX => isset($bankSignatureXPublicKey) ?
-                        $this->encodeValue($bankSignatureXPublicKey) : null,
-                    Keyring::PRIVATE_KEY_PREFIX => isset($bankSignatureXPrivateKey) ?
-                        $this->encodeValue($bankSignatureXPrivateKey) : null,
+                    Keyring::CERTIFICATE_PREFIX => $this->cryptoStorage
+                        ->writeCertificate($bankSignatureXB64 ?? null),
+                    Keyring::PUBLIC_KEY_PREFIX => $this->cryptoStorage
+                        ->writePublicKey($bankSignatureXPublicKey ?? null),
+                    Keyring::PRIVATE_KEY_PREFIX => $this->cryptoStorage
+                        ->writePrivateKey($bankSignatureXPrivateKey ?? null),
                 ],
             ],
         ];
-    }
-
-    /**
-     * @param string $value
-     *
-     * @return string
-     */
-    private function encodeValue(string $value): string
-    {
-        return base64_encode($value);
-    }
-
-    /**
-     * @param string $value
-     *
-     * @return string
-     */
-    private function decodeValue(string $value): string
-    {
-        return base64_decode($value);
     }
 }

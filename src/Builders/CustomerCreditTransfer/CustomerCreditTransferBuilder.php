@@ -219,7 +219,7 @@ final class CustomerCreditTransferBuilder
             $xmlEndToEndId->nodeValue = $endToEndId;
         } else {
             $xmlEndToEndId->nodeValue = $this->randomService->uniqueIdWithDate(
-                'pete'.str_pad((string)$nbOfTxs, 2, '0')
+                'pete' . str_pad((string)$nbOfTxs, 2, '0')
             );
         }
         $xmlPmtId->appendChild($xmlEndToEndId);
@@ -246,7 +246,7 @@ final class CustomerCreditTransferBuilder
         //update PmtInf
         $nbOfTxsList = $xpath->query('//CstmrCdtTrfInitn/PmtInf/NbOfTxs');
         $xmlNbOfTxs = DOMHelper::safeItem($nbOfTxsList);
-        $xmlNbOfTxs->nodeValue = (string) $nbOfTxs;
+        $xmlNbOfTxs->nodeValue = (string)$nbOfTxs;
 
         $ctrlSumList = $xpath->query('//CstmrCdtTrfInitn/PmtInf/CtrlSum');
         $xmlCtrlSum = DOMHelper::safeItem($ctrlSumList);

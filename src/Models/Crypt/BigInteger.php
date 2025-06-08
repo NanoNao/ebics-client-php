@@ -314,11 +314,13 @@ final class BigInteger implements BigIntegerInterface
         $remainder->setValue(bcmod($this->value, $y->getValue()));
 
         if ($remainder->value[0] == '-') {
-            $remainder->setValue(bcadd(
-                $remainder->value,
-                $y->getValue()[0] == '-' ? substr($y->getValue(), 1) : $y->getValue(),
-                0
-            ));
+            $remainder->setValue(
+                bcadd(
+                    $remainder->value,
+                    $y->getValue()[0] == '-' ? substr($y->getValue(), 1) : $y->getValue(),
+                    0
+                )
+            );
         }
 
         return [$this->normalize($quotient), $this->normalize($remainder)];

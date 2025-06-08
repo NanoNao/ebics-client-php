@@ -225,9 +225,9 @@ final class AES implements AESInterface
 
         // Padding ANSI X 923.
         $paddingSize = $this->block_size - (strlen($text) % $this->block_size);
-        $padding = str_repeat(chr(0), $paddingSize - 1).chr($paddingSize);
+        $padding = str_repeat(chr(0), $paddingSize - 1) . chr($paddingSize);
 
-        return $text.$padding;
+        return $text . $padding;
     }
 
     public function decryptBuffer(BufferInterface $ciphertext, BufferInterface $plaintext): void
@@ -391,8 +391,8 @@ final class AES implements AESInterface
                 if ($this->block_size != 16) {
                     return false;
                 }
-                $this->cipherNameOpensslEcb = 'aes-'.($this->key_length << 3).'-ecb';
-                $this->cipherNameOpenssl = 'aes-'.($this->key_length << 3).'-'.$this->opensslTranslateMode();
+                $this->cipherNameOpensslEcb = 'aes-' . ($this->key_length << 3) . '-ecb';
+                $this->cipherNameOpenssl = 'aes-' . ($this->key_length << 3) . '-' . $this->opensslTranslateMode();
                 break;
             default:
                 throw new LogicException('Unhandled engine.');

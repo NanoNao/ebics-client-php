@@ -1,3 +1,7 @@
+## 2.5
+
+* Changed `options` for `createUserSignatures`.
+
 ## 2.4
 
 * Fixed HVE order type.

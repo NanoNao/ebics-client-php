@@ -196,11 +196,13 @@ abstract class X509Generator implements X509GeneratorInterface
                 $extension['replace']
             );
             if (false === $isSetExtension) {
-                throw new X509GeneratorException(sprintf(
-                    'Unable to set "%s" extension with value: %s',
-                    $id,
-                    var_export($extension['value'], true)
-                ));
+                throw new X509GeneratorException(
+                    sprintf(
+                        'Unable to set "%s" extension with value: %s',
+                        $id,
+                        var_export($extension['value'], true)
+                    )
+                );
             }
         }
 

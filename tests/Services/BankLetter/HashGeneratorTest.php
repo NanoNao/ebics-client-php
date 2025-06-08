@@ -3,13 +3,19 @@
 namespace EbicsApi\Ebics\Tests\Services\BankLetter;
 
 use DateTime;
+use EbicsApi\Ebics\Factories\Crypt\AESFactory;
+use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Bank;
+use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
+use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolverV2;
 use EbicsApi\Ebics\Services\DigestResolverV3;
+use EbicsApi\Ebics\Services\KeyStorageLocator;
+use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**
@@ -28,7 +34,9 @@ class HashGeneratorTest extends AbstractEbicsTestCase
      */
     public function testGenerateCertificateHashV2()
     {
-        $digestResolver = new DigestResolverV2(new CryptService());
+        $digestResolver = new DigestResolverV2(
+            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+        );
 
         $privateKey = $this->getPrivateKey();
         $publicKey = $this->getPublicKey();
@@ -38,12 +46,14 @@ class HashGeneratorTest extends AbstractEbicsTestCase
         $x509Generator->setCertificateOptionsByBank(new Bank('H123456', 'https://test.bank.dom'));
         $x509Generator->setX509StartDate(new DateTime('2020-03-22'));
         $x509Generator->setX509EndDate(new DateTime('2021-03-22'));
-        $x509Generator->setSerialNumber('37376365613564393736653364353135633333333932376336366134393663336133663135323432');
+        $x509Generator->setSerialNumber(
+            '37376365613564393736653364353135633333333932376336366134393663336133663135323432'
+        );
 
-        $certificateFactory = new SignatureFactory();
+        $certificateFactory = new SignatureFactory(new RSAFactory());
 
         $signature = $certificateFactory->createSignatureAFromKeys(
-            new KeyPair($publicKey, $privateKey),
+            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
             'test123',
             $x509Generator
         );
@@ -59,7 +69,9 @@ class HashGeneratorTest extends AbstractEbicsTestCase
      */
     public function testGenerateCertificateHashV3()
     {
-        $digestResolver = new DigestResolverV3(new CryptService());
+        $digestResolver = new DigestResolverV3(
+            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+        );
 
         $privateKey = $this->getPrivateKey();
         $publicKey = $this->getPublicKey();
@@ -69,12 +81,14 @@ class HashGeneratorTest extends AbstractEbicsTestCase
         $x509Generator->setCertificateOptionsByBank(new Bank('H123456', 'https://test.bank.dom'));
         $x509Generator->setX509StartDate(new DateTime('2020-03-22'));
         $x509Generator->setX509EndDate(new DateTime('2021-03-22'));
-        $x509Generator->setSerialNumber('37376365613564393736653364353135633333333932376336366134393663336133663135323432');
+        $x509Generator->setSerialNumber(
+            '37376365613564393736653364353135633333333932376336366134393663336133663135323432'
+        );
 
-        $certificateFactory = new SignatureFactory();
+        $certificateFactory = new SignatureFactory(new RSAFactory());
 
         $signature = $certificateFactory->createSignatureAFromKeys(
-            new KeyPair($publicKey, $privateKey),
+            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
             'test123',
             $x509Generator
         );
@@ -90,15 +104,17 @@ class HashGeneratorTest extends AbstractEbicsTestCase
      */
     public function testGeneratePublicKeyHash()
     {
-        $digestResolver = new DigestResolverV2(new CryptService());
+        $digestResolver = new DigestResolverV2(
+            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+        );
 
         $privateKey = $this->getPrivateKey();
         $publicKey = $this->getPublicKey();
 
-        $certificateFactory = new SignatureFactory();
+        $certificateFactory = new SignatureFactory(new RSAFactory());
 
         $signature = $certificateFactory->createSignatureAFromKeys(
-            new KeyPair($publicKey, $privateKey),
+            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
             'test123'
         );
 

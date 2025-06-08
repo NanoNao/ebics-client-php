@@ -8,7 +8,9 @@ use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Models\Buffer;
+use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
+use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\Keyring;
 use LogicException;
 use RuntimeException;
@@ -27,11 +29,11 @@ final class CryptService
     private AESFactory $aesFactory;
     private RandomService $randomService;
 
-    public function __construct()
+    public function __construct(RSAFactory $rsaFactory, AESFactory $aesFactory, RandomService $randomService)
     {
-        $this->rsaFactory = new RSAFactory();
-        $this->aesFactory = new AESFactory();
-        $this->randomService = new RandomService();
+        $this->rsaFactory = $rsaFactory;
+        $this->aesFactory = $aesFactory;
+        $this->randomService = $randomService;
     }
 
     /**
@@ -114,17 +116,15 @@ final class CryptService
     }
 
     /**
-     * Calculate signatureValue by encrypting Signature value with user Private key.
-     *
-     * @param string $privateKey
+     * Encrypt data with Private key.
+     * @param Key $privateKey
      * @param string $password
      * @param string $version
      * @param string $data
-     *
      * @return string
      */
     public function encrypt(
-        string $privateKey,
+        Key $privateKey,
         string $password,
         string $version,
         string $data
@@ -150,8 +150,16 @@ final class CryptService
         return $encrypt;
     }
 
+    /**
+     * Sign data with Private key.
+     * @param Key $privateKey
+     * @param string $password
+     * @param string $version
+     * @param string $data
+     * @return string
+     */
     public function sign(
-        string $privateKey,
+        Key $privateKey,
         string $password,
         string $version,
         string $data
@@ -181,12 +189,12 @@ final class CryptService
     /**
      * Encrypt transaction key by RSA public key.
      *
-     * @param string $publicKey
+     * @param Key $publicKey
      * @param string $transactionKey
      *
      * @return string
      */
-    public function encryptTransactionKey(string $publicKey, string $transactionKey): string
+    public function encryptTransactionKey(Key $publicKey, string $transactionKey): string
     {
         return $this->encryptByRsaPublicKey($publicKey, $transactionKey);
     }
@@ -211,12 +219,12 @@ final class CryptService
     /**
      * Encrypt by public key.
      *
-     * @param string $publicKey
+     * @param Key $publicKey
      * @param string $data
      *
      * @return string
      */
-    private function encryptByRsaPublicKey(string $publicKey, string $data): string
+    private function encryptByRsaPublicKey(Key $publicKey, string $data): string
     {
         $rsa = $this->rsaFactory->createPublic($publicKey);
 
@@ -241,7 +249,7 @@ final class CryptService
         string $algorithm = 'sha256',
         int $length = 2048
     ): KeyPair {
-        $rsa = $this->rsaFactory->create();
+        $rsa = $this->rsaFactory->create(RSA::PRIVATE_FORMAT_PKCS1);
         $rsa->setHash($algorithm);
         $rsa->setPassword($password);
 
@@ -408,7 +416,6 @@ final class CryptService
         return $fingerprint;
     }
 
-
     /**
      * Generate nonce from 32 HEX digits.
      *
@@ -432,14 +439,14 @@ final class CryptService
     /**
      * Transform public key on exponent and modulus.
      *
-     * @param string $publicKey
+     * @param Key $publicKey
      *
      * @return array = [
      *   'e' => '<bytes>',
      *   'm' => '<bytes>',
      * ]
      */
-    public function getPublicKeyDetails(string $publicKey): array
+    public function decomposePublicKey(Key $publicKey): array
     {
         $rsa = $this->rsaFactory->createPublic($publicKey);
 
@@ -467,12 +474,12 @@ final class CryptService
     /**
      * Check private key is valid.
      *
-     * @param string $privateKey
+     * @param Key $privateKey
      * @param string $password
      *
      * @return bool
      */
-    public function checkPrivateKey(string $privateKey, string $password): bool
+    public function checkPrivateKey(Key $privateKey, string $password): bool
     {
         try {
             $this->rsaFactory->createPrivate($privateKey, $password);
@@ -486,18 +493,18 @@ final class CryptService
     /**
      * Change password for private key.
      *
-     * @param string $privateKey
+     * @param KeyPair $keyPair
      * @param string $oldPassword
      * @param string $newPassword
      *
      * @return KeyPair
      */
-    public function changePrivateKeyPassword(string $privateKey, string $oldPassword, string $newPassword): KeyPair
+    public function changePrivateKeyPassword(KeyPair $keyPair, string $oldPassword, string $newPassword): KeyPair
     {
-        $rsa = $this->rsaFactory->create();
+        $rsa = $this->rsaFactory->create($keyPair->getPrivateKey()->getType());
 
         return $rsa->changePassword(
-            $privateKey,
+            $keyPair,
             $oldPassword,
             $newPassword
         );

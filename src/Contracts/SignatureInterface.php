@@ -2,6 +2,8 @@
 
 namespace EbicsApi\Ebics\Contracts;
 
+use EbicsApi\Ebics\Models\Crypt\Key;
+
 /**
  * EBICS SignatureInterface representation.
  *
@@ -26,14 +28,14 @@ interface SignatureInterface
     public function getType(): string;
 
     /**
-     * @return string
+     * @return Key
      */
-    public function getPublicKey(): string;
+    public function getPublicKey(): Key;
 
     /**
-     * @return string|null
+     * @return Key|null
      */
-    public function getPrivateKey(): ?string;
+    public function getPrivateKey(): ?Key;
 
     /**
      * @param string|null $certificateContent

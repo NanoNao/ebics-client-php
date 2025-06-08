@@ -6,9 +6,12 @@ use EbicsApi\Ebics\Builders\CustomerCreditTransfer\CustomerCreditTransferBuilder
 use EbicsApi\Ebics\Builders\CustomerDirectDebit\CustomerDirectDebitBuilder;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
 use EbicsApi\Ebics\EbicsClient;
+use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\KeyringFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Bank;
+use EbicsApi\Ebics\Models\Crypt\Key;
+use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\CustomerCreditTransfer;
 use EbicsApi\Ebics\Models\CustomerDirectDebit;
 use EbicsApi\Ebics\Models\Keyring;
@@ -16,9 +19,11 @@ use EbicsApi\Ebics\Models\StructuredPostalAddress;
 use EbicsApi\Ebics\Models\UnstructuredPostalAddress;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
+use EbicsApi\Ebics\Services\CryptoStorage;
 use EbicsApi\Ebics\Services\DebuggerHttpClient;
 use EbicsApi\Ebics\Services\FakerHttpClient;
 use EbicsApi\Ebics\Services\FileKeyringManager;
+use EbicsApi\Ebics\Services\KeyStorageLocator;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -73,7 +78,7 @@ abstract class AbstractEbicsTestCase extends TestCase
         $bank->setCountryCode($credentials['countryCode']);
         $user = new User($credentials['partnerId'], $credentials['userId']);
 
-        $keyringManager = new FileKeyringManager(new KeyringFactory);
+        $keyringManager = new FileKeyringManager();
 
         $keyringPath = sprintf('%s/workspace/keyring_%d.json', $this->data, $credentialsId);
         if (is_file($keyringPath)) {
@@ -111,7 +116,7 @@ abstract class AbstractEbicsTestCase extends TestCase
 
     protected function loadKeyring(string $keyringPath, string $password, string $version): Keyring
     {
-        $keyringManager = new FileKeyringManager(new KeyringFactory);
+        $keyringManager = new FileKeyringManager();
 
         return $keyringManager->loadKeyring($keyringPath, $password, $version);
     }
@@ -119,7 +124,7 @@ abstract class AbstractEbicsTestCase extends TestCase
     protected function saveKeyring(string $credentialsId, Keyring $keyring): void
     {
         $keyringRealPath = sprintf('%s/workspace/keyring_%d.json', $this->data, $credentialsId);
-        $keyringManager = new FileKeyringManager(new KeyringFactory);
+        $keyringManager = new FileKeyringManager();
         $keyringManager->saveKeyring($keyring, $keyringRealPath);
     }
 
@@ -127,25 +132,25 @@ abstract class AbstractEbicsTestCase extends TestCase
     {
         $keys = json_decode(file_get_contents($this->fixtures . '/keys.json'));
         $keyring->setPassword('mysecret');
-        $signatureFactory = new SignatureFactory();
+        $signatureFactory = new SignatureFactory(new RSAFactory());
 
         $userSignatureA = $signatureFactory->createSignatureA(
             $keyring->getUserSignatureA()->getPublicKey(),
-            $keys->A006
+            new Key($keys->A006, RSA::PRIVATE_FORMAT_PKCS1)
         );
         $userSignatureA->setCertificateContent($keyring->getUserSignatureA()->getCertificateContent());
         $keyring->setUserSignatureA($userSignatureA);
 
         $userSignatureE = $signatureFactory->createSignatureE(
             $keyring->getUserSignatureE()->getPublicKey(),
-            $keys->E002
+            new Key($keys->E002, RSA::PRIVATE_FORMAT_PKCS1)
         );
         $userSignatureE->setCertificateContent($keyring->getUserSignatureE()->getCertificateContent());
         $keyring->setUserSignatureE($userSignatureE);
 
         $userSignatureX = $signatureFactory->createSignatureX(
             $keyring->getUserSignatureX()->getPublicKey(),
-            $keys->X002
+            new Key($keys->X002, RSA::PRIVATE_FORMAT_PKCS1)
         );
         $userSignatureX->setCertificateContent($keyring->getUserSignatureX()->getCertificateContent());
         $keyring->setUserSignatureX($userSignatureX);

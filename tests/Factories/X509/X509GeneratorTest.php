@@ -3,10 +3,14 @@
 namespace EbicsApi\Ebics\Tests\Factories\X509;
 
 use DateTime;
+use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Bank;
+use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
+use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
+use EbicsApi\Ebics\Services\KeyStorageLocator;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**
@@ -35,15 +39,15 @@ class X509GeneratorTest extends AbstractEbicsTestCase
         $x509Generator->setX509EndDate(new DateTime('2021-03-22'));
         $x509Generator->setSerialNumber('539453510852155194065233908413342789156542395956670254476154968597583055940');
 
-        $signatureFactory = new SignatureFactory();
+        $signatureFactory = new SignatureFactory(new RSAFactory());
         $signature = $signatureFactory->createSignatureAFromKeys(
-            new KeyPair($publicKey, $privateKey),
+            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
             'test123',
             $x509Generator
         );
 
-        self::assertEquals($signature->getPrivateKey(), $privateKey);
-        self::assertEquals($signature->getPublicKey(), $publicKey);
+        self::assertEquals($signature->getPrivateKey()->getKey(), $privateKey);
+        self::assertEquals($signature->getPublicKey()->getKey(), $publicKey);
         $this->assertCertificateEquals(
             $signature->getCertificateContent(),
             $this->getCertificateContent()

@@ -69,10 +69,10 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
     private function handlePubKeyValue(
         DOMNode $xmlPublicKeyInfo,
         DOMDocument $xml,
-        SignatureInterface $certificate,
+        SignatureInterface $signature,
         ?DateTimeInterface $dateTime
     ): void {
-        $publicKeyDetails = $this->cryptService->getPublicKeyDetails($certificate->getPublicKey());
+        $publicKeyDetails = $this->cryptService->decomposePublicKey($signature->getPublicKey());
 
         // Add PubKeyValue to Signature.
         $xmlPubKeyValue = $xml->createElement('PubKeyValue');
@@ -109,8 +109,8 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
             $x509CertificateValueDe = base64_decode($x509CertificateValue);
 
             $certificateContent
-                = "-----BEGIN CERTIFICATE-----\n".
-                chunk_split($x509CertificateValue, 64).
+                = "-----BEGIN CERTIFICATE-----\n" .
+                chunk_split($x509CertificateValue, 64) .
                 "-----END CERTIFICATE-----\n";
 
             $x509 = new X509();
@@ -152,8 +152,8 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
             $x509CertificateValueDe = base64_decode($x509CertificateValue);
 
             $certificateContent
-                = "-----BEGIN CERTIFICATE-----\n".
-                chunk_split($x509CertificateValue, 64).
+                = "-----BEGIN CERTIFICATE-----\n" .
+                chunk_split($x509CertificateValue, 64) .
                 "-----END CERTIFICATE-----\n";
 
             $x509 = new X509();

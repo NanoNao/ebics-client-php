@@ -3,6 +3,7 @@
 namespace EbicsApi\Ebics\Models;
 
 use EbicsApi\Ebics\Contracts\SignatureInterface;
+use EbicsApi\Ebics\Models\Crypt\Key;
 
 /**
  * Class Signature represents Signature model.
@@ -13,16 +14,16 @@ use EbicsApi\Ebics\Contracts\SignatureInterface;
 final class Signature implements SignatureInterface
 {
     private string $type;
-    private string $publicKey;
-    private ?string $privateKey;
+    private Key $publicKey;
+    private ?Key $privateKey;
     private ?string $certificateContent;
 
     /**
      * @param string $type
-     * @param string $publicKey
-     * @param string|null $privateKey
+     * @param Key $publicKey
+     * @param Key|null $privateKey
      */
-    public function __construct(string $type, string $publicKey, ?string $privateKey)
+    public function __construct(string $type, Key $publicKey, ?Key $privateKey)
     {
         $this->type = $type;
         $this->publicKey = $publicKey;
@@ -40,7 +41,7 @@ final class Signature implements SignatureInterface
     /**
      * @inheritDoc
      */
-    public function getPublicKey(): string
+    public function getPublicKey(): Key
     {
         return $this->publicKey;
     }
@@ -48,7 +49,7 @@ final class Signature implements SignatureInterface
     /**
      * @inheritDoc
      */
-    public function getPrivateKey(): ?string
+    public function getPrivateKey(): ?Key
     {
         return $this->privateKey ?? null;
     }

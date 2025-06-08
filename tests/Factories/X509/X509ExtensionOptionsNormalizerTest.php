@@ -19,14 +19,14 @@ class X509ExtensionOptionsNormalizerTest extends AbstractEbicsTestCase
      * @param $value
      * @param $expected
      */
-    public function testOptions($value, $expected)
+    public function testOptions($value, $expected): void
     {
         $actualValue = X509ExtensionOptionsNormalizer::normalize($value);
 
         self::assertEquals($expected, $actualValue);
     }
 
-    public function getOptions()
+    public function getOptions(): array
     {
         return [
             ['foo', ['value' => 'foo', 'critical' => false, 'replace' => true]],

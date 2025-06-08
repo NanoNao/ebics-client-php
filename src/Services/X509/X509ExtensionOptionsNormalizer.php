@@ -29,7 +29,6 @@ final class X509ExtensionOptionsNormalizer
      */
     public static function normalize($options): array
     {
-        $value = null;
         $critical = false;
         $replace = true;
 

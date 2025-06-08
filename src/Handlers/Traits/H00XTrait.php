@@ -49,7 +49,7 @@ trait H00XTrait
         $h00x = $this->getH00XVersion();
         $xpath = $this->prepareH00XXPath($xml);
 
-        $expression = preg_replace('#/([^/*])#', '/'.$h00x.':$1', $path);
+        $expression = preg_replace('#/([^/*])#', '/' . $h00x . ':$1', $path);
 
         return $xpath->query($expression);
     }

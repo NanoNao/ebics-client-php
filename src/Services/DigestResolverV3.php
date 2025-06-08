@@ -22,9 +22,11 @@ final class DigestResolverV3 extends DigestResolver
 
     public function confirmDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string
     {
-        return bin2hex($this->cryptService->calculateCertificateFingerprint(
-            $signature->getCertificateContent(),
-            $algorithm
-        ));
+        return bin2hex(
+            $this->cryptService->calculateCertificateFingerprint(
+                $signature->getCertificateContent(),
+                $algorithm
+            )
+        );
     }
 }

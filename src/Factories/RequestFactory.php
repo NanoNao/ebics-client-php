@@ -15,7 +15,6 @@ use EbicsApi\Ebics\Builders\Request\TransferReceiptBuilder;
 use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
-use EbicsApi\Ebics\Exceptions\SchemaEbicsException;
 use EbicsApi\Ebics\Handlers\OrderDataHandler;
 use EbicsApi\Ebics\Handlers\UserSignatureHandler;
 use EbicsApi\Ebics\Models\Bank;

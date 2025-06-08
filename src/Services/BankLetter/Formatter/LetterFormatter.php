@@ -112,10 +112,12 @@ abstract class LetterFormatter implements FormatterInterface
      */
     protected function formatCertificateContent(string $certificateContent): string
     {
-        return trim(str_replace(
-            ['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', "\r", "\n"],
-            '',
-            $certificateContent
-        ));
+        return trim(
+            str_replace(
+                ['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', "\r", "\n"],
+                '',
+                $certificateContent
+            )
+        );
     }
 }

@@ -1082,11 +1082,15 @@ class X509 implements X509Interface
                 switch ($algorithm) {
                     case 'rsaEncryption':
                         $cert['tbsCertificate']['subjectPublicKeyInfo']['subjectPublicKey']
-                            = base64_encode("\0" . base64_decode(preg_replace(
-                                '#-.+-|[\r\n]#',
-                                '',
-                                $cert['tbsCertificate']['subjectPublicKeyInfo']['subjectPublicKey']
-                            )));
+                            = base64_encode(
+                                "\0" . base64_decode(
+                                    preg_replace(
+                                        '#-.+-|[\r\n]#',
+                                        '',
+                                        $cert['tbsCertificate']['subjectPublicKeyInfo']['subjectPublicKey']
+                                    )
+                                )
+                            );
                         /* "[For RSA keys] the parameters field MUST have ASN.1 type NULL for this
                            algorithm identifier."
                            -- https://tools.ietf.org/html/rfc3279#section-2.3.1
@@ -1208,9 +1212,14 @@ class X509 implements X509Interface
         }
 
         // handles everything else
-        $results = preg_split('#((?:^|, *|/)(?:C=|O=|OU=|CN=|L=|ST=|SN=|postalCode=|streetAddress=|' .
+        $results = preg_split(
+            '#((?:^|, *|/)(?:C=|O=|OU=|CN=|L=|ST=|SN=|postalCode=|streetAddress=|' .
             'emailAddress=|serialNumber=|organizationalUnitName=|title=|description=|role=|' .
-            'x500UniqueIdentifier=|postalAddress=))#', $dn, -1, PREG_SPLIT_DELIM_CAPTURE);
+            'x500UniqueIdentifier=|postalAddress=))#',
+            $dn,
+            -1,
+            PREG_SPLIT_DELIM_CAPTURE
+        );
 
         if (!is_array($results)) {
             throw new LogicException('Split result must be an array.');
@@ -1299,13 +1308,14 @@ class X509 implements X509Interface
     {
         switch ($signatureAlgorithm) {
             case 'sha256WithRSAEncryption':
-                $key->setHash(preg_replace('#WithRSAEncryption$#', '', $signatureAlgorithm));
+                $algorithm = preg_replace('#WithRSAEncryption$#', '', $signatureAlgorithm);
+                $key->setHash($algorithm);
                 $key->setSignatureMode(RSA::SIGNATURE_PKCS1);
 
                 $this->currentCert['signature'] = base64_encode("\0" . $key->sign($this->signatureSubject));
                 return $this->currentCert;
             default:
-                throw new LogicException('signatureAlgorithm not defined,');
+                throw new LogicException('SignatureAlgorithm is not defined.');
         }
     }
 

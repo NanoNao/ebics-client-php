@@ -3,12 +3,16 @@
 namespace EbicsApi\Ebics\Tests\Handlers;
 
 use EbicsApi\Ebics\Exceptions\EbicsException;
+use EbicsApi\Ebics\Factories\Crypt\AESFactory;
+use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\EbicsFactoryV25;
 use EbicsApi\Ebics\Handlers\AuthSignatureHandler;
 use EbicsApi\Ebics\Handlers\Traits\H004Trait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Services\CryptService;
+use EbicsApi\Ebics\Services\KeyStorageLocator;
+use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**
@@ -37,7 +41,10 @@ class AuthSignatureHandlerTest extends AbstractEbicsTestCase
         $this->setupKeys($client->getKeyring());
 
         $ebicsFactory = new EbicsFactoryV25();
-        $this->authSignatureHandler = $ebicsFactory->createAuthSignatureHandler($client->getKeyring(), new CryptService());
+        $this->authSignatureHandler = $ebicsFactory->createAuthSignatureHandler(
+            $client->getKeyring(),
+            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+        );
     }
 
     /**
@@ -50,7 +57,7 @@ class AuthSignatureHandlerTest extends AbstractEbicsTestCase
     public function testDigestValue()
     {
         $h00x = $this->getH00XVersion();
-        $hpb = file_get_contents($this->fixtures.'/hpb.xml');
+        $hpb = file_get_contents($this->fixtures . '/hpb.xml');
         $hpbXML = new Request();
         $hpbXML->loadXML($hpb);
         $hpbXPath = $this->prepareH00XXPath($hpbXML);
@@ -67,8 +74,10 @@ class AuthSignatureHandlerTest extends AbstractEbicsTestCase
         $hpb2XML->loadXML($hpb2XML->saveXML());
         $hpb2XPath = $this->prepareH00XXPath($hpb2XML);
 
-        $digestValue = $hpbXPath->query("//$h00x:AuthSignature/ds:SignedInfo/ds:Reference/ds:DigestValue")->item(0)->nodeValue;
-        $digestValue2 = $hpb2XPath->query("//$h00x:AuthSignature/ds:SignedInfo/ds:Reference/ds:DigestValue")->item(0)->nodeValue;
+        $digestValue = $hpbXPath->query("//$h00x:AuthSignature/ds:SignedInfo/ds:Reference/ds:DigestValue")
+            ->item(0)->nodeValue;
+        $digestValue2 = $hpb2XPath->query("//$h00x:AuthSignature/ds:SignedInfo/ds:Reference/ds:DigestValue")
+            ->item(0)->nodeValue;
         self::assertEquals($digestValue, $digestValue2);
     }
 
@@ -82,7 +91,7 @@ class AuthSignatureHandlerTest extends AbstractEbicsTestCase
     public function testSignatureValue()
     {
         $h00x = $this->getH00XVersion();
-        $hpb = file_get_contents($this->fixtures.'/hpb.xml');
+        $hpb = file_get_contents($this->fixtures . '/hpb.xml');
         $request = new Request();
         $request->loadXML($hpb);
         $requestXpath = $this->prepareH00XXPath($request);

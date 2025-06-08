@@ -43,7 +43,7 @@ final class BankLetterService
         string $version,
         DigestResolver $digestResolver
     ): SignatureBankLetter {
-        $publicKeyDetails = $this->cryptService->getPublicKeyDetails($signature->getPublicKey());
+        $publicKeyDetails = $this->cryptService->decomposePublicKey($signature->getPublicKey());
 
         $exponentFormatted = $this->formatBytesForBank($publicKeyDetails['e']);
         $modulusFormatted = $this->formatBytesForBank($publicKeyDetails['m']);

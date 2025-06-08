@@ -13,7 +13,6 @@ use EbicsApi\Ebics\Models\Crypt\RSA;
  */
 interface RSAInterface
 {
-
     /**
      * @return BigIntegerInterface
      */
@@ -45,7 +44,7 @@ interface RSAInterface
      *
      * @return bool
      */
-    public function setPublicKey($key = false);
+    public function setPublicKey($key = false): bool;
 
     /**
      * Sets the password
@@ -57,7 +56,7 @@ interface RSAInterface
      *
      * @return void
      */
-    public function setPassword($password = null);
+    public function setPassword($password = null): void;
 
     /**
      * Loads a public or private key
@@ -69,7 +68,7 @@ interface RSAInterface
      *
      * @return bool
      */
-    public function loadKey($key, $type = false);
+    public function loadKey($key, $type = false): bool;
 
     /**
      * Decryption
@@ -78,7 +77,7 @@ interface RSAInterface
      *
      * @return string
      */
-    public function decrypt(string $ciphertext);
+    public function decrypt(string $ciphertext): string;
 
     /**
      * Encryption
@@ -91,7 +90,7 @@ interface RSAInterface
      *
      * @return string
      */
-    public function encrypt(string $plaintext);
+    public function encrypt(string $plaintext): string;
 
     /**
      * Determines the public key format.
@@ -100,7 +99,7 @@ interface RSAInterface
      *
      * @return void
      */
-    public function setPublicKeyFormat(int $format);
+    public function setPublicKeyFormat(int $format): void;
 
     /**
      * Determines the private key format.
@@ -109,7 +108,7 @@ interface RSAInterface
      *
      * @return void
      */
-    public function setPrivateKeyFormat(int $format);
+    public function setPrivateKeyFormat(int $format): void;
 
     /**
      * Determines which hashing function should be used.
@@ -121,7 +120,7 @@ interface RSAInterface
      *
      * @return void
      */
-    public function setHash(string $hash);
+    public function setHash(string $hash): void;
 
     /**
      * Determines which hashing function should be used for the mask generation function
@@ -133,7 +132,7 @@ interface RSAInterface
      *
      * @return void
      */
-    public function setMGFHash($hash);
+    public function setMGFHash($hash): void;
 
     /**
      * Create public / private key pair.
@@ -158,7 +157,7 @@ interface RSAInterface
      *
      * @return string|null
      */
-    public function getPublicKey(int $type = RSA::PUBLIC_FORMAT_PKCS8);
+    public function getPublicKey(int $type = RSA::PUBLIC_FORMAT_PKCS8): ?string;
 
     /**
      * Returns the private key
@@ -167,9 +166,9 @@ interface RSAInterface
      *
      * @param int $type optional
      *
-     * @return mixed
+     * @return string|null
      */
-    public function getPrivateKey(int $type = RSA::PUBLIC_FORMAT_PKCS1);
+    public function getPrivateKey(int $type = RSA::PUBLIC_FORMAT_PKCS1): ?string;
 
     /**
      * Create a signature
@@ -178,7 +177,7 @@ interface RSAInterface
      *
      * @return string|null
      */
-    public function sign(string $message);
+    public function sign(string $message): ?string;
 
     /**
      * Set Signature Mode
@@ -189,7 +188,7 @@ interface RSAInterface
      *
      * @return void
      */
-    public function setSignatureMode($mode);
+    public function setSignatureMode($mode): void;
 
     /**
      * EMSA-PKCS1-V1_5-ENCODE
@@ -201,7 +200,7 @@ interface RSAInterface
      *
      * @return string
      */
-    public function emsaPkcs1V15Encode($m, $emLen = null);
+    public function emsaPkcs1V15Encode($m, $emLen = null): string;
 
     /**
      * EMSA-PSS-ENCODE
@@ -213,7 +212,7 @@ interface RSAInterface
      *
      * @return string
      */
-    public function emsaPssEncode($m, $emBits = null);
+    public function emsaPssEncode($m, $emBits = null): string;
 
     /**
      * EMSA-PSS-VERIFY
@@ -226,16 +225,16 @@ interface RSAInterface
      * @param int|null $emBits
      * @return bool
      */
-    public function emsaPssVerify($m, $em, $emBits = null);
+    public function emsaPssVerify($m, $em, $emBits = null): bool;
 
     /**
      * Change password for private key.
      *
-     * @param string $privateKey
+     * @param KeyPair $keyPair
      * @param string $oldPassword
      * @param string $newPassword
      *
      * @return KeyPair
      */
-    public function changePassword($privateKey, $oldPassword, $newPassword): KeyPair;
+    public function changePassword($keyPair, $oldPassword, $newPassword): KeyPair;
 }

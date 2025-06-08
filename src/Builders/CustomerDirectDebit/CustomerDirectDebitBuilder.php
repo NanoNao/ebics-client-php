@@ -252,7 +252,7 @@ final class CustomerDirectDebitBuilder
             $xmlEndToEndId->nodeValue = $endToEndId;
         } else {
             $xmlEndToEndId->nodeValue = $this->randomService->uniqueIdWithDate(
-                'pete'.str_pad((string)$nbOfTxs, 2, '0')
+                'pete' . str_pad((string)$nbOfTxs, 2, '0')
             );
         }
 

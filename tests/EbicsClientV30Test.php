@@ -11,6 +11,7 @@ use EbicsApi\Ebics\Contexts\HVTContext;
 use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Exceptions\InvalidUserOrUserStateException;
 use EbicsApi\Ebics\Factories\DocumentFactory;
+use EbicsApi\Ebics\Models\Crypt\RSA;
 
 /**
  * Class EbicsClientTest.
@@ -80,19 +81,25 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
         $client->createUserSignatures([
             'a_version' => 'A005',
             'a_details' => [
-                'privatekey' => file_get_contents($this->data . '/certificates/electronic_signature/user.key'),
-                'certificate' => file_get_contents($this->data . '/certificates/electronic_signature/user.crt'),
-                'password' => file_get_contents($this->data . '/certificates/electronic_signature/passphrase.txt'),
+                'privatekey' => file_get_contents($this->data . '/certificates/electronic_signature/private.key'),
+                'privatekey_type' => RSA::PRIVATE_FORMAT_PKCS1,
+                'publickey' => file_get_contents($this->data . '/certificates/electronic_signature/public.key'),
+                'publickey_type' => RSA::PUBLIC_FORMAT_PKCS1,
+                'certificate' => file_get_contents($this->data . '/certificates/electronic_signature/cert.crt'),
             ],
             'e_details' => [
-                'privatekey' => file_get_contents($this->data . '/certificates/authorization_encryption/user.key'),
-                'certificate' => file_get_contents($this->data . '/certificates/authorization_encryption/user.crt'),
-                'password' => file_get_contents($this->data . '/certificates/authorization_encryption/passphrase.txt'),
+                'privatekey' => file_get_contents($this->data . '/certificates/authorization_encryption/private.key'),
+                'privatekey_type' => RSA::PRIVATE_FORMAT_PKCS1,
+                'publickey' => file_get_contents($this->data . '/certificates/authorization_encryption/public.key'),
+                'publickey_type' => RSA::PUBLIC_FORMAT_PKCS1,
+                'certificate' => file_get_contents($this->data . '/certificates/authorization_encryption/cert.crt'),
             ],
             'x_details' => [
-                'privatekey' => file_get_contents($this->data . '/certificates/authorization_encryption/user.key'),
-                'certificate' => file_get_contents($this->data . '/certificates/authorization_encryption/user.crt'),
-                'password' => file_get_contents($this->data . '/certificates/authorization_encryption/passphrase.txt'),
+                'privatekey' => file_get_contents($this->data . '/certificates/authorization_encryption/private.key'),
+                'privatekey_type' => RSA::PRIVATE_FORMAT_PKCS1,
+                'publickey' => file_get_contents($this->data . '/certificates/authorization_encryption/public.key'),
+                'publickey_type' => RSA::PUBLIC_FORMAT_PKCS1,
+                'certificate' => file_get_contents($this->data . '/certificates/authorization_encryption/cert.crt'),
             ],
         ]);
 
