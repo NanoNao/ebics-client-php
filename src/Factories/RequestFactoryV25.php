@@ -368,7 +368,7 @@ final class RequestFactoryV25 extends RequestFactoryV2
 
     public function createHCS(
         UploadTransaction $transaction,
-        RequestContext $context,
+        RequestContext $context
     ): Request {
         $signatureData = new UserSignature();
         $this->userSignatureHandler->handle($signatureData, $transaction->getDigest());
