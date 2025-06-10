@@ -19,6 +19,7 @@ use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\UploadTransaction;
 use EbicsApi\Ebics\Models\UserSignature;
+use LogicException;
 
 /**
  * Ebics 3.0 RequestFactory.
@@ -384,6 +385,11 @@ final class RequestFactoryV30 extends RequestFactory
         $btuContext->setFileName('yct.pain.001.xxx.xml');
 
         return $this->createBTU($transaction, $context);
+    }
+
+    public function createHCS(UploadTransaction $transaction, RequestContext $context): Request
+    {
+        throw new LogicException('Method not implemented yet for EBICS 2.5');
     }
 
     public function prepareDownloadContext(?RequestContext $requestContext = null): RequestContext

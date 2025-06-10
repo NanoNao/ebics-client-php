@@ -173,4 +173,9 @@ final class RequestFactoryV24 extends RequestFactoryV2
 
         return $this->createFUL($transaction, $context);
     }
+
+    public function createHCS(UploadTransaction $transaction, RequestContext $context): Request
+    {
+        throw new LogicException('Method not implemented yet for EBICS 2.4');
+    }
 }

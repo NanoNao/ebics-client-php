@@ -7,8 +7,7 @@ use DOMElement;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Handlers\Traits\H005Trait;
 use EbicsApi\Ebics\Models\Crypt\X509;
-use EbicsApi\Ebics\Models\CustomerHIA;
-use EbicsApi\Ebics\Models\CustomerINI;
+use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Models\XmlDocument;
 use EbicsApi\Ebics\Services\DOMHelper;
 use RuntimeException;
@@ -25,7 +24,7 @@ final class OrderDataHandlerV30 extends OrderDataHandler
 {
     use H005Trait;
 
-    protected function createSignaturePubKeyOrderData(CustomerINI $xml): DOMElement
+    protected function createSignaturePubKeyOrderData(XmlData $xml): DOMElement
     {
         return $xml->createElementNS(
             'http://www.ebics.org/S002',
@@ -33,29 +32,32 @@ final class OrderDataHandlerV30 extends OrderDataHandler
         );
     }
 
-    protected function handleINISignaturePubKey(
+    protected function handleSignaturePubKey(
         DOMElement $xmlSignaturePubKeyInfo,
-        CustomerINI $xml,
+        XmlData $xml,
         SignatureInterface $certificateA,
-        ?DateTimeInterface $dateTime
+        ?DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void {
         // Is not need for V3.
     }
 
-    protected function handleHIAAuthenticationPubKey(
+    protected function handleAuthenticationPubKey(
         DOMElement $xmlAuthenticationPubKeyInfo,
-        CustomerHIA $xml,
+        XmlData $xml,
         SignatureInterface $certificateX,
-        ?DateTimeInterface $dateTime
+        ?DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void {
         // Is not need for V3.
     }
 
-    protected function handleHIAEncryptionPubKey(
+    protected function handleEncryptionPubKey(
         DOMElement $xmlEncryptionPubKeyInfo,
-        CustomerHIA $xml,
+        XmlData $xml,
         SignatureInterface $certificateE,
-        ?DateTimeInterface $dateTime
+        ?DateTimeInterface $dateTime,
+        ?string $ns = null
     ): void {
         // Is not need for V3.
     }
@@ -124,5 +126,24 @@ final class OrderDataHandlerV30 extends OrderDataHandler
         $signature->setCertificateContent($certificateContent);
 
         return $signature;
+    }
+
+    protected function createHCSRequestOrderData(XmlData $xml): DOMElement
+    {
+        $element = $xml->createElementNS($this->getH00XNamespace(), 'HCSRequestOrderData');
+
+        $element->setAttributeNS(
+            'http://www.w3.org/2000/xmlns/',
+            'xmlns:esig',
+            'http://www.ebics.org/S002'
+        );
+
+        $element->setAttributeNS(
+            'http://www.w3.org/2000/xmlns/',
+            'xmlns:ds',
+            'http://www.w3.org/2000/09/xmldsig#'
+        );
+
+        return $element;
     }
 }

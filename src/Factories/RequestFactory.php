@@ -708,6 +708,8 @@ abstract class RequestFactory
 
     abstract public function createCIP(UploadTransaction $transaction, RequestContext $context): Request;
 
+    abstract public function createHCS(UploadTransaction $transaction, RequestContext $context): Request;
+
     abstract public function createXE2(UploadTransaction $transaction, RequestContext $context): Request;
 
     abstract public function createXE3(UploadTransaction $transaction, RequestContext $context): Request;

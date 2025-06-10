@@ -378,6 +378,19 @@ interface EbicsClientInterface
     ): UploadOrderResult;
 
     /**
+     * Standard order type for renewing user certificates.
+     *
+     * @param Keyring $keyring the new keyring with updated user certificates
+     * @param RequestContext|null $context
+     *
+     * @return UploadOrderResult
+     */
+    public function HCS(
+        Keyring $keyring,
+        ?RequestContext $context = null
+    ): UploadOrderResult;
+
+    /**
      * Upload initiation of the credit transfer per SEPA.
      * specification set by the European Payment Council or Die Deutsche Kreditwirtschaft (DK (German)).
      * CCT is an upload order type that uses the protocol version H00X.

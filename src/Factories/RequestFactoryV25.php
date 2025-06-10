@@ -366,6 +366,27 @@ final class RequestFactoryV25 extends RequestFactoryV2
             ->popInstance();
     }
 
+    public function createHCS(
+        UploadTransaction $transaction,
+        RequestContext $context,
+    ): Request {
+        $signatureData = new UserSignature();
+        $this->userSignatureHandler->handle($signatureData, $transaction->getDigest());
+
+        $context
+            ->setOrderType('HCS')
+            ->setWithES(true)
+            ->setBank($this->bank)
+            ->setUser($this->user)
+            ->setKeyring($this->keyring)
+            ->setTransactionKey($transaction->getKey())
+            ->setNumSegments($transaction->getNumSegments())
+            ->setSignatureData($signatureData);
+
+        return $this->buildUploadRequest($context);
+    }
+
+
     /**
      * @throws EbicsException
      */
