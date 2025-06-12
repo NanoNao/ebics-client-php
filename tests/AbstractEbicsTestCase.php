@@ -7,7 +7,6 @@ use EbicsApi\Ebics\Builders\CustomerDirectDebit\CustomerDirectDebitBuilder;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
 use EbicsApi\Ebics\EbicsClient;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
-use EbicsApi\Ebics\Factories\KeyringFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Crypt\Key;
@@ -19,11 +18,9 @@ use EbicsApi\Ebics\Models\StructuredPostalAddress;
 use EbicsApi\Ebics\Models\UnstructuredPostalAddress;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
-use EbicsApi\Ebics\Services\CryptoStorage;
 use EbicsApi\Ebics\Services\DebuggerHttpClient;
 use EbicsApi\Ebics\Services\FakerHttpClient;
 use EbicsApi\Ebics\Services\FileKeyringManager;
-use EbicsApi\Ebics\Services\KeyStorageLocator;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -121,7 +118,7 @@ abstract class AbstractEbicsTestCase extends TestCase
         return $keyringManager->loadKeyring($keyringPath, $password, $version);
     }
 
-    protected function saveKeyring(string $credentialsId, Keyring $keyring): void
+    protected function saveKeyring(int $credentialsId, Keyring $keyring): void
     {
         $keyringRealPath = sprintf('%s/workspace/keyring_%d.json', $this->data, $credentialsId);
         $keyringManager = new FileKeyringManager();

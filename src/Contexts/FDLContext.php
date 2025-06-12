@@ -3,6 +3,7 @@
 namespace EbicsApi\Ebics\Contexts;
 
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
+use EbicsApi\Ebics\Contracts\OrderContextInterface;
 
 /**
  * Class Parameters context container for FUL/FDL orders
@@ -24,5 +25,14 @@ final class FDLContext extends FFLContext
     public function getParserFormat(): string
     {
         return $this->parserFormat;
+    }
+
+    public static function resolveInstance(?OrderContextInterface $orderContext): FDLContext
+    {
+        if ($orderContext instanceof FDLContext) {
+            return $orderContext;
+        }
+
+        return new FDLContext();
     }
 }

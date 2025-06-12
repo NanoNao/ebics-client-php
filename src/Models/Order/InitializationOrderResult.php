@@ -1,6 +1,9 @@
 <?php
 
-namespace EbicsApi\Ebics\Models;
+namespace EbicsApi\Ebics\Models\Order;
+
+use EbicsApi\Ebics\Models\InitializationTransaction;
+use EbicsApi\Ebics\Models\XmlDocument;
 
 /**
  * Order result with extracted data.
@@ -11,6 +14,7 @@ namespace EbicsApi\Ebics\Models;
 final class InitializationOrderResult extends OrderResult
 {
     private XmlDocument $document;
+
     private InitializationTransaction $transaction;
 
     public function setDocument(XmlDocument $document): void

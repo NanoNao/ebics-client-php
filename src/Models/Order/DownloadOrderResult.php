@@ -1,6 +1,9 @@
 <?php
 
-namespace EbicsApi\Ebics\Models;
+namespace EbicsApi\Ebics\Models\Order;
+
+use EbicsApi\Ebics\Models\Transaction;
+use EbicsApi\Ebics\Models\XmlDocument;
 
 /**
  * Order result with extracted data.
@@ -12,7 +15,7 @@ final class DownloadOrderResult extends OrderResult
 {
     private array $dataFiles;
     private XmlDocument $document;
-    private DownloadTransaction $transaction;
+    private Transaction $transaction;
 
     /**
      * @param XmlDocument[]|string[] $dataFiles
@@ -42,12 +45,12 @@ final class DownloadOrderResult extends OrderResult
         return $this->document;
     }
 
-    public function setTransaction(DownloadTransaction $transaction): void
+    public function setTransaction(Transaction $transaction): void
     {
         $this->transaction = $transaction;
     }
 
-    public function getTransaction(): DownloadTransaction
+    public function getTransaction(): Transaction
     {
         return $this->transaction;
     }

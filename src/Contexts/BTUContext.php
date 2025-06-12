@@ -2,6 +2,8 @@
 
 namespace EbicsApi\Ebics\Contexts;
 
+use EbicsApi\Ebics\Contracts\OrderContextInterface;
+
 /**
  * Class BTUContext context container for BTU orders - requires EBICS 3.0
  *
@@ -22,5 +24,14 @@ final class BTUContext extends BTFContext
     public function getFileName(): string
     {
         return $this->fileName;
+    }
+
+    public static function resolveInstance(?OrderContextInterface $orderContext): BTUContext
+    {
+        if ($orderContext instanceof BTUContext) {
+            return $orderContext;
+        }
+
+        return new BTUContext();
     }
 }

@@ -4,6 +4,7 @@ namespace EbicsApi\Ebics\Contexts;
 
 use DateTime;
 use DateTimeInterface;
+use EbicsApi\Ebics\Contracts\OrderContextInterface;
 use EbicsApi\Ebics\Contracts\SignatureDataInterface;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Keyring;
@@ -21,10 +22,9 @@ final class RequestContext
      * Request have both ES and OrderData
      */
     private bool $withES;
-    private bool $onlyES;
 
     /**
-     * @var callable|null $ackClosure Custom closure to handle download acknowledge.
+     * @var callable|null $ackClosure Custom closure to handle download acknowledge. Return boolean.
      */
     private $ackClosure = null;
 
@@ -35,8 +35,6 @@ final class RequestContext
     private DateTimeInterface $dateTime;
     private ?DateTimeInterface $startDateTime;
     private ?DateTimeInterface $endDateTime;
-    private ?FDLContext $fdlContext = null;
-    private ?FULContext $fulContext = null;
     private string $receiptCode;
     private ?int $segmentNumber;
     private ?bool $isLastSegment;
@@ -47,19 +45,14 @@ final class RequestContext
     private SignatureDataInterface $signatureData;
     private string $dataDigest;
     private string $signatureVersion;
-    private ?BTDContext $btdContext = null;
-    private ?BTUContext $btuContext = null;
-    private HVEContext $hveContext;
-    private HVDContext $hvdContext;
-    private HVTContext $hvtContext;
     private string $product;
     private string $language;
+    private ?OrderContextInterface $orderContext = null;
 
     public function __construct()
     {
         $this->dateTime = new DateTime();
         $this->withES = false;
-        $this->onlyES = false;
         $this->product = 'Ebics client PHP';
         $this->language = 'de';
     }
@@ -147,31 +140,6 @@ final class RequestContext
     {
         return $this->withES;
     }
-
-    public function setFdlContext(FDLContext $fdlContext): RequestContext
-    {
-        $this->fdlContext = $fdlContext;
-
-        return $this;
-    }
-
-    public function getFdlContext(): ?FDLContext
-    {
-        return $this->fdlContext;
-    }
-
-    public function setFulContext(FULContext $fdlContext): RequestContext
-    {
-        $this->fulContext = $fdlContext;
-
-        return $this;
-    }
-
-    public function getFulContext(): ?FULContext
-    {
-        return $this->fulContext;
-    }
-
 
     public function setReceiptCode(string $receiptCode): RequestContext
     {
@@ -269,66 +237,6 @@ final class RequestContext
         return $this->signatureData;
     }
 
-    public function setBTDContext(BTDContext $btdContext): RequestContext
-    {
-        $this->btdContext = $btdContext;
-
-        return $this;
-    }
-
-    public function getBTDContext(): ?BTDContext
-    {
-        return $this->btdContext;
-    }
-
-    public function setHVEContext(HVEContext $hveContext): RequestContext
-    {
-        $this->hveContext = $hveContext;
-
-        return $this;
-    }
-
-    public function getHVEContext(): HVEContext
-    {
-        return $this->hveContext;
-    }
-
-    public function setHVDContext(HVDContext $hvdContext): RequestContext
-    {
-        $this->hvdContext = $hvdContext;
-
-        return $this;
-    }
-
-    public function getHVDContext(): HVDContext
-    {
-        return $this->hvdContext;
-    }
-
-    public function setHVTContext(HVTContext $hvtContext): RequestContext
-    {
-        $this->hvtContext = $hvtContext;
-
-        return $this;
-    }
-
-    public function getHVTContext(): HVTContext
-    {
-        return $this->hvtContext;
-    }
-
-    public function setBTUContext(BTUContext $btuContext): RequestContext
-    {
-        $this->btuContext = $btuContext;
-
-        return $this;
-    }
-
-    public function getBTUContext(): ?BTUContext
-    {
-        return $this->btuContext;
-    }
-
     public function setDataDigest(?string $dataDigest): RequestContext
     {
         $this->dataDigest = $dataDigest;
@@ -358,19 +266,11 @@ final class RequestContext
         return $this->ackClosure;
     }
 
-    public function setAckClosure(?callable $ackClosure): void
+    public function setAckClosure(?callable $ackClosure): RequestContext
     {
         $this->ackClosure = $ackClosure;
-    }
 
-    public function setOnlyES(bool $onlyES): void
-    {
-        $this->onlyES = $onlyES;
-    }
-
-    public function isOnlyES(): bool
-    {
-        return $this->onlyES;
+        return $this;
     }
 
     public function getProduct(): string
@@ -391,6 +291,18 @@ final class RequestContext
     public function setOrderType(string $orderType): RequestContext
     {
         $this->orderType = $orderType;
+
+        return $this;
+    }
+
+    public function getOrderContext(): ?OrderContextInterface
+    {
+        return $this->orderContext;
+    }
+
+    public function setOrderContext(?OrderContextInterface $orderContext): RequestContext
+    {
+        $this->orderContext = $orderContext;
 
         return $this;
     }

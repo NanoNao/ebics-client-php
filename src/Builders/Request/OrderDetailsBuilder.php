@@ -4,13 +4,6 @@ namespace EbicsApi\Ebics\Builders\Request;
 
 use DateTimeInterface;
 use DOMElement;
-use EbicsApi\Ebics\Contexts\BTDContext;
-use EbicsApi\Ebics\Contexts\BTUContext;
-use EbicsApi\Ebics\Contexts\FDLContext;
-use EbicsApi\Ebics\Contexts\FULContext;
-use EbicsApi\Ebics\Contexts\HVDContext;
-use EbicsApi\Ebics\Contexts\HVEContext;
-use EbicsApi\Ebics\Contexts\HVTContext;
 
 /**
  * Abstract Class OrderDetailsBuilder builder for request container.
@@ -61,41 +54,7 @@ abstract class OrderDetailsBuilder extends XmlBuilder
         return $this;
     }
 
-    public function addFDLOrderParams(
-        FDLContext $fdlContext,
-        ?DateTimeInterface $startDateTime,
-        ?DateTimeInterface $endDateTime
-    ): OrderDetailsBuilder {
-        $xmlFDLOrderParams = $this->appendEmptyElementTo('FDLOrderParams', $this->instance);
-
-        if (null !== $startDateTime && null !== $endDateTime) {
-            $xmlDateRange = $this->createDateRange($startDateTime, $endDateTime);
-            $xmlFDLOrderParams->appendChild($xmlDateRange);
-        }
-
-        $this->addParameters($xmlFDLOrderParams, $fdlContext->getParameters());
-
-        $this->appendElementTo('FileFormat', $fdlContext->getFileFormat(), $xmlFDLOrderParams, [
-            'CountryCode' => $fdlContext->getCountryCode(),
-        ]);
-
-        return $this;
-    }
-
-    public function addFULOrderParams(FULContext $fulContext): OrderDetailsBuilder
-    {
-        $xmlFULOrderParams = $this->appendEmptyElementTo('FULOrderParams', $this->instance);
-
-        $this->addParameters($xmlFULOrderParams, $fulContext->getParameters());
-
-        $this->appendElementTo('FileFormat', $fulContext->getFileFormat(), $xmlFULOrderParams, [
-            'CountryCode' => $fulContext->getCountryCode(),
-        ]);
-
-        return $this;
-    }
-
-    private function addParameters(DOMElement $orderParams, array $parameters): void
+    public function addParameters(DOMElement $orderParams, array $parameters): void
     {
         foreach ($parameters as $name => $value) {
             $xmlParameter = $this->appendEmptyElementTo('Parameter', $orderParams);
@@ -105,40 +64,7 @@ abstract class OrderDetailsBuilder extends XmlBuilder
         }
     }
 
-    public function getInstance(): DOMElement
-    {
-        return $this->instance;
-    }
-
-    abstract public function addHVEOrderParams(HVEContext $hveContext): OrderDetailsBuilder;
-
-    public function addHVUOrderParams(): OrderDetailsBuilder
-    {
-        $this->appendEmptyElementTo('HVUOrderParams', $this->instance);
-
-        return $this;
-    }
-
-    public function addHVZOrderParams(): OrderDetailsBuilder
-    {
-        $this->appendEmptyElementTo('HVZOrderParams', $this->instance);
-
-        return $this;
-    }
-
-    abstract public function addHVDOrderParams(HVDContext $hvdContext): OrderDetailsBuilder;
-
-    abstract public function addHVTOrderParams(HVTContext $hvtContext): OrderDetailsBuilder;
-
-    abstract public function addBTDOrderParams(
-        BTDContext $btfContext,
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null
-    ): OrderDetailsBuilder;
-
-    abstract public function addBTUOrderParams(BTUContext $btuContext): OrderDetailsBuilder;
-
-    protected function createDateRange(DateTimeInterface $startDateTime, DateTimeInterface $endDateTime): DOMElement
+    public function createDateRange(DateTimeInterface $startDateTime, DateTimeInterface $endDateTime): DOMElement
     {
         $xmlDateRange = $this->createEmptyElement('DateRange');
 
@@ -146,5 +72,10 @@ abstract class OrderDetailsBuilder extends XmlBuilder
         $this->appendElementTo('End', $endDateTime->format('Y-m-d'), $xmlDateRange);
 
         return $xmlDateRange;
+    }
+
+    public function getInstance(): DOMElement
+    {
+        return $this->instance;
     }
 }

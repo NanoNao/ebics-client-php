@@ -20,7 +20,7 @@ abstract class XmlBuilder
         $this->dom = $dom;
     }
 
-    protected function createEmptyElement(
+    public function createEmptyElement(
         string $qualifiedName,
         array $attributes = [],
         string $namespace = null
@@ -37,7 +37,7 @@ abstract class XmlBuilder
         return $element;
     }
 
-    protected function createElement(
+    public function createElement(
         string $qualifiedName,
         string $value,
         array $attributes = [],
@@ -50,7 +50,7 @@ abstract class XmlBuilder
         return $element;
     }
 
-    protected function appendEmptyElementTo(
+    public function appendEmptyElementTo(
         string $qualifiedName,
         DOMElement $parent,
         array $attributes = []
@@ -62,7 +62,7 @@ abstract class XmlBuilder
         return $element;
     }
 
-    protected function appendElementTo(
+    public function appendElementTo(
         string $qualifiedName,
         string $value,
         DOMElement $parent,

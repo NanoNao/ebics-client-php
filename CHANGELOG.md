@@ -1,3 +1,7 @@
+## 3.0
+
+* Dynamic Orders.
+
 ## 2.5
 
 * Changed `options` for `createUserSignatures`.

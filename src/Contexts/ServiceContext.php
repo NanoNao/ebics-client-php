@@ -2,13 +2,15 @@
 
 namespace EbicsApi\Ebics\Contexts;
 
+use EbicsApi\Ebics\Contracts\OrderContextInterface;
+
 /**
  * General service context.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class ServiceContext
+abstract class ServiceContext implements OrderContextInterface
 {
     private string $serviceName;
     private string $msgName;

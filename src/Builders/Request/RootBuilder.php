@@ -64,9 +64,9 @@ abstract class RootBuilder extends XmlBuilder
         return $this->createH00X(self::EBICS_UNSIGNED_REQUEST);
     }
 
-    abstract protected function getH00XVersion(): string;
+    abstract public function getH00XVersion(): string;
 
-    abstract protected function getH00XNamespace(): string;
+    abstract public function getH00XNamespace(): string;
 
     private function createH00X(string $container): RootBuilder
     {

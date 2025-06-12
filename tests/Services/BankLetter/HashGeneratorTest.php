@@ -14,7 +14,6 @@ use EbicsApi\Ebics\Models\X509\BankX509Generator;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolverV2;
 use EbicsApi\Ebics\Services\DigestResolverV3;
-use EbicsApi\Ebics\Services\KeyStorageLocator;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 

@@ -8,6 +8,12 @@ use EbicsApi\Ebics\Contexts\FULContext;
 use EbicsApi\Ebics\Exceptions\DebuggerException;
 use EbicsApi\Ebics\Exceptions\InvalidUserOrUserStateException;
 use EbicsApi\Ebics\Factories\DocumentFactory;
+use EbicsApi\Ebics\Orders\FDL;
+use EbicsApi\Ebics\Orders\FUL;
+use EbicsApi\Ebics\Orders\HEV;
+use EbicsApi\Ebics\Orders\HIA;
+use EbicsApi\Ebics\Orders\HPB;
+use EbicsApi\Ebics\Orders\INI;
 use Silarhi\Cfonb\CfonbParser;
 
 /**
@@ -31,10 +37,10 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
      *
      * @covers
      */
-    public function testHEV(int $credentialsId, array $codes)
+    public function testHEV(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV24($credentialsId, $codes['HEV']['fake']);
-        $hev = $client->HEV();
+        $hev = $client->executeStandardOrder(new HEV())->getXmlData();
 
         $responseHandler = $client->getResponseHandler();
         $code = $responseHandler->retrieveH000ReturnCode($hev);
@@ -53,12 +59,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
      *
      * @covers
      */
-    public function testHEVDebug(int $credentialsId, array $codes)
+    public function testHEVDebug(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV24($credentialsId, $codes['HEV']['fake'], true);
 
         $this->expectException(DebuggerException::class);
-        $client->HEV();
+        $client->executeStandardOrder(new HEV());
     }
 
     /**
@@ -72,7 +78,7 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
      *
      * @covers
      */
-    public function testINI(int $credentialsId, array $codes)
+    public function testINI(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV24($credentialsId, $codes['INI']['fake']);
 
@@ -82,7 +88,7 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $ini = $client->INI();
+        $ini = $client->executeStandardOrder(new INI())->getXmlData();
         if (!$userExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -103,7 +109,7 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
      *
      * @covers
      */
-    public function testHIA(int $credentialsId, array $codes)
+    public function testHIA(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV24($credentialsId, $codes['HIA']['fake']);
 
@@ -113,7 +119,7 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $hia = $client->HIA();
+        $hia = $client->executeStandardOrder(new HIA())->getXmlData();
         if (!$bankExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -136,13 +142,13 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
      *
      * @covers
      */
-    public function testHPB(int $credentialsId, array $codes)
+    public function testHPB(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV24($credentialsId, $codes['HPB']['fake']);
 
         $this->assertExceptionCode($codes['HPB']['code']);
 
-        $hpb = $client->HPB();
+        $hpb = $client->executeInitializationOrder(new HPB());
 
         $responseHandler = $client->getResponseHandler();
         $code = $responseHandler->retrieveH00XReturnCode(
@@ -166,7 +172,7 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
      *
      * @covers
      */
-    public function testFDL(int $credentialsId, array $codes)
+    public function testFDL(int $credentialsId, array $codes): void
     {
         foreach ($codes['FDL'] as $fileFormat => $code) {
             $client = $this->setupClientV24($credentialsId, $code['fake']);
@@ -178,10 +184,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
                 ->setParameter('TEST', 'TRUE')
                 ->setCountryCode('FR');
 
-            $fdl = $client->FDL(
-                $context,
-                new DateTime('2020-03-21'),
-                new DateTime('2020-04-21')
+            $fdl = $client->executeDownloadOrder(
+                new FDL(
+                    $context,
+                    new DateTime('2020-03-21'),
+                    new DateTime('2020-04-21')
+                )
             );
 
             $parser = new CfonbParser();
@@ -234,9 +242,11 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
                 ->setParameter('TEST', 'TRUE')
                 ->setCountryCode('FR');
 
-            $ful = $client->FUL(
-                $context,
-                $documentFactory->createXml($code['document'])
+            $ful = $client->executeUploadOrder(
+                new FUL(
+                    $context,
+                    $documentFactory->createXml($code['document'])
+                )
             );
 
             $responseHandler = $client->getResponseHandler();

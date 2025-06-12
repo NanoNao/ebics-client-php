@@ -10,7 +10,6 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
-use EbicsApi\Ebics\Services\KeyStorageLocator;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**

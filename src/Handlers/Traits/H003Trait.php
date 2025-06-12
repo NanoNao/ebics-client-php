@@ -10,13 +10,18 @@ namespace EbicsApi\Ebics\Handlers\Traits;
  */
 trait H003Trait
 {
-    protected function getH00XVersion(): string
+    public function getH00XVersion(): string
     {
         return 'H003';
     }
 
-    protected function getH00XNamespace(): string
+    public function getH00XNamespace(): string
     {
         return 'http://www.ebics.org/H003';
+    }
+
+    public function getS00XVersion(): string
+    {
+        return 'S001';
     }
 }

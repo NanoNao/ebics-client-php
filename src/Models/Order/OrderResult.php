@@ -1,6 +1,6 @@
 <?php
 
-namespace EbicsApi\Ebics\Models;
+namespace EbicsApi\Ebics\Models\Order;
 
 /**
  * Ebics Order result.

@@ -16,9 +16,11 @@ trait H00XTrait
 {
     use XPathTrait;
 
-    abstract protected function getH00XVersion(): string;
+    abstract public function getH00XVersion(): string;
 
-    abstract protected function getH00XNamespace(): string;
+    abstract public function getH00XNamespace(): string;
+
+    abstract public function getS00XVersion(): string;
 
     /**
      * Setup H00X XPath for DOM XML.

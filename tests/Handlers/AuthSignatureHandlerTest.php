@@ -11,7 +11,6 @@ use EbicsApi\Ebics\Handlers\Traits\H004Trait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Services\CryptService;
-use EbicsApi\Ebics\Services\KeyStorageLocator;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 

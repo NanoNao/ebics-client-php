@@ -24,15 +24,7 @@ final class OrderDataHandlerV30 extends OrderDataHandler
 {
     use H005Trait;
 
-    protected function createSignaturePubKeyOrderData(XmlData $xml): DOMElement
-    {
-        return $xml->createElementNS(
-            'http://www.ebics.org/S002',
-            'SignaturePubKeyOrderData'
-        );
-    }
-
-    protected function handleSignaturePubKey(
+    public function handleSignaturePubKey(
         DOMElement $xmlSignaturePubKeyInfo,
         XmlData $xml,
         SignatureInterface $certificateA,
@@ -42,7 +34,7 @@ final class OrderDataHandlerV30 extends OrderDataHandler
         // Is not need for V3.
     }
 
-    protected function handleAuthenticationPubKey(
+    public function handleAuthenticationPubKey(
         DOMElement $xmlAuthenticationPubKeyInfo,
         XmlData $xml,
         SignatureInterface $certificateX,
@@ -52,7 +44,7 @@ final class OrderDataHandlerV30 extends OrderDataHandler
         // Is not need for V3.
     }
 
-    protected function handleEncryptionPubKey(
+    public function handleEncryptionPubKey(
         DOMElement $xmlEncryptionPubKeyInfo,
         XmlData $xml,
         SignatureInterface $certificateE,
@@ -126,24 +118,5 @@ final class OrderDataHandlerV30 extends OrderDataHandler
         $signature->setCertificateContent($certificateContent);
 
         return $signature;
-    }
-
-    protected function createHCSRequestOrderData(XmlData $xml): DOMElement
-    {
-        $element = $xml->createElementNS($this->getH00XNamespace(), 'HCSRequestOrderData');
-
-        $element->setAttributeNS(
-            'http://www.w3.org/2000/xmlns/',
-            'xmlns:esig',
-            'http://www.ebics.org/S002'
-        );
-
-        $element->setAttributeNS(
-            'http://www.w3.org/2000/xmlns/',
-            'xmlns:ds',
-            'http://www.w3.org/2000/09/xmldsig#'
-        );
-
-        return $element;
     }
 }

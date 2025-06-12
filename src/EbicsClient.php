@@ -2,17 +2,12 @@
 
 namespace EbicsApi\Ebics;
 
-use DateTimeInterface;
-use EbicsApi\Ebics\Contexts\BTDContext;
-use EbicsApi\Ebics\Contexts\BTUContext;
-use EbicsApi\Ebics\Contexts\FDLContext;
-use EbicsApi\Ebics\Contexts\FULContext;
-use EbicsApi\Ebics\Contexts\HVDContext;
-use EbicsApi\Ebics\Contexts\HVEContext;
-use EbicsApi\Ebics\Contexts\HVTContext;
-use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
 use EbicsApi\Ebics\Contracts\HttpClientInterface;
+use EbicsApi\Ebics\Contracts\Order\DownloadOrderInterface;
+use EbicsApi\Ebics\Contracts\Order\InitializationOrderInterface;
+use EbicsApi\Ebics\Contracts\Order\StandardOrderInterface;
+use EbicsApi\Ebics\Contracts\Order\UploadOrderInterface;
 use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
@@ -36,23 +31,25 @@ use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Factories\TransactionFactory;
 use EbicsApi\Ebics\Handlers\OrderDataHandler;
 use EbicsApi\Ebics\Handlers\ResponseHandler;
+use EbicsApi\Ebics\Handlers\UserSignatureHandler;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
-use EbicsApi\Ebics\Models\CustomerHCS;
-use EbicsApi\Ebics\Models\DownloadOrderResult;
 use EbicsApi\Ebics\Models\DownloadSegment;
 use EbicsApi\Ebics\Models\DownloadTransaction;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\Http\Response;
-use EbicsApi\Ebics\Models\InitializationOrderResult;
 use EbicsApi\Ebics\Models\InitializationSegment;
 use EbicsApi\Ebics\Models\InitializationTransaction;
 use EbicsApi\Ebics\Models\Keyring;
-use EbicsApi\Ebics\Models\UploadOrderResult;
+use EbicsApi\Ebics\Models\Order\DownloadOrderResult;
+use EbicsApi\Ebics\Models\Order\InitializationOrderResult;
+use EbicsApi\Ebics\Models\Order\StandardOrderResult;
+use EbicsApi\Ebics\Models\Order\UploadOrderResult;
 use EbicsApi\Ebics\Models\UploadTransaction;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\ContentX509Generator;
+use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\CurlHttpClient;
 use EbicsApi\Ebics\Services\RandomService;
@@ -73,6 +70,7 @@ final class EbicsClient implements EbicsClientInterface
     private User $user;
     private Keyring $keyring;
     private OrderDataHandler $orderDataHandler;
+    private UserSignatureHandler $userSignatureHandler;
     private ResponseHandler $responseHandler;
     private RequestFactory $requestFactory;
     private CryptService $cryptService;
@@ -129,11 +127,18 @@ final class EbicsClient implements EbicsClientInterface
 
         $schemaValidator = new SchemaValidator($options['schema_dir'] ?? null);
 
+        $this->userSignatureHandler = $ebicsFactory->createUserSignatureHandler(
+            $user,
+            $keyring,
+            $this->cryptService,
+            $schemaValidator
+        );
+
         $this->requestFactory = $ebicsFactory->createRequestFactory(
             $bank,
             $user,
             $keyring,
-            $ebicsFactory->createUserSignatureHandler($user, $keyring, $this->cryptService, $schemaValidator),
+            $this->userSignatureHandler,
             $this->orderDataHandler,
             $ebicsFactory->createDigestResolver($this->cryptService),
             $ebicsFactory->createRequestBuilder($keyring, $this->cryptService, $schemaValidator),
@@ -155,41 +160,77 @@ final class EbicsClient implements EbicsClientInterface
         $this->httpClient = $options['http_client'] ?? new CurlHttpClient();
     }
 
-    public function HCS(
-        Keyring $keyring,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $context->setWithES(true);
-
-        $orderData = new CustomerHCS();
-        $this->orderDataHandler->handleHCS(
-            $orderData,
-            $keyring,
-            $context->getDateTime()
-        );
-
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createHCS($transaction, $context);
+    public function executeInitializationOrder(InitializationOrderInterface $order): InitializationOrderResult
+    {
+        $order->useRequestFactory($this->requestFactory);
+        $order->useOrderDataHandler($this->orderDataHandler);
+        $order->useUserSignatureHandler($this->userSignatureHandler);
+        $order->prepareContext();
+        $transaction = $this->initializeTransaction(
+            function () use ($order) {
+                return $order->createRequest();
             }
         );
+        $result = $this->createInitializationOrderResult($transaction);
+        $order->afterExecute($result);
 
-        $signatureA = $keyring->getUserSignatureA();
-        $signatureE = $keyring->getUserSignatureE();
-        $signatureX = $keyring->getUserSignatureX();
-
-        $this->keyring->setUserSignatureA($signatureA);
-        $this->keyring->setUserSignatureE($signatureE);
-        $this->keyring->setUserSignatureX($signatureX);
-
-        return $this->createUploadOrderResult($transaction, $orderData);
+        return $result;
     }
 
+    public function executeStandardOrder(StandardOrderInterface $order): StandardOrderResult
+    {
+        $order->useRequestFactory($this->requestFactory);
+        $order->useOrderDataHandler($this->orderDataHandler);
+        $order->useUserSignatureHandler($this->userSignatureHandler);
+        $order->prepareContext();
+        $request = $order->createRequest();
+        $response = $this->httpClient->post($this->bank->getUrl(), $request);
+        $this->responseHandler->checkResponseReturnCode($request, $response);
+        $result = $this->createStandardOrderResult($response);
+        $order->afterExecute($result);
+
+        return $result;
+    }
+
+    public function executeDownloadOrder(DownloadOrderInterface $order): DownloadOrderResult
+    {
+        $order->useRequestFactory($this->requestFactory);
+        $order->useOrderDataHandler($this->orderDataHandler);
+        $order->useUserSignatureHandler($this->userSignatureHandler);
+        $order->prepareContext();
+        $transaction = $this->downloadTransaction(
+            function () use ($order) {
+                return $order->createRequest();
+            },
+            $order->getContext()->getAckClosure()
+        );
+        $result = $this->createDownloadOrderResult($transaction, $order->getParserFormat());
+        $order->afterExecute($result);
+
+        return $result;
+    }
+
+    public function executeUploadOrder(UploadOrderInterface $order): UploadOrderResult
+    {
+        $order->useRequestFactory($this->requestFactory);
+        $order->useOrderDataHandler($this->orderDataHandler);
+        $order->useUserSignatureHandler($this->userSignatureHandler);
+        $order->prepareContext();
+        $transaction = $this->uploadTransaction(
+            function (UploadTransaction $transaction) use ($order) {
+                $order->setTransaction($transaction);
+                $transaction->setOrderData($order->getOrderData()->getContent());
+                $transaction->setNumSegments($order->getOrderData()->getContent() == ' ' ? 0 : 1);
+                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
+
+                return $order->createRequest();
+            }
+        );
+        $result = $this->createUploadOrderResult($transaction, $order->getOrderData());
+        $order->afterExecute($result);
+
+        return $result;
+    }
 
     /**
      * @inheritDoc
@@ -206,802 +247,6 @@ final class EbicsClient implements EbicsClientInterface
 
         $signatureX = $this->createUserSignature(SignatureInterface::TYPE_X, $options['x_details'] ?? null);
         $this->keyring->setUserSignatureX($signatureX);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\IncorrectResponseEbicsException
-     */
-    public function HEV(): Response
-    {
-        $context = $this->requestFactory->prepareStandardContext();
-        $request = $this->requestFactory->createHEV($context);
-        $response = $this->httpClient->post($this->bank->getUrl(), $request);
-
-        $this->checkH000ReturnCode($request, $response);
-
-        return $response;
-    }
-
-    /**
-     * @inheritDoc
-     * @throws EbicsException
-     */
-    public function INI(?RequestContext $context = null): Response
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $signatureA = $this->getUserSignature(SignatureInterface::TYPE_A);
-
-        $request = $this->requestFactory->createINI($signatureA, $context);
-        $response = $this->httpClient->post($this->bank->getUrl(), $request);
-
-        $this->checkH00XReturnCode($request, $response);
-        $this->keyring->setUserSignatureA($signatureA);
-
-        return $response;
-    }
-
-    /**
-     * @inheritDoc
-     * @throws EbicsException
-     */
-    public function HIA(?RequestContext $context = null): Response
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $signatureE = $this->getUserSignature(SignatureInterface::TYPE_E);
-        $signatureX = $this->getUserSignature(SignatureInterface::TYPE_X);
-
-        $request = $this->requestFactory->createHIA($signatureE, $signatureX, $context);
-        $response = $this->httpClient->post($this->bank->getUrl(), $request);
-
-        $this->checkH00XReturnCode($request, $response);
-        $this->keyring->setUserSignatureE($signatureE);
-        $this->keyring->setUserSignatureX($signatureX);
-
-        return $response;
-    }
-
-    /**
-     * @inheritDoc
-     * @throws EbicsException
-     */
-    public function H3K(?RequestContext $context = null): Response
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $signatureA = $this->getUserSignature(SignatureInterface::TYPE_A);
-        $signatureE = $this->getUserSignature(SignatureInterface::TYPE_E);
-        $signatureX = $this->getUserSignature(SignatureInterface::TYPE_X);
-
-        $request = $this->requestFactory->createH3K($signatureA, $signatureE, $signatureX, $context);
-        $response = $this->httpClient->post($this->bank->getUrl(), $request);
-
-        $this->checkH00XReturnCode($request, $response);
-        $this->keyring->setUserSignatureA($signatureA);
-        $this->keyring->setUserSignatureE($signatureE);
-        $this->keyring->setUserSignatureX($signatureX);
-
-        return $response;
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function HPB(?RequestContext $context = null): InitializationOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $transaction = $this->initializeTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHPB($context);
-            }
-        );
-
-        $orderResult = $this->createInitializationOrderResult($transaction);
-
-        $signatureX = $this->orderDataHandler->retrieveAuthenticationSignature($orderResult->getDocument());
-        $signatureE = $this->orderDataHandler->retrieveEncryptionSignature($orderResult->getDocument());
-        $this->keyring->setBankSignatureX($signatureX);
-        $this->keyring->setBankSignatureE($signatureE);
-
-        return $orderResult;
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function SPR(?RequestContext $context = null): UploadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $context->setOnlyES(true);
-
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($context) {
-                $transaction->setOrderData(' ');
-                $transaction->setNumSegments(0);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createSPR($transaction, $context);
-            }
-        );
-
-        return $this->createUploadESResult($transaction, $transaction->getDigest());
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function HPD(?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHPD($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function HKD(?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHKD($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function HTD(?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHTD($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function HAA(?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHAA($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function PTK(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createPTK($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_TEXT);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function VMK(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createVMK($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_TEXT);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function STA(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createSTA($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_TEXT);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function BKA(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createBKA($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_TEXT);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function C52(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createC52($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_ZIP_FILES);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function C53(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createC53($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_ZIP_FILES);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function C54(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createC54($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_ZIP_FILES);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function Z52(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createZ52($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_ZIP_FILES);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function Z53(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createZ53($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_ZIP_FILES);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function Z54(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createZ54($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_ZIP_FILES);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function ZSR(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createZSR($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_ZIP_FILES);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function XEK(
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareDownloadContext($context)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createXEK($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_TEXT);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function BTD(
-        BTDContext $btdContext,
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareStandardContext($context)
-            ->setBTDContext($btdContext)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createBTD($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, $btdContext->getParserFormat());
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function BTU(
-        BTUContext $btuContext,
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareStandardContext($context)
-            ->setBTUContext($btuContext);
-
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createBTU($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function FDL(
-        FDLContext $fdlContext,
-        ?DateTimeInterface $startDateTime = null,
-        ?DateTimeInterface $endDateTime = null,
-        ?RequestContext $context = null
-    ): DownloadOrderResult {
-        $context = $this->requestFactory->prepareStandardContext($context)
-            ->setFdlContext($fdlContext)
-            ->setStartDateTime($startDateTime)
-            ->setEndDateTime($endDateTime);
-
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createFDL($context);
-            },
-            $context->getAckClosure()
-        );
-
-        return $this->createDownloadOrderResult($transaction, $fdlContext->getParserFormat());
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsException
-     */
-    public function FUL(
-        FULContext $fulContext,
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareStandardContext($context)
-            ->setFulContext($fulContext);
-
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createFUL($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function CCT(
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareUploadContext($context);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createCCT($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function CDD(
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareUploadContext($context);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createCDD($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function CDB(
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareUploadContext($context);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createCDB($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function CIP(
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareUploadContext($context);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createCIP($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function XE2(
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareUploadContext($context);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createXE2($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function XE3(
-        OrderDataInterface $orderData,
-        ?RequestContext $context = null
-    ): UploadOrderResult {
-        $context = $this->requestFactory->prepareUploadContext($context);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createXE3($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function YCT(OrderDataInterface $orderData, ?RequestContext $context = null): UploadOrderResult
-    {
-        $context = $this->requestFactory->prepareUploadContext($context);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($orderData, $context) {
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments(1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
-
-                return $this->requestFactory->createYCT($transaction, $context);
-            }
-        );
-
-        return $this->createUploadOrderResult($transaction, $orderData);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function HVU(?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHVU($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function HVZ(?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHVZ($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws EbicsException
-     */
-    public function HVE(HVEContext $hveContext, ?RequestContext $context = null): UploadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context)
-            ->setHVEContext($hveContext);
-        $transaction = $this->uploadTransaction(
-            function (UploadTransaction $transaction) use ($context) {
-                $transaction->setDigest($context->getHVEContext()->getDigest());
-                $transaction->setNumSegments(0);
-                $transaction->setOrderData("");
-
-                return $this->requestFactory->createHVE($transaction, $context);
-            }
-        );
-
-        return $this->createUploadESResult($transaction, $hveContext->getDigest());
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function HVD(HVDContext $hvdContext, ?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context)
-            ->setHVDContext($hvdContext);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHVD($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
-    }
-
-    /**
-     * @inheritDoc
-     * @throws Exceptions\EbicsResponseException
-     * @throws EbicsException
-     */
-    public function HVT(HVTContext $hvtContext, ?RequestContext $context = null): DownloadOrderResult
-    {
-        $context = $this->requestFactory->prepareStandardContext($context)
-            ->setHVTContext($hvtContext);
-        $transaction = $this->downloadTransaction(
-            function () use ($context) {
-                return $this->requestFactory->createHVT($context);
-            }
-        );
-
-        return $this->createDownloadOrderResult($transaction, self::FILE_PARSER_FORMAT_XML);
     }
 
     /**
@@ -1066,23 +311,7 @@ final class EbicsClient implements EbicsClientInterface
         EbicsExceptionFactory::buildExceptionFromCode($errorCode, $reportText, $request, $response);
     }
 
-    /**
-     * @param Request $request
-     * @param Response $response
-     *
-     * @throws Exceptions\IncorrectResponseEbicsException
-     */
-    private function checkH000ReturnCode(Request $request, Response $response): void
-    {
-        $errorCode = $this->responseHandler->retrieveH000ReturnCode($response);
 
-        if ('000000' === $errorCode) {
-            return;
-        }
-
-        $reportText = $this->responseHandler->retrieveH000ReportText($response);
-        EbicsExceptionFactory::buildExceptionFromCode($errorCode, $reportText, $request, $response);
-    }
 
     /**
      * Walk by segments to build transaction.
@@ -1246,6 +475,14 @@ final class EbicsClient implements EbicsClientInterface
         return $transaction;
     }
 
+    private function createStandardOrderResult(XmlData $xmlData): StandardOrderResult
+    {
+        $orderResult = $this->orderResultFactory->createStandardOrderResult();
+        $orderResult->setXmlData($xmlData);
+
+        return $orderResult;
+    }
+
     private function createInitializationOrderResult(InitializationTransaction $transaction): InitializationOrderResult
     {
         $orderResult = $this->orderResultFactory->createInitializationOrderResult();
@@ -1329,32 +566,6 @@ final class EbicsClient implements EbicsClientInterface
     public function getUser(): User
     {
         return $this->user;
-    }
-
-    /**
-     * Get user signature.
-     *
-     * @param string $type One of allowed user signature type.
-     *
-     * @return SignatureInterface
-     */
-    private function getUserSignature(string $type): SignatureInterface
-    {
-        switch ($type) {
-            case SignatureInterface::TYPE_A:
-                $signature = $this->keyring->getUserSignatureA();
-                break;
-            case SignatureInterface::TYPE_E:
-                $signature = $this->keyring->getUserSignatureE();
-                break;
-            case SignatureInterface::TYPE_X:
-                $signature = $this->keyring->getUserSignatureX();
-                break;
-            default:
-                throw new LogicException(sprintf('Type "%s" not allowed', $type));
-        }
-
-        return $signature;
     }
 
     /**

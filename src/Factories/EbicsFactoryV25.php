@@ -79,7 +79,6 @@ final class EbicsFactoryV25 extends EbicsFactory
     ): OrderDataHandler {
         return new OrderDataHandlerV25(
             $user,
-            $keyring,
             $cryptService,
             $signatureFactory,
             $certificateX509Factory,

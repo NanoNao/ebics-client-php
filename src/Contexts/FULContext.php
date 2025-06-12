@@ -2,6 +2,8 @@
 
 namespace EbicsApi\Ebics\Contexts;
 
+use EbicsApi\Ebics\Contracts\OrderContextInterface;
+
 /**
  * Class context for FUL order.
  *
@@ -10,4 +12,12 @@ namespace EbicsApi\Ebics\Contexts;
  */
 final class FULContext extends FFLContext
 {
+    public static function resolveInstance(?OrderContextInterface $orderContext): FULContext
+    {
+        if ($orderContext instanceof FULContext) {
+            return $orderContext;
+        }
+
+        return new FULContext();
+    }
 }

@@ -5,6 +5,7 @@ namespace EbicsApi\Ebics\Handlers;
 use DOMDocument;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Factories\BufferFactory;
+use EbicsApi\Ebics\Factories\EbicsExceptionFactory;
 use EbicsApi\Ebics\Factories\SegmentFactory;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\DownloadSegment;
@@ -234,4 +235,34 @@ abstract class ResponseHandler
      * Extract DownloadSegment from the DOM XML.
      */
     abstract public function extractUploadSegment(Request $request, Response $response): UploadSegment;
+
+    public function checkResponseReturnCode(Request $request, Response $response): void
+    {
+        $rootName = $response->documentElement->localName;
+
+        if ($rootName === 'ebicsHEVResponse') {
+            $errorCode = $this->retrieveH000ReturnCode($response);
+
+            if ('000000' === $errorCode) {
+                return;
+            }
+
+            $reportText = $this->retrieveH000ReportText($response);
+            EbicsExceptionFactory::buildExceptionFromCode($errorCode, $reportText, $request, $response);
+        } else {
+            $errorCode = $this->retrieveH00XBodyOrHeaderReturnCode($response);
+
+            if ('000000' === $errorCode) {
+                return;
+            }
+
+            // For Transaction Done.
+            if ('011000' === $errorCode) {
+                return;
+            }
+
+            $reportText = $this->retrieveH00XReportText($response);
+            EbicsExceptionFactory::buildExceptionFromCode($errorCode, $reportText, $request, $response);
+        }
+    }
 }

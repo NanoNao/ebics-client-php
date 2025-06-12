@@ -3,11 +3,11 @@
 namespace EbicsApi\Ebics\Models;
 
 /**
- * Class CustomerHCS represents CustomerHCS model.
+ * Class Customer.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
- * @author Guillaume Sainthillier
+ * @author Andrew Svirin
  */
-final class CustomerHCS extends XmlData
+final class Customer extends XmlData
 {
 }

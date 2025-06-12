@@ -1,13 +1,13 @@
 <?php
 
-namespace EbicsApi\Ebics\Models;
+namespace EbicsApi\Ebics\Contracts;
 
 /**
- * Class CustomerHIA represents CustomerHIA model.
+ * OrderContext interface.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-final class CustomerHIA extends XmlData
+interface OrderContextInterface
 {
 }

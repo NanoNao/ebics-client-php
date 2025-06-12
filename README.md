@@ -91,7 +91,7 @@ use EbicsApi\Ebics\Contracts\EbicsResponseExceptionInterface;
 /* @var \EbicsApi\Ebics\EbicsClient $client */
 
 try {
-    $client->INI();
+    $client->executeStandardOrder(new \EbicsApi\Ebics\Orders\INI());
     /* @var \EbicsApi\Ebics\Services\FileKeyringManager $keyringManager */
     /* @var \EbicsApi\Ebics\Models\Keyring $keyring */
     $keyringManager->saveKeyring($keyring, $keyringRealPath);
@@ -105,7 +105,7 @@ try {
 }
 
 try {
-    $client->HIA();
+    $client->executeStandardOrder(new \EbicsApi\Ebics\Orders\HIA());
     $keyringManager->saveKeyring($keyring, $keyringRealPath);
 } catch (EbicsResponseExceptionInterface $exception) {
     echo sprintf(
@@ -137,10 +137,9 @@ $pdf = $ebicsBankLetter->formatBankLetter($bankLetter, $ebicsBankLetter->createP
 ### 4. Fetch the bank keys.
 
 ```php
-
 try {
     /* @var \EbicsApi\Ebics\EbicsClient $client */
-    $client->HPB();
+    $client->executeInitializationOrder(new \EbicsApi\Ebics\Orders\HPB());
     /* @var \EbicsApi\Ebics\Services\FileKeyringManager $keyringManager */
     /* @var \EbicsApi\Ebics\Models\Keyring $keyring */
     $keyringManager->saveKeyring($keyring, $keyringRealPath);
@@ -156,90 +155,24 @@ try {
 
 ### 5. Play with other transactions!
 
-| Transaction | Description                                                                                                       |
-|-------------|-------------------------------------------------------------------------------------------------------------------|
-| HEV         | Download supported protocol versions for the Bank.                                                                |
-| INI         | Send to the bank public signature of signature A005.                                                              |
-| HIA         | Send to the bank public signatures of authentication (X002) and encryption (E002).                                |
-| H3K         | Send to the bank public signatures of signature (A005), authentication (X002) and encryption (E002).              |
-| HPB         | Download the Bank public signatures authentication (X002) and encryption (E002).                                  |
-| SPR         | Suspend activated keyring.                                                                                        |
-| HPD         | Download the bank server parameters.                                                                              |
-| HKD         | Download customer's customer and subscriber information.                                                          |
-| HTD         | Download subscriber's customer and subscriber information.                                                        |
-| HAA         | Download Bank available order types.                                                                              |
-| PTK         | Download transaction status.                                                                                      |
-| FDL         | Download the files from the bank.                                                                                 |
-| FUL         | Upload the files to the bank.                                                                                     |
-| VMK         | Download the interim transaction report in SWIFT format (MT942).                                                  |
-| STA         | Download the bank account statement.                                                                              |
-| BKA         | Download electronic account statement in pdf format.                                                              |
-| C52         | Download the bank account report in Camt.052 format.                                                              |
-| C53         | Download the bank account statement in Camt.053 format.                                                           |
-| C54         | Download Debit Credit Notification (DTI).                                                                         |
-| Z52         | Download the bank account report in Camt.052 format (i.e Switzerland financial services).                         |
-| Z53         | Download the bank account statement in Camt.053 format (i.e Switzerland financial services).                      |
-| Z54         | Download the bank account statement in Camt.054 format (i.e available in Switzerland).                            |
-| ZSR         | Download Order/Payment Status report.                                                                             |
-| XEK         | Download account information as PDF-file.                                                                         |
-| CCT         | Upload initiation of the credit transfer per Single Euro Payments Area.                                           |
-| CIP         | Upload initiation of the instant credit transfer per Single Euro Payments Area.                                   |
-| XE2         | Upload initiation of the Swiss credit transfer (i.e available in Switzerland).                                    |
-| XE3         | Upload SEPA Direct Debit Initiation, CH definitions, CORE (i.e available in Switzerland).                         |
-| YCT         | Upload Credit transfer CGI (SEPA & non SEPA).                                                                     |
-| CDD         | Upload initiation of the direct debit transaction.                                                                |
-| CDB         | Upload initiation of the direct debit transaction for business.                                                   |
-| BTD         | Download request files of any BTF structure.                                                                      |
-| BTU         | Upload the files to the bank.                                                                                     |
-| HVU         | Download List the orders for which the user is authorized as a signatory.                                         |
-| HVZ         | Download VEU overview with additional information.                                                                |
-| HVE         | Upload VEU signature for order.                                                                                   |
-| HVD         | Download the state of a VEU order.                                                                                |
-| HVT         | Download detailed information about an order from VEU processing for which the user is authorized as a signatory. |
+| Transaction | Description                                                                                          |
+|-------------|------------------------------------------------------------------------------------------------------|
+| HEV         | Download supported protocol versions for the Bank.                                                   |
+| INI         | Send to the bank public signature of signature A005.                                                 |
+| HIA         | Send to the bank public signatures of authentication (X002) and encryption (E002).                   |
+| H3K         | Send to the bank public signatures of signature (A005), authentication (X002) and encryption (E002). |
+| HCS         | Upload for renewing user certificates.                                                               |
+| HPB         | Download the Bank public signatures authentication (X002) and encryption (E002).                     |
+| SPR         | Suspend activated keyring.                                                                           |
+| HPD         | Download the bank server parameters.                                                                 |
+| HKD         | Download customer's customer and subscriber information.                                             |
+| HTD         | Download subscriber's customer and subscriber information.                                           |
+| HAA         | Download Bank available order types.                                                                 |
+| PTK         | Download transaction status.                                                                         |
+| FDL         | Download the files from the bank.                                                                    |
+| FUL         | Upload the files to the bank.                                                                        |
+| BTD         | Download request files of any BTF structure.                                                         |
+| BTU         | Upload the files to the bank.                                                                        |
 
 If you need to parse Cfonb 120, 240, 360 use [ebics-api/cfonb-php](https://github.com/ebics-api/cfonb-php)  
-If you need to parse MT942 use [ebics-api/mt942-php](https://github.com/ebics-api/mt942-php)  
-
-## Keyring schema
-```json
-{
-    "VERSION": "VERSION_24|VERSION_25|VERSION_30",
-    "USER": {
-        "A": {
-            "VERSION": "A005|A006",
-            "CERTIFICATE": "null|string",
-            "PUBLIC_KEY": "string",
-            "PRIVATE_KEY": "string"
-        },
-        "E": {
-            "CERTIFICATE": "null|string",
-            "PUBLIC_KEY": "string",
-            "PRIVATE_KEY": "string"
-        },
-        "X": {
-            "CERTIFICATE": "null|string",
-            "PUBLIC_KEY": "string",
-            "PRIVATE_KEY": "string"
-        }
-    },
-    "BANK": {
-        "E": {
-            "CERTIFICATE": "null|string",
-            "PUBLIC_KEY": "null|string",
-            "PRIVATE_KEY": null
-        },
-        "X": {
-            "CERTIFICATE": null,
-            "PUBLIC_KEY": "null|string",
-            "PRIVATE_KEY": null
-        }
-    }
-}
-```
-
-## Backlog
- - Format validators for all available ISO 20022 formats:
-   - upload: PAIN.001, PAIN.008, MT101, TA875, CFONB320, CFONB160 with different versions.
-   - download: PAIN.002, CAMT.052, CAMT.053, CAMT.054, MT199, MT900, MT910, MT940, MT942, CFONB240,CFONB245, CFONB120
- - Country's Bank specific order types
- - Refactor by abstraction Download and Upload Order types
+If you need to parse MT942 use [ebics-api/mt942-php](https://github.com/ebics-api/mt942-php)

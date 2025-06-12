@@ -2,17 +2,19 @@
 
 namespace EbicsApi\Ebics\Contexts;
 
+use EbicsApi\Ebics\Contracts\OrderContextInterface;
+
 /**
  * Business transactions & formats.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class FFLContext
+abstract class FFLContext implements OrderContextInterface
 {
     private string $fileFormat;
     private array $parameters = [];
-    private string $countryCode;
+    private ?string $countryCode = null;
 
     public function setFileFormat(string $fileFormat): self
     {
@@ -38,14 +40,14 @@ abstract class FFLContext
         return $this->parameters;
     }
 
-    public function setCountryCode(string $countryCode): self
+    public function setCountryCode(?string $countryCode): self
     {
         $this->countryCode = $countryCode;
 
         return $this;
     }
 
-    public function getCountryCode(): string
+    public function getCountryCode(): ?string
     {
         return $this->countryCode;
     }

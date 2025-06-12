@@ -11,10 +11,9 @@ use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Handlers\OrderDataHandler;
 use EbicsApi\Ebics\Handlers\Traits\H004Trait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
-use EbicsApi\Ebics\Models\CustomerINI;
+use EbicsApi\Ebics\Models\Customer;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Services\CryptService;
-use EbicsApi\Ebics\Services\KeyStorageLocator;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
@@ -64,7 +63,7 @@ class OrderDataHandlerTest extends AbstractEbicsTestCase
         $iniXPath = $this->prepareH00XXPath($iniXML);
         $orderData = $iniXPath->query("//$h00x:body/$h00x:DataTransfer/$h00x:OrderData")->item(0)->nodeValue;
         $orderDataDeUn = gzuncompress(base64_decode($orderData));
-        $orderDataXML = new CustomerINI();
+        $orderDataXML = new Customer();
         $orderDataXML->loadXML($orderDataDeUn);
         $orderDataXPath = $this->prepareS001XPath($orderDataXML);
         $iniDatetime = $orderDataXPath->query("//S001:SignaturePubKeyInfo/S001:PubKeyValue/S001:TimeStamp")->item(0)->nodeValue;

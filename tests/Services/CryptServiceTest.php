@@ -5,7 +5,6 @@ namespace EbicsApi\Ebics\Tests\Services;
 use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Services\CryptService;
-use EbicsApi\Ebics\Services\KeyStorageLocator;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 

@@ -1,8 +1,9 @@
 <?php
 
-namespace EbicsApi\Ebics\Models;
+namespace EbicsApi\Ebics\Models\Order;
 
 use EbicsApi\Ebics\Contracts\OrderDataInterface;
+use EbicsApi\Ebics\Models\UploadTransaction;
 
 /**
  * Order result with extracted data.
@@ -12,8 +13,9 @@ use EbicsApi\Ebics\Contracts\OrderDataInterface;
  */
 final class UploadOrderResult extends OrderResult
 {
-    private UploadTransaction $transaction;
     private OrderDataInterface $dataDocument;
+
+    private UploadTransaction $transaction;
 
     public function setTransaction(UploadTransaction $transaction): void
     {

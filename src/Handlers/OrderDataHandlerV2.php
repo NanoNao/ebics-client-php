@@ -10,8 +10,6 @@ use DOMNodeList;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Crypt\X509;
-use EbicsApi\Ebics\Models\CustomerHIA;
-use EbicsApi\Ebics\Models\CustomerINI;
 use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Models\XmlDocument;
 use EbicsApi\Ebics\Services\DOMHelper;
@@ -26,17 +24,7 @@ use EbicsApi\Ebics\Services\DOMHelper;
  */
 abstract class OrderDataHandlerV2 extends OrderDataHandler
 {
-    use H00XTrait;
-
-    protected function createSignaturePubKeyOrderData(XmlData $xml): DOMElement
-    {
-        return $xml->createElementNS(
-            'http://www.ebics.org/S001',
-            'SignaturePubKeyOrderData'
-        );
-    }
-
-    protected function handleSignaturePubKey(
+    public function handleSignaturePubKey(
         DOMElement $xmlSignaturePubKeyInfo,
         XmlData $xml,
         SignatureInterface $certificateA,
@@ -46,7 +34,7 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         $this->handlePubKeyValue($xmlSignaturePubKeyInfo, $xml, $certificateA, $dateTime, $ns);
     }
 
-    protected function handleAuthenticationPubKey(
+    public function handleAuthenticationPubKey(
         DOMElement $xmlAuthenticationPubKeyInfo,
         XmlData $xml,
         SignatureInterface $certificateX,
@@ -56,7 +44,7 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         $this->handlePubKeyValue($xmlAuthenticationPubKeyInfo, $xml, $certificateX, $dateTime, $ns);
     }
 
-    protected function handleEncryptionPubKey(
+    public function handleEncryptionPubKey(
         DOMElement $xmlEncryptionPubKeyInfo,
         XmlData $xml,
         SignatureInterface $certificateE,
@@ -187,15 +175,5 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         }
 
         return $signature;
-    }
-
-    protected function createHCSRequestOrderData(XmlData $xml): DOMElement
-    {
-        $element = $xml->createElementNS($this->getH00XNamespace(), 'HCSRequestOrderData');
-
-        $element->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:esig', 'http://www.ebics.org/S001');
-        $element->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ds', 'http://www.w3.org/2000/09/xmldsig#');
-
-        return $element;
     }
 }
