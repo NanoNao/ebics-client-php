@@ -141,10 +141,6 @@ final class BTD extends DownloadOrder
             $orderDetailsBuilder->appendElementTo('ServiceOption', $this->btdContext->getServiceOption(), $xmlService);
         }
 
-        if (null !== $this->btdContext->getContainerFlag()) {
-            $orderDetailsBuilder->appendElementTo('ContainerFlag', $this->btdContext->getContainerFlag(), $xmlService);
-        }
-
         if (null !== $this->btdContext->getContainerType()) {
             $orderDetailsBuilder->appendEmptyElementTo('Container', $xmlService, [
                 'containerType' => $this->btdContext->getContainerType(),

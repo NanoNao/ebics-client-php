@@ -87,7 +87,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
     public function testHEV(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV25($credentialsId, $codes['HEV']['fake']);
-        $hev = $client->executeStandardOrder(new HEV())->getXmlData();
+        $hev = $client->executeStandardOrder(new HEV())->getResponse();
 
         $responseHandler = $client->getResponseHandler();
         $code = $responseHandler->retrieveH000ReturnCode($hev);
@@ -116,7 +116,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $ini = $client->executeStandardOrder(new INI())->getXmlData();
+        $ini = $client->executeStandardOrder(new INI())->getResponse();
         if (!$userExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -147,7 +147,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $hia = $client->executeStandardOrder(new HIA())->getXmlData();
+        $hia = $client->executeStandardOrder(new HIA())->getResponse();
         if (!$bankExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -410,7 +410,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
 
             $this->assertExceptionCode($code['code']);
 
-            $context = (new FDLContext())
+            $context = FDLContext::resolveInstance()
                 ->setFileFormat($fileFormat)
                 ->setParameter('TEST', 'TRUE')
                 ->setCountryCode('FR');
@@ -468,7 +468,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
 
             $this->assertExceptionCode($code['code']);
 
-            $context = (new FULContext())
+            $context = FULContext::resolveInstance()
                 ->setFileFormat($fileFormat)
                 ->setParameter('TEST', 'TRUE')
                 ->setCountryCode('FR');

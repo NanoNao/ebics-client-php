@@ -150,10 +150,6 @@ final class BTU extends UploadOrder
             $orderDetailsBuilder->appendElementTo('ServiceOption', $this->btuContext->getServiceOption(), $xmlService);
         }
 
-        if (null !== $this->btuContext->getContainerFlag()) {
-            $orderDetailsBuilder->appendElementTo('ContainerFlag', $this->btuContext->getContainerFlag(), $xmlService);
-        }
-
         $xmlMsgName = $orderDetailsBuilder->appendElementTo('MsgName', $this->btuContext->getMsgName(), $xmlService);
 
         if (null !== $this->btuContext->getMsgNameVersion()) {

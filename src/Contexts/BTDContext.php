@@ -13,20 +13,7 @@ use EbicsApi\Ebics\Contracts\OrderContextInterface;
  */
 final class BTDContext extends BTFContext
 {
-    private ?string $containerType = null;
     private string $parserFormat = EbicsClientInterface::FILE_PARSER_FORMAT_TEXT;
-
-    public function setContainerType(string $containerType): self
-    {
-        $this->containerType = $containerType;
-
-        return $this;
-    }
-
-    public function getContainerType(): ?string
-    {
-        return $this->containerType;
-    }
 
     public function setParserFormat(string $parserFormat): self
     {
@@ -40,7 +27,7 @@ final class BTDContext extends BTFContext
         return $this->parserFormat;
     }
 
-    public static function resolveInstance(?OrderContextInterface $orderContext): BTDContext
+    public static function resolveInstance(?OrderContextInterface $orderContext = null): BTDContext
     {
         if ($orderContext instanceof BTDContext) {
             return $orderContext;

@@ -2,7 +2,7 @@
 
 namespace EbicsApi\Ebics\Models\Order;
 
-use EbicsApi\Ebics\Models\XmlData;
+use EbicsApi\Ebics\Models\Http\Response;
 
 /**
  * Order result with extracted data.
@@ -12,15 +12,15 @@ use EbicsApi\Ebics\Models\XmlData;
  */
 final class StandardOrderResult extends OrderResult
 {
-    private XmlData $xmlData;
+    private Response $response;
 
-    public function setXmlData(XmlData $xmlData): void
+    public function setResponse(Response $xmlData): void
     {
-        $this->xmlData = $xmlData;
+        $this->response = $xmlData;
     }
 
-    public function getXmlData(): ?XmlData
+    public function getResponse(): Response
     {
-        return $this->xmlData;
+        return $this->response;
     }
 }

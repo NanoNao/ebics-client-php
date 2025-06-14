@@ -117,7 +117,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $ini = $client->executeStandardOrder(new INI())->getXmlData();
+        $ini = $client->executeStandardOrder(new INI())->getResponse();
         if (!$userExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -143,7 +143,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     {
         $client = $this->setupClientV30($credentialsId, $codes['HEV']['fake']);
 
-        $hev = $client->executeStandardOrder(new HEV())->getXmlData();
+        $hev = $client->executeStandardOrder(new HEV())->getResponse();
 
         $responseHandler = $client->getResponseHandler();
         $code = $responseHandler->retrieveH000ReturnCode($hev);
@@ -172,7 +172,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $ini = $client->executeStandardOrder(new INI())->getXmlData();
+        $ini = $client->executeStandardOrder(new INI())->getResponse();
         if (!$userExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -203,7 +203,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $hia = $client->executeStandardOrder(new HIA())->getXmlData();
+        $hia = $client->executeStandardOrder(new HIA())->getResponse();
         if (!$bankExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -239,7 +239,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
             $this->expectException(InvalidUserOrUserStateException::class);
             $this->expectExceptionCode(91002);
         }
-        $h3k = $client->executeStandardOrder(new H3K())->getXmlData();
+        $h3k = $client->executeStandardOrder(new H3K())->getResponse();
         if (!$bankExists) {
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
@@ -418,12 +418,12 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     {
         $client = $this->setupClientV30($credentialsId, $codes['BTD']['fake']);
 
-        $context = new BTDContext();
-        $context->setServiceName('PSR');
-        $context->setMsgName('pain.002');
-        $context->setMsgNameVersion('03');
-        $context->setScope('CH');
-        $context->setContainerType('ZIP');
+        $context = BTDContext::resolveInstance()
+            ->setServiceName('PSR')
+            ->setMsgName('pain.002')
+            ->setMsgNameVersion('03')
+            ->setScope('CH')
+            ->setContainerType('ZIP');
 
         $this->assertExceptionCode($codes['BTD']['code']);
         $btd = $client->executeDownloadOrder(new BTD($context, new DateTime('2020-03-21'), new DateTime('2020-04-21')));
@@ -459,12 +459,12 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
         $orderData = $this->buildCustomerCreditTransfer('urn:iso:std:iso:20022:tech:xsd:pain.001.001.09');
 
         // XE2
-        $btuContext = new BTUContext();
-        $btuContext->setServiceName('MCT');
-        $btuContext->setScope('CH');
-        $btuContext->setMsgName('pain.001');
-        $btuContext->setMsgNameVersion('09');
-        $btuContext->setFileName('xe2.pain001.xml');
+        $btuContext = BTUContext::resolveInstance()
+            ->setServiceName('MCT')
+            ->setScope('CH')
+            ->setMsgName('pain.001')
+            ->setMsgNameVersion('09')
+            ->setFileName('xe2.pain001.xml');
 
         $context = new RequestContext();
         $context->setDateTime(new DateTime());
@@ -505,12 +505,12 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
         $orderData = (new DocumentFactory())->createTxt("Username;Identifier\r\nbooker12;9012");
 
         // CSV
-        $context = new BTUContext();
-        $context->setServiceName('OTH');
-        $context->setScope('BIL');
-        $context->setMsgName('csv');
-        $context->setServiceOption('CH002LMF');
-        $context->setFileName('file.csv');
+        $context = BTUContext::resolveInstance()
+            ->setServiceName('OTH')
+            ->setScope('BIL')
+            ->setMsgName('csv')
+            ->setServiceOption('CH002LMF')
+            ->setFileName('file.csv');
 
         $btu = $client->executeUploadOrder(new BTU($context, $orderData));
 

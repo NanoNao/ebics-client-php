@@ -27,7 +27,7 @@ final class FDLContext extends FFLContext
         return $this->parserFormat;
     }
 
-    public static function resolveInstance(?OrderContextInterface $orderContext): FDLContext
+    public static function resolveInstance(?OrderContextInterface $orderContext = null): FDLContext
     {
         if ($orderContext instanceof FDLContext) {
             return $orderContext;

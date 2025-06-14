@@ -12,7 +12,7 @@ use EbicsApi\Ebics\Contracts\OrderContextInterface;
  */
 final class FULContext extends FFLContext
 {
-    public static function resolveInstance(?OrderContextInterface $orderContext): FULContext
+    public static function resolveInstance(?OrderContextInterface $orderContext = null): FULContext
     {
         if ($orderContext instanceof FULContext) {
             return $orderContext;

@@ -26,7 +26,7 @@ final class BTUContext extends BTFContext
         return $this->fileName;
     }
 
-    public static function resolveInstance(?OrderContextInterface $orderContext): BTUContext
+    public static function resolveInstance(?OrderContextInterface $orderContext = null): BTUContext
     {
         if ($orderContext instanceof BTUContext) {
             return $orderContext;

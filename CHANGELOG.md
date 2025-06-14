@@ -4,6 +4,7 @@
 
 ## 2.5
 
+* Added `HCS` order type.
 * Changed `options` for `createUserSignatures`.
 
 ## 2.4

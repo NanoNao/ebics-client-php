@@ -13,9 +13,13 @@ use EbicsApi\Ebics\Contracts\OrderContextInterface;
 abstract class ServiceContext implements OrderContextInterface
 {
     private string $serviceName;
-    private string $msgName;
     private ?string $scope = null;
     private ?string $serviceOption = null;
+    private ?string $containerType = null;
+    private string $msgName;
+    private ?string $msgNameVariant = null;
+    private ?string $msgNameVersion = null;
+    private ?string $msgNameFormat = null;
 
     public function setServiceName(string $serviceName): ServiceContext
     {
@@ -27,18 +31,6 @@ abstract class ServiceContext implements OrderContextInterface
     public function getServiceName(): string
     {
         return $this->serviceName;
-    }
-
-    public function setMsgName(string $msgName): ServiceContext
-    {
-        $this->msgName = $msgName;
-
-        return $this;
-    }
-
-    public function getMsgName(): string
-    {
-        return $this->msgName;
     }
 
     public function setScope(?string $scope): ServiceContext
@@ -63,5 +55,65 @@ abstract class ServiceContext implements OrderContextInterface
     public function getServiceOption(): ?string
     {
         return $this->serviceOption;
+    }
+
+    public function setContainerType(string $containerType): self
+    {
+        $this->containerType = $containerType;
+
+        return $this;
+    }
+
+    public function getContainerType(): ?string
+    {
+        return $this->containerType;
+    }
+
+    public function setMsgName(string $msgName): ServiceContext
+    {
+        $this->msgName = $msgName;
+
+        return $this;
+    }
+
+    public function getMsgName(): string
+    {
+        return $this->msgName;
+    }
+
+    public function setMsgNameVariant(string $msgNameVariant): self
+    {
+        $this->msgNameVariant = $msgNameVariant;
+
+        return $this;
+    }
+
+    public function getMsgNameVariant(): ?string
+    {
+        return $this->msgNameVariant;
+    }
+
+    public function setMsgNameVersion(?string $msgNameVersion): self
+    {
+        $this->msgNameVersion = $msgNameVersion;
+
+        return $this;
+    }
+
+    public function getMsgNameVersion(): ?string
+    {
+        return $this->msgNameVersion;
+    }
+
+    public function setMsgNameFormat(string $msgNameFormat): self
+    {
+        $this->msgNameFormat = $msgNameFormat;
+
+        return $this;
+    }
+
+    public function getMsgNameFormat(): ?string
+    {
+        return $this->msgNameFormat;
     }
 }

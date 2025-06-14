@@ -20,9 +20,16 @@ final class FakerHttpClient implements HttpClientInterface
      */
     private $fixturesDir;
 
-    public function __construct(string $fixturesDir)
+    /**
+     * @var array
+     */
+    private $extendedOrderTypes;
+
+    public function __construct(string $fixturesDir, array $extendedOrderTypes = null)
     {
         $this->fixturesDir = $fixturesDir;
+
+        $this->extendedOrderTypes = $extendedOrderTypes ?? ['FUL', 'FDL', 'BTU', 'BTD'];
     }
 
     public function post(string $url, Request $request): Response
@@ -31,7 +38,7 @@ final class FakerHttpClient implements HttpClientInterface
 
         $orderTypeMatches = [];
         $orderTypeMatch = preg_match(
-            '/(<OrderType>|<AdminOrderType>)(?<order_type>.*)(<\/AdminOrderType>|<\/OrderType>)/',
+            '/(<OrderType>|<AdminOrderType>)(?<order_type>.*?)(<\/OrderType>|<\/AdminOrderType>)/',
             $requestContent,
             $orderTypeMatches
         );
@@ -51,16 +58,26 @@ final class FakerHttpClient implements HttpClientInterface
                 $btfOrderParamsMatches
             );
 
-            return $this->fixtureOrderType(
+            $svcOrderParamsMatches = [];
+            preg_match(
+                '/<OrderType.*>(?<order_type>.*)<\/OrderType>/',
+                $requestContent,
+                $svcOrderParamsMatches
+            );
+
+            $fileName = $this->fixtureFileName(
                 $orderTypeMatches['order_type'],
                 [
                     'file_format' => $fileFormatMatches['file_format'] ??
-                            (!empty($btfOrderParamsMatches) ?
-                                $btfOrderParamsMatches['service_name'] . '.' . $btfOrderParamsMatches['msg_name']
-                                : null) ??
-                            null,
+                        (
+                        (!empty($btfOrderParamsMatches['service_name']) && !empty($btfOrderParamsMatches['msg_name'])) ?
+                            $btfOrderParamsMatches['service_name'] . '.' . $btfOrderParamsMatches['msg_name']
+                            : ($svcOrderParamsMatches['order_type'] ?? null)
+                        ),
                 ]
             );
+
+            return $this->readFixture($fileName);
         }
 
         $transactionPhaseMatches = [];
@@ -94,51 +111,17 @@ final class FakerHttpClient implements HttpClientInterface
      *     'file_format' => '<string>',
      * ]
      *
-     * @return Response
+     * @return string
      */
-    private function fixtureOrderType(string $orderType, ?array $options = null): Response
+    protected function fixtureFileName(string $orderType, ?array $options = null): string
     {
-        switch ($orderType) {
-            case 'FUL':
-            case 'FDL':
-            case 'BTU':
-            case 'BTD':
-                $fileName = sprintf(strtolower($orderType) . '.%s.xml', strtolower($options['file_format']));
-                break;
-            case 'INI':
-            case 'HIA':
-            case 'H3K':
-            case 'HPB':
-            case 'SPR':
-            case 'HPD':
-            case 'HKD':
-            case 'HTD':
-            case 'PTK':
-            case 'HAA':
-            case 'VMK':
-            case 'STA':
-            case 'C52':
-            case 'C53':
-            case 'C54':
-            case 'Z52':
-            case 'Z53':
-            case 'Z54':
-            case 'ZSR':
-            case 'XEK':
-            case 'CCT':
-            case 'CDD':
-            case 'CDB':
-            case 'CIP':
-            case 'XE2':
-            case 'XE3':
-            case 'YCT':
-                $fileName = strtolower($orderType) . '.xml';
-                break;
-            default:
-                throw new LogicException(sprintf('Faked order type `%s` not supported.', $orderType));
+        if (in_array($orderType, $this->extendedOrderTypes)) {
+            $fileName = sprintf(strtolower($orderType) . '.%s.xml', strtolower($options['file_format']));
+        } else {
+            $fileName = strtolower($orderType) . '.xml';
         }
 
-        return $this->readFixture($fileName);
+        return $fileName;
     }
 
     /**

@@ -49,7 +49,6 @@ use EbicsApi\Ebics\Models\Order\UploadOrderResult;
 use EbicsApi\Ebics\Models\UploadTransaction;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\ContentX509Generator;
-use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\CurlHttpClient;
 use EbicsApi\Ebics\Services\RandomService;
@@ -312,7 +311,6 @@ final class EbicsClient implements EbicsClientInterface
     }
 
 
-
     /**
      * Walk by segments to build transaction.
      *
@@ -475,10 +473,10 @@ final class EbicsClient implements EbicsClientInterface
         return $transaction;
     }
 
-    private function createStandardOrderResult(XmlData $xmlData): StandardOrderResult
+    private function createStandardOrderResult(Response $response): StandardOrderResult
     {
         $orderResult = $this->orderResultFactory->createStandardOrderResult();
-        $orderResult->setXmlData($xmlData);
+        $orderResult->setResponse($response);
 
         return $orderResult;
     }
