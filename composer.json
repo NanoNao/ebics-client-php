@@ -28,7 +28,8 @@
     "ext-json": "*",
     "ext-openssl": "*",
     "ext-zip": "*",
-    "ext-zlib": "*"
+    "ext-zlib": "*",
+    "ext-libxml": "*"
   },
   "require-dev": {
     "ebics-api/cfonb-php": "^1.0",

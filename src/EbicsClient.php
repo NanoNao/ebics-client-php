@@ -82,6 +82,7 @@ final class EbicsClient implements EbicsClientInterface
     private TransactionFactory $transactionFactory;
     private SegmentFactory $segmentFactory;
     private BufferFactory $bufferFactory;
+    private SchemaValidator $schemaValidator;
 
     /**
      * Constructor.
@@ -124,13 +125,13 @@ final class EbicsClient implements EbicsClientInterface
             new BigIntegerFactory()
         );
 
-        $schemaValidator = new SchemaValidator($options['schema_dir'] ?? null);
+        $this->schemaValidator = new SchemaValidator($options['schema_dir'] ?? null);
 
         $this->userSignatureHandler = $ebicsFactory->createUserSignatureHandler(
             $user,
             $keyring,
             $this->cryptService,
-            $schemaValidator
+            $this->schemaValidator
         );
 
         $this->requestFactory = $ebicsFactory->createRequestFactory(
@@ -140,7 +141,7 @@ final class EbicsClient implements EbicsClientInterface
             $this->userSignatureHandler,
             $this->orderDataHandler,
             $ebicsFactory->createDigestResolver($this->cryptService),
-            $ebicsFactory->createRequestBuilder($keyring, $this->cryptService, $schemaValidator),
+            $ebicsFactory->createRequestBuilder($keyring, $this->cryptService, $this->schemaValidator),
             $this->cryptService,
             $this->zipService
         );
@@ -218,8 +219,10 @@ final class EbicsClient implements EbicsClientInterface
         $transaction = $this->uploadTransaction(
             function (UploadTransaction $transaction) use ($order) {
                 $order->setTransaction($transaction);
-                $transaction->setOrderData($order->getOrderData()->getContent());
-                $transaction->setNumSegments($order->getOrderData()->getContent() == ' ' ? 0 : 1);
+                $orderData = $order->getOrderData();
+                $this->schemaValidator->validate($orderData);
+                $transaction->setOrderData($orderData->getContent());
+                $transaction->setNumSegments($orderData->getContent() == ' ' ? 0 : 1);
                 $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
 
                 return $order->createRequest();

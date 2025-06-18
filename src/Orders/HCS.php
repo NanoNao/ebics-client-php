@@ -11,7 +11,6 @@ use EbicsApi\Ebics\Builders\Request\OrderDetailsBuilder;
 use EbicsApi\Ebics\Builders\Request\RootBuilder;
 use EbicsApi\Ebics\Builders\Request\StaticBuilder;
 use EbicsApi\Ebics\Contexts\RequestContext;
-use EbicsApi\Ebics\Exceptions\MethodNotImplemented;
 use EbicsApi\Ebics\Models\Customer;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\Keyring;
@@ -43,14 +42,7 @@ final class HCS extends UploadOrder
 
     public function createRequest(): Request
     {
-        if ($this->getVersion() === Keyring::VERSION_30) {
-            throw new MethodNotImplemented('3.0');
-        }
-        if ($this->getVersion() === Keyring::VERSION_24) {
-            throw new MethodNotImplemented('2.4');
-        }
-
-        return $this->buildRequest25();
+        return $this->buildRequest();
     }
 
     public function afterExecute(UploadOrderResult $orderResult): void
@@ -64,7 +56,7 @@ final class HCS extends UploadOrder
         $this->context->getKeyring()->setUserSignatureX($signatureX);
     }
 
-    private function buildRequest25(): Request
+    private function buildRequest(): Request
     {
         $signatureData = new UserSignature();
         $this->userSignatureHandler->handle($signatureData, $this->transaction->getDigest());
@@ -121,7 +113,8 @@ final class HCS extends UploadOrder
                                         $this->context->getKeyring()
                                     );
                             })
-                            ->addSignatureData($this->context->getSignatureData(), $this->context->getTransactionKey());
+                            ->addSignatureData($this->context->getSignatureData(), $this->context->getTransactionKey())
+                            ->addDataDigest($this->context->getKeyring()->getUserSignatureAVersion());
                     });
                 });
             })

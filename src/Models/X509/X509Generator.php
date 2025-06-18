@@ -268,13 +268,13 @@ abstract class X509Generator implements X509GeneratorInterface
     }
 
     /**
-     * Random Number of maximum 20 Bytes if self-signed.
+     * Random Number should be of type integer.
      *
      * @return string
      */
     protected function generateSerialNumber(): string
     {
-        return $this->randomService->digits(20);
+        return $this->randomService->digits(9);
     }
 
     /**
