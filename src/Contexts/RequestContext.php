@@ -54,7 +54,7 @@ final class RequestContext
         $this->dateTime = new DateTime();
         $this->withES = false;
         $this->product = 'Ebics client PHP';
-        $this->language = 'de';
+        $this->language = 'en';
     }
 
     public function setBank(Bank $bank): RequestContext
@@ -276,6 +276,13 @@ final class RequestContext
     public function getProduct(): string
     {
         return $this->product;
+    }
+
+    public function setLanguage(string $language): RequestContext
+    {
+        $this->language = $language;
+
+        return $this;
     }
 
     public function getLanguage(): string
