@@ -20,7 +20,6 @@ use EbicsApi\Ebics\Services\BankLetter\Formatter\PdfBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\TxtBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetterService;
 use EbicsApi\Ebics\Services\CryptService;
-use EbicsApi\Ebics\Services\KeyStorageLocator;
 use EbicsApi\Ebics\Services\RandomService;
 use LogicException;
 

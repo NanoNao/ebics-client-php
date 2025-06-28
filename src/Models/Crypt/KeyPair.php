@@ -14,10 +14,13 @@ final class KeyPair
 
     private Key $privateKey;
 
-    public function __construct(Key $publicKey, Key $privateKey)
+    private string $password;
+
+    public function __construct(Key $publicKey, Key $privateKey, string $password)
     {
         $this->publicKey = $publicKey;
         $this->privateKey = $privateKey;
+        $this->password = $password;
     }
 
     public function getPublicKey(): Key
@@ -28,5 +31,10 @@ final class KeyPair
     public function getPrivateKey(): Key
     {
         return $this->privateKey;
+    }
+
+    public function getPassword(): string
+    {
+        return $this->password;
     }
 }

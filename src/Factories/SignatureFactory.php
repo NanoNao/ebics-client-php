@@ -89,47 +89,41 @@ final class SignatureFactory
 
     /**
      * @param KeyPair $keyPair
-     * @param string $password
      * @param X509GeneratorInterface|null $x509Generator
      *
      * @return SignatureInterface
      */
     public function createSignatureAFromKeys(
         KeyPair $keyPair,
-        string $password,
         ?X509GeneratorInterface $x509Generator = null
     ): SignatureInterface {
-        return $this->createSignatureFromKeys($keyPair, $password, SignatureInterface::TYPE_A, $x509Generator);
+        return $this->createSignatureFromKeys($keyPair, SignatureInterface::TYPE_A, $x509Generator);
     }
 
     /**
      * @param KeyPair $keyPair
-     * @param string $password
      * @param X509GeneratorInterface|null $x509Generator
      *
      * @return SignatureInterface
      */
     public function createSignatureEFromKeys(
         KeyPair $keyPair,
-        string $password,
         ?X509GeneratorInterface $x509Generator = null
     ): SignatureInterface {
-        return $this->createSignatureFromKeys($keyPair, $password, SignatureInterface::TYPE_E, $x509Generator);
+        return $this->createSignatureFromKeys($keyPair, SignatureInterface::TYPE_E, $x509Generator);
     }
 
     /**
      * @param KeyPair $keyPair
-     * @param string $password
      * @param X509GeneratorInterface|null $x509Generator
      *
      * @return SignatureInterface
      */
     public function createSignatureXFromKeys(
         KeyPair $keyPair,
-        string $password,
         ?X509GeneratorInterface $x509Generator = null
     ): SignatureInterface {
-        return $this->createSignatureFromKeys($keyPair, $password, SignatureInterface::TYPE_X, $x509Generator);
+        return $this->createSignatureFromKeys($keyPair, SignatureInterface::TYPE_X, $x509Generator);
     }
 
     /**
@@ -160,7 +154,6 @@ final class SignatureFactory
 
     /**
      * @param KeyPair $keyPair
-     * @param string $password
      * @param string $type
      * @param X509GeneratorInterface|null $x509Generator
      *
@@ -168,56 +161,55 @@ final class SignatureFactory
      */
     private function createSignatureFromKeys(
         KeyPair $keyPair,
-        string $password,
         string $type,
         ?X509GeneratorInterface $x509Generator = null
     ): SignatureInterface {
         $signature = new Signature($type, $keyPair->getPublicKey(), $keyPair->getPrivateKey());
 
         if (null !== $x509Generator) {
-            $certificateContent = $this->generateCertificateContent($keyPair, $password, $type, $x509Generator);
+            $privateKey = $this->rsaFactory->createPrivate($keyPair->getPrivateKey(), $keyPair->getPassword());
+            $publicKey = $this->rsaFactory->createPublic($keyPair->getPublicKey());
+
+            switch ($type) {
+                case SignatureInterface::TYPE_A:
+                    $x509Context = $x509Generator->getAX509Context();
+                    $x509Context->setSubjectPublicKey($publicKey);
+                    if (null === $x509Context->getIssuerPrivateKey()) {
+                        $x509Context->setIssuerPublicKey($publicKey);
+                        $x509Context->setIssuerPrivateKey($privateKey);
+                    }
+                    $x509 = $x509Generator->generateAX509();
+                    break;
+                case SignatureInterface::TYPE_E:
+                    $x509Context = $x509Generator->getEX509Context();
+                    $x509Context->setSubjectPublicKey($publicKey);
+                    if (null === $x509Context->getIssuerPrivateKey()) {
+                        $x509Context->setIssuerPublicKey($publicKey);
+                        $x509Context->setIssuerPrivateKey($privateKey);
+                    }
+                    $x509 = $x509Generator->generateEX509();
+                    break;
+                case SignatureInterface::TYPE_X:
+                    $x509Context = $x509Generator->getXX509Context();
+                    $x509Context->setSubjectPublicKey($publicKey);
+                    if (null === $x509Context->getIssuerPrivateKey()) {
+                        $x509Context->setIssuerPublicKey($publicKey);
+                        $x509Context->setIssuerPrivateKey($privateKey);
+                    }
+                    $x509 = $x509Generator->generateXX509();
+                    break;
+                default:
+                    throw new RuntimeException('Unpredictable type.');
+            }
+
+            if (!($certificateContent = $x509->saveX509CurrentCert())) {
+                throw new RuntimeException('Can not save current certificate.');
+            }
+
             $signature->setCertificateContent($certificateContent);
         }
 
         return $signature;
-    }
-
-    /**
-     * @param KeyPair $keyPair
-     * @param string $password
-     * @param string $type
-     * @param X509GeneratorInterface $x509Generator
-     *
-     * @return string
-     */
-    private function generateCertificateContent(
-        KeyPair $keyPair,
-        string $password,
-        string $type,
-        X509GeneratorInterface $x509Generator
-    ): string {
-        $rsaPrivateKey = $this->rsaFactory->createPrivate($keyPair->getPrivateKey(), $password);
-        $rsaPublicKey = $this->rsaFactory->createPublic($keyPair->getPublicKey());
-
-        switch ($type) {
-            case SignatureInterface::TYPE_A:
-                $x509 = $x509Generator->generateAX509($rsaPrivateKey, $rsaPublicKey);
-                break;
-            case SignatureInterface::TYPE_E:
-                $x509 = $x509Generator->generateEX509($rsaPrivateKey, $rsaPublicKey);
-                break;
-            case SignatureInterface::TYPE_X:
-                $x509 = $x509Generator->generateXX509($rsaPrivateKey, $rsaPublicKey);
-                break;
-            default:
-                throw new RuntimeException('Unpredictable type.');
-        }
-
-        if (!($currentCert = $x509->saveX509CurrentCert())) {
-            throw new RuntimeException('Can not save current certificate.');
-        }
-
-        return $currentCert;
     }
 
     /**
@@ -236,5 +228,29 @@ final class SignatureFactory
         $publicKey = new Key($rsa->getPublicKey(RSA::PUBLIC_FORMAT_PKCS1), RSA::PUBLIC_FORMAT_PKCS1);
 
         return new Signature($type, $publicKey, null);
+    }
+
+    /**
+     * @param X509GeneratorInterface $x509Generator
+     * @param KeyPair $keyPair
+     * @return string
+     */
+    public function createIssuerCertificate(X509GeneratorInterface $x509Generator, KeyPair $keyPair): string
+    {
+        $x509Context = $x509Generator->getIssuerX509Context();
+
+        $publicKey = $this->rsaFactory->createPublic($keyPair->getPublicKey());
+        $privateKey = $this->rsaFactory->createPrivate($keyPair->getPrivateKey(), $keyPair->getPassword());
+
+        $x509Context->setIssuerPublicKey($publicKey);
+        $x509Context->setIssuerPrivateKey($privateKey);
+
+        $certificateContent = $x509Generator->generateIssuerX509()->saveX509CurrentCert();
+
+        if (!$certificateContent) {
+            throw new RuntimeException('Can not save current certificate.');
+        }
+
+        return $certificateContent;
     }
 }

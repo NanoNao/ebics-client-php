@@ -273,7 +273,8 @@ final class RSA implements RSAInterface
 
         return new KeyPair(
             new Key($publickey, self::PUBLIC_FORMAT_PKCS1),
-            new Key($privatekey, self::PRIVATE_FORMAT_PKCS1)
+            new Key($privatekey, self::PRIVATE_FORMAT_PKCS1),
+            $this->password
         );
     }
 
@@ -1544,7 +1545,8 @@ final class RSA implements RSAInterface
 
         return new KeyPair(
             new Key($publickey, self::PUBLIC_FORMAT_PKCS1),
-            new Key($privatekey, self::PRIVATE_FORMAT_PKCS1)
+            new Key($privatekey, self::PRIVATE_FORMAT_PKCS1),
+            $newPassword
         );
     }
 }

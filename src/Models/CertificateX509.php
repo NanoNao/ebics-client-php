@@ -30,7 +30,7 @@ final class CertificateX509 extends X509
      *
      * @return string
      */
-    public function getInsurerName(): string
+    public function getIssuerName(): string
     {
         $certificateInsurerName = $this->getIssuerDNProp('id-at-commonName');
 

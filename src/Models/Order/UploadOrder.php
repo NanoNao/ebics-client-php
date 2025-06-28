@@ -2,10 +2,10 @@
 
 namespace EbicsApi\Ebics\Models\Order;
 
-use LogicException;
 use EbicsApi\Ebics\Contracts\Order\UploadOrderInterface;
 use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Models\UploadTransaction;
+use LogicException;
 
 /**
  * UploadOrder abstract class.

@@ -28,25 +28,28 @@ class X509GeneratorTest extends AbstractEbicsTestCase
      */
     public function testGenerateBankCertificateContent()
     {
-        $privateKey = $this->getPrivateKey();
-        $publicKey = $this->getPublicKey();
+        $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
+        $publicKey = new Key($this->getPublicKey(), RSA::PUBLIC_FORMAT_PKCS1);
 
         // Certificate generated for the 22/03/2020 (1 year validity)
         $x509Generator = new BankX509Generator();
         $x509Generator->setCertificateOptionsByBank(new Bank('H123456', 'https://test.bank.dom'));
-        $x509Generator->setX509StartDate(new DateTime('2020-03-21'));
-        $x509Generator->setX509EndDate(new DateTime('2021-03-22'));
-        $x509Generator->setSerialNumber('539453510852155194065233908413342789156542395956670254476154968597583055940');
+        $x509Context = $x509Generator->getAX509Context();
+        $x509Context->setStartDate(new DateTime('2020-03-21'));
+        $x509Context->setEndDate(new DateTime('2021-03-22'));
+        $x509Context->setSerialNumber('539453510852155194065233908413342789156542395956670254476154968597583055940');
+        $rsaFactory = new RSAFactory();
+        $x509Context->setIssuerPublicKey($rsaFactory->createPublic($publicKey));
+        $x509Context->setIssuerPrivateKey($rsaFactory->createPrivate($privateKey, 'test123'));
 
         $signatureFactory = new SignatureFactory(new RSAFactory());
         $signature = $signatureFactory->createSignatureAFromKeys(
-            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
-            'test123',
+            new KeyPair($publicKey, $privateKey, 'test123'),
             $x509Generator
         );
 
-        self::assertEquals($signature->getPrivateKey()->getKey(), $privateKey);
-        self::assertEquals($signature->getPublicKey()->getKey(), $publicKey);
+        self::assertEquals($signature->getPrivateKey()->getKey(), $privateKey->getKey());
+        self::assertEquals($signature->getPublicKey()->getKey(), $publicKey->getKey());
         $this->assertCertificateEquals(
             $signature->getCertificateContent(),
             $this->getCertificateContent()
@@ -79,7 +82,8 @@ class X509GeneratorTest extends AbstractEbicsTestCase
             DateTime::createFromFormat(
                 'U',
                 $certificateInfos['validTo_time_t']
-            )->format('d/m/Y'));
+            )->format('d/m/Y')
+        );
         self::assertEquals($generatedInfos['extensions'], $certificateInfos['extensions']);
     }
 

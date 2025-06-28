@@ -36,6 +36,12 @@ interface EbicsClientInterface
     public function createUserSignatures(?array $options = null): void;
 
     /**
+     * Generate certificate for issuer.
+     * @return array
+     */
+    public function generateIssuerCertificate(): array;
+
+    /**
      * Execute Initialization Order.
      * @param InitializationOrderInterface $order
      * @return InitializationOrderResult

@@ -82,6 +82,7 @@ final class EbicsClient implements EbicsClientInterface
     private TransactionFactory $transactionFactory;
     private SegmentFactory $segmentFactory;
     private BufferFactory $bufferFactory;
+    private RSAFactory $rsaFactory;
     private SchemaValidator $schemaValidator;
 
     /**
@@ -108,12 +109,12 @@ final class EbicsClient implements EbicsClientInterface
             throw new LogicException(sprintf('Version "%s" is not implemented', $keyring->getVersion()));
         }
 
-        $rsaFactory = new RSAFactory($options['rsa_class_map'] ?? null);
+        $this->rsaFactory = new RSAFactory($options['rsa_class_map'] ?? null);
 
         $this->segmentFactory = new SegmentFactory();
-        $this->cryptService = new CryptService($rsaFactory, new AESFactory(), new RandomService());
+        $this->cryptService = new CryptService($this->rsaFactory, new AESFactory(), new RandomService());
         $this->zipService = new ZipService();
-        $this->signatureFactory = new SignatureFactory($rsaFactory);
+        $this->signatureFactory = new SignatureFactory($this->rsaFactory);
         $this->bufferFactory = new BufferFactory($options['buffer_filename'] ?? 'php://memory');
 
         $this->orderDataHandler = $ebicsFactory->createOrderDataHandler(
@@ -249,6 +250,28 @@ final class EbicsClient implements EbicsClientInterface
 
         $signatureX = $this->createUserSignature(SignatureInterface::TYPE_X, $options['x_details'] ?? null);
         $this->keyring->setUserSignatureX($signatureX);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function generateIssuerCertificate(): array
+    {
+        $keyPair = $this->cryptService->generateKeyPair($this->keyring->getPassword());
+
+        $x509Generator = $this->keyring->getCertificateGenerator();
+
+        if ($x509Generator) {
+            $certificate = $this->signatureFactory->createIssuerCertificate($x509Generator, $keyPair);
+        }
+
+        return [
+            'publickey' => $keyPair->getPublicKey()->getKey(),
+            'publickey_type' => $keyPair->getPublicKey()->getType(),
+            'privatekey' => $keyPair->getPrivateKey()->getKey(),
+            'privatekey_type' => $keyPair->getPrivateKey()->getType(),
+            'certificate' => $certificate ?? null,
+        ];
     }
 
     /**
@@ -534,17 +557,6 @@ final class EbicsClient implements EbicsClientInterface
         return $orderResult;
     }
 
-    private function createUploadESResult(
-        UploadTransaction $transaction,
-        string $es
-    ): UploadOrderResult {
-        $orderResult = $this->orderResultFactory->createUploadOrderResult();
-        $orderResult->setTransaction($transaction);
-        $orderResult->setData($es);
-
-        return $orderResult;
-    }
-
     /**
      * @inheritDoc
      */
@@ -574,7 +586,6 @@ final class EbicsClient implements EbicsClientInterface
      *
      * @param string $type
      * @param array|null $details
-     *
      * @return SignatureInterface
      * @throws PasswordEbicsException
      */
@@ -582,13 +593,11 @@ final class EbicsClient implements EbicsClientInterface
     {
         switch ($type) {
             case SignatureInterface::TYPE_A:
-                if (null === $details) {
-                    $keyPair = $this->cryptService->generateKeyPair($this->keyring->getPassword());
-                    $certificateGenerator = $this->keyring->getCertificateGenerator();
-                } else {
+                if (null !== $details) {
                     $keyPair = new KeyPair(
                         new Key($details['publickey'], $details['publickey_type']),
-                        new Key($details['privatekey'], $details['privatekey_type'])
+                        new Key($details['privatekey'], $details['privatekey_type']),
+                        $this->keyring->getPassword()
                     );
                     if (isset($details['certificate'])) {
                         $certificateGenerator = new ContentX509Generator();
@@ -596,25 +605,27 @@ final class EbicsClient implements EbicsClientInterface
                     } else {
                         $certificateGenerator = null;
                     }
+                } else {
+                    $keyPair = $this->cryptService->generateKeyPair($this->keyring->getPassword());
+                    $certificateGenerator = $this->keyring->getCertificateGenerator();
                 }
 
                 $signature = $this->signatureFactory->createSignatureAFromKeys(
                     $keyPair,
-                    $this->keyring->getPassword(),
                     $certificateGenerator
                 );
                 break;
             case SignatureInterface::TYPE_E:
+                $keyPair = $this->cryptService->generateKeyPair($this->keyring->getPassword());
                 $signature = $this->signatureFactory->createSignatureEFromKeys(
-                    $this->cryptService->generateKeyPair($this->keyring->getPassword()),
-                    $this->keyring->getPassword(),
+                    $keyPair,
                     $this->keyring->getCertificateGenerator()
                 );
                 break;
             case SignatureInterface::TYPE_X:
+                $keyPair = $this->cryptService->generateKeyPair($this->keyring->getPassword());
                 $signature = $this->signatureFactory->createSignatureXFromKeys(
-                    $this->cryptService->generateKeyPair($this->keyring->getPassword()),
-                    $this->keyring->getPassword(),
+                    $keyPair,
                     $this->keyring->getCertificateGenerator()
                 );
                 break;
@@ -654,7 +665,8 @@ final class EbicsClient implements EbicsClientInterface
         $keyPair = $this->cryptService->changePrivateKeyPassword(
             new KeyPair(
                 $this->keyring->getUserSignatureA()->getPublicKey(),
-                $this->keyring->getUserSignatureA()->getPrivateKey()
+                $this->keyring->getUserSignatureA()->getPrivateKey(),
+                $this->keyring->getPassword()
             ),
             $this->keyring->getPassword(),
             $newPassword
@@ -662,7 +674,6 @@ final class EbicsClient implements EbicsClientInterface
 
         $signature = $this->signatureFactory->createSignatureAFromKeys(
             $keyPair,
-            $newPassword,
             $this->keyring->getCertificateGenerator()
         );
 
@@ -671,7 +682,8 @@ final class EbicsClient implements EbicsClientInterface
         $keyPair = $this->cryptService->changePrivateKeyPassword(
             new KeyPair(
                 $this->keyring->getUserSignatureX()->getPublicKey(),
-                $this->keyring->getUserSignatureX()->getPrivateKey()
+                $this->keyring->getUserSignatureX()->getPrivateKey(),
+                $this->keyring->getPassword()
             ),
             $this->keyring->getPassword(),
             $newPassword
@@ -679,7 +691,6 @@ final class EbicsClient implements EbicsClientInterface
 
         $signature = $this->signatureFactory->createSignatureXFromKeys(
             $keyPair,
-            $newPassword,
             $this->keyring->getCertificateGenerator()
         );
 
@@ -688,7 +699,8 @@ final class EbicsClient implements EbicsClientInterface
         $keyPair = $this->cryptService->changePrivateKeyPassword(
             new KeyPair(
                 $this->keyring->getUserSignatureE()->getPublicKey(),
-                $this->keyring->getUserSignatureE()->getPrivateKey()
+                $this->keyring->getUserSignatureE()->getPrivateKey(),
+                $this->keyring->getPassword()
             ),
             $this->keyring->getPassword(),
             $newPassword
@@ -696,7 +708,6 @@ final class EbicsClient implements EbicsClientInterface
 
         $signature = $this->signatureFactory->createSignatureEFromKeys(
             $keyPair,
-            $newPassword,
             $this->keyring->getCertificateGenerator()
         );
 

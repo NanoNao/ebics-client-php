@@ -2,8 +2,8 @@
 
 namespace EbicsApi\Ebics\Models\Order;
 
-use LogicException;
 use EbicsApi\Ebics\Contracts\Order\DownloadOrderInterface;
+use LogicException;
 
 /**
  * DownloadOrder abstract class.

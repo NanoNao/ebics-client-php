@@ -5,8 +5,10 @@ namespace EbicsApi\Ebics\Tests;
 use EbicsApi\Ebics\Builders\CustomerCreditTransfer\CustomerCreditTransferBuilder;
 use EbicsApi\Ebics\Builders\CustomerDirectDebit\CustomerDirectDebitBuilder;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
+use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
 use EbicsApi\Ebics\EbicsClient;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
+use EbicsApi\Ebics\Factories\Crypt\X509Factory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Crypt\Key;
@@ -104,7 +106,7 @@ abstract class AbstractEbicsTestCase extends TestCase
         }
 
         if (!is_file($keyringPath)) {
-            $ebicsClient->createUserSignatures($credentials['aVersion']);
+            $ebicsClient->createUserSignatures(['a_version' => $credentials['aVersion']]);
             $this->saveKeyring($credentialsId, $ebicsClient->getKeyring());
         }
 
@@ -151,6 +153,25 @@ abstract class AbstractEbicsTestCase extends TestCase
         );
         $userSignatureX->setCertificateContent($keyring->getUserSignatureX()->getCertificateContent());
         $keyring->setUserSignatureX($userSignatureX);
+    }
+
+    protected function setupIssuer(X509GeneratorInterface $x509Generator, array $issuer, string $password): void
+    {
+        $rsaFactory = new RSAFactory();
+        $x509Factory = new X509Factory();
+        $x509 = $x509Factory->create();
+        $x509->loadX509($issuer['certificate']);
+        $x509Context = $x509Generator->getAX509Context();
+        $x509Context->setIssuerPublicKey(
+            $rsaFactory->createPublic(new Key($issuer['publickey'], $issuer['publickey_type']))
+        );
+        $x509Context->setIssuerPrivateKey(
+            $rsaFactory->createPrivate(
+                new Key($issuer['privatekey'], $issuer['privatekey_type']),
+                $password
+            )
+        );
+        $x509Context->applyIssuerDN($x509);
     }
 
     /**

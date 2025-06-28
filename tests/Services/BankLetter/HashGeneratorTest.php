@@ -37,23 +37,26 @@ class HashGeneratorTest extends AbstractEbicsTestCase
             new CryptService(new RSAFactory(), new AESFactory, new RandomService)
         );
 
-        $privateKey = $this->getPrivateKey();
-        $publicKey = $this->getPublicKey();
+        $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
+        $publicKey = new Key($this->getPublicKey(), RSA::PUBLIC_FORMAT_PKCS1);
 
         // Certificate generated for the 22/03/2020 (1 year validity)
         $x509Generator = new BankX509Generator();
         $x509Generator->setCertificateOptionsByBank(new Bank('H123456', 'https://test.bank.dom'));
-        $x509Generator->setX509StartDate(new DateTime('2020-03-22'));
-        $x509Generator->setX509EndDate(new DateTime('2021-03-22'));
-        $x509Generator->setSerialNumber(
+        $x509Generator->getAX509Context()->setStartDate(new DateTime('2020-03-22'));
+        $x509Generator->getAX509Context()->setEndDate(new DateTime('2021-03-22'));
+        $x509Generator->getAX509Context()->setSerialNumber(
             '37376365613564393736653364353135633333333932376336366134393663336133663135323432'
         );
+        $rsaFactory = new RSAFactory();
+        $x509Generator->getAX509Context()->setSubjectPublicKey($rsaFactory->createPublic($publicKey));
+        $x509Generator->getAX509Context()->setIssuerPublicKey($rsaFactory->createPublic($publicKey));
+        $x509Generator->getAX509Context()->setIssuerPrivateKey($rsaFactory->createPrivate($privateKey, 'test123'));
 
-        $certificateFactory = new SignatureFactory(new RSAFactory());
+        $certificateFactory = new SignatureFactory($rsaFactory);
 
         $signature = $certificateFactory->createSignatureAFromKeys(
-            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
-            'test123',
+            new KeyPair($publicKey, $privateKey, 'test123'),
             $x509Generator
         );
 
@@ -72,23 +75,26 @@ class HashGeneratorTest extends AbstractEbicsTestCase
             new CryptService(new RSAFactory(), new AESFactory, new RandomService)
         );
 
-        $privateKey = $this->getPrivateKey();
-        $publicKey = $this->getPublicKey();
+        $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
+        $publicKey = new Key($this->getPublicKey(), RSA::PUBLIC_FORMAT_PKCS1);
 
         // Certificate generated for the 22/03/2020 (1 year validity)
         $x509Generator = new BankX509Generator();
         $x509Generator->setCertificateOptionsByBank(new Bank('H123456', 'https://test.bank.dom'));
-        $x509Generator->setX509StartDate(new DateTime('2020-03-22'));
-        $x509Generator->setX509EndDate(new DateTime('2021-03-22'));
-        $x509Generator->setSerialNumber(
+        $x509Generator->getAX509Context()->setStartDate(new DateTime('2020-03-22'));
+        $x509Generator->getAX509Context()->setEndDate(new DateTime('2021-03-22'));
+        $x509Generator->getAX509Context()->setSerialNumber(
             '37376365613564393736653364353135633333333932376336366134393663336133663135323432'
         );
+        $rsaFactory = new RSAFactory();
+        $x509Generator->getAX509Context()->setSubjectPublicKey($rsaFactory->createPublic($publicKey));
+        $x509Generator->getAX509Context()->setIssuerPublicKey($rsaFactory->createPublic($publicKey));
+        $x509Generator->getAX509Context()->setIssuerPrivateKey($rsaFactory->createPrivate($privateKey, 'test123'));
 
-        $certificateFactory = new SignatureFactory(new RSAFactory());
+        $certificateFactory = new SignatureFactory($rsaFactory);
 
         $signature = $certificateFactory->createSignatureAFromKeys(
-            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
-            'test123',
+            new KeyPair($publicKey, $privateKey, 'test123'),
             $x509Generator
         );
 
@@ -107,14 +113,15 @@ class HashGeneratorTest extends AbstractEbicsTestCase
             new CryptService(new RSAFactory(), new AESFactory, new RandomService)
         );
 
-        $privateKey = $this->getPrivateKey();
-        $publicKey = $this->getPublicKey();
+        $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
+        $publicKey = new Key($this->getPublicKey(), RSA::PUBLIC_FORMAT_PKCS1);
 
-        $certificateFactory = new SignatureFactory(new RSAFactory());
+        $rsaFactory = new RSAFactory();
+
+        $certificateFactory = new SignatureFactory($rsaFactory);
 
         $signature = $certificateFactory->createSignatureAFromKeys(
-            new KeyPair(new Key($publicKey, RSA::PUBLIC_FORMAT_PKCS1), new Key($privateKey, RSA::PRIVATE_FORMAT_PKCS1)),
-            'test123'
+            new KeyPair($publicKey, $privateKey, 'test123')
         );
 
         $hash = $digestResolver->confirmDigest($signature);

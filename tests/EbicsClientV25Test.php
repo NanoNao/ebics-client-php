@@ -5,7 +5,6 @@ namespace EbicsApi\Ebics\Tests;
 use DateTime;
 use EbicsApi\Ebics\Contexts\FDLContext;
 use EbicsApi\Ebics\Contexts\FULContext;
-use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Exceptions\InvalidUserOrUserStateException;
 use EbicsApi\Ebics\Factories\DocumentFactory;
 use EbicsApi\Ebics\Orders\FDL;
@@ -58,6 +57,38 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
     public function testChangeKeyringPassword(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV25($credentialsId);
+
+        $client->changeKeyringPassword('some_new_password');
+
+        $hpb = $client->executeInitializationOrder(new HPB());
+
+        $responseHandler = $client->getResponseHandler();
+        $code = $responseHandler->retrieveH00XReturnCode(
+            $hpb->getTransaction()->getInitializationSegment()->getResponse()
+        );
+        $reportText = $responseHandler->retrieveH00XReportText(
+            $hpb->getTransaction()->getInitializationSegment()->getResponse()
+        );
+        $this->assertResponseOk($code, $reportText);
+    }
+
+    /**
+     * @dataProvider serversDataProvider
+     *
+     * @group change-keyring-password
+     */
+    public function testChangeKeyringPasswordWithIssuer(int $credentialsId, array $codes): void
+    {
+        $client = $this->setupClientV25($credentialsId);
+
+        $issuer = $client->generateIssuerCertificate();
+
+        $client = $this->setupClientV25($credentialsId);
+
+        $x509Generator = $client->getKeyring()->getCertificateGenerator();
+        if ($x509Generator) {
+            $this->setupIssuer($x509Generator, $issuer, $client->getKeyring()->getPassword());
+        }
 
         $client->changeKeyringPassword('some_new_password');
 

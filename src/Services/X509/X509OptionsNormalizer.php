@@ -10,7 +10,7 @@ namespace EbicsApi\Ebics\Services\X509;
  *
  * @internal
  */
-final class X509ExtensionOptionsNormalizer
+final class X509OptionsNormalizer
 {
     /**
      * @param mixed|string|array $options = [
@@ -27,7 +27,7 @@ final class X509ExtensionOptionsNormalizer
      *
      * @see \EbicsApi\Ebics\Models\Crypt\X509::setExtension()
      */
-    public static function normalize($options): array
+    public static function normalizeExtensions($options): array
     {
         $critical = false;
         $replace = true;
@@ -53,5 +53,15 @@ final class X509ExtensionOptionsNormalizer
             'critical' => $critical,
             'replace' => $replace,
         ];
+    }
+
+    public static function denormalizeDN(array $options): array
+    {
+        $result = [];
+        foreach ($options['rdnSequence'] as $rdnSequence) {
+            $result[$rdnSequence[0]['type']] = reset($rdnSequence[0]['value']);
+        }
+
+        return $result;
     }
 }

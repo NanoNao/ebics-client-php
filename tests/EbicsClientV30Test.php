@@ -164,7 +164,21 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
      */
     public function testINI(int $credentialsId, array $codes): void
     {
+        $withIssuer = false;
+
+        if ($withIssuer) {
+            $client = $this->setupClientV30($credentialsId);
+            $issuer = $client->generateIssuerCertificate();
+        }
+
         $client = $this->setupClientV30($credentialsId, $codes['INI']['fake']);
+
+        if ($withIssuer) {
+            $x509Generator = $client->getKeyring()->getCertificateGenerator();
+            if ($x509Generator) {
+                $this->setupIssuer($x509Generator, $issuer, $client->getKeyring()->getPassword());
+            }
+        }
 
         // Check that keyring is empty and or wait on success or wait on exception.
         $userExists = $client->getKeyring()->getUserSignatureA();
@@ -250,7 +264,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * Run first HIA and Activate account in bank panel.
+     * Run first INI & HIA and Activate account in the bank panel.
      *
      * @dataProvider serversDataProvider
      *

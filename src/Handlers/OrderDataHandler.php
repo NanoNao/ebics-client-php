@@ -12,7 +12,6 @@ use EbicsApi\Ebics\Factories\CertificateX509Factory;
 use EbicsApi\Ebics\Factories\Crypt\BigIntegerFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
-use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Models\XmlDocument;
@@ -97,7 +96,7 @@ abstract class OrderDataHandler
 
         // Add ds:X509IssuerName to ds:X509IssuerSerial.
         $xmlX509IssuerName = $xml->createElement('ds:X509IssuerName');
-        $xmlX509IssuerName->nodeValue = $certificateX509->getInsurerName();
+        $xmlX509IssuerName->nodeValue = $certificateX509->getIssuerName();
         $xmlX509IssuerSerial->appendChild($xmlX509IssuerName);
 
         // Add ds:X509SerialNumber to ds:X509IssuerSerial.

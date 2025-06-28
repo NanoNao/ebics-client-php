@@ -2,7 +2,7 @@
 
 namespace EbicsApi\Ebics\Tests\Factories\X509;
 
-use EbicsApi\Ebics\Services\X509\X509ExtensionOptionsNormalizer;
+use EbicsApi\Ebics\Services\X509\X509OptionsNormalizer;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**
@@ -21,7 +21,7 @@ class X509ExtensionOptionsNormalizerTest extends AbstractEbicsTestCase
      */
     public function testOptions($value, $expected): void
     {
-        $actualValue = X509ExtensionOptionsNormalizer::normalize($value);
+        $actualValue = X509OptionsNormalizer::normalizeExtensions($value);
 
         self::assertEquals($expected, $actualValue);
     }

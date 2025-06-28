@@ -12,7 +12,6 @@ use EbicsApi\Ebics\Models\Crypt\X509;
  */
 interface X509Interface
 {
-
     /**
      * Set certificate start date.
      *

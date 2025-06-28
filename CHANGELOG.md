@@ -1,5 +1,6 @@
 ## 3.0
 
+* Updated custom keyring details.
 * Dynamic Orders.
 
 ## 2.5

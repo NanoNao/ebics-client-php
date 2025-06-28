@@ -7,6 +7,7 @@ use LogicException;
 
 /**
  * Automatic resolving by bank X509 certificate generator @see X509GeneratorInterface.
+ * Suspected that commonName should be built from client data, not bank data.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
@@ -23,7 +24,8 @@ final class BankX509Generator extends X509Generator
         $countryName = $this->resolveCountryName($url);
         $domainName = $this->resolveDomainName($url);
         $establishmentName = $this->resolveEstablishmentName($url);
-        $this->certificateOptions = [
+
+        $certificateOptions = [
             'subject' => [
                 'DN' => [
                     'id-at-countryName' => $countryName,
@@ -37,6 +39,11 @@ final class BankX509Generator extends X509Generator
                 ],
             ],
         ];
+
+        $this->aX509Context->mergeCertificateOptions($certificateOptions);
+        $this->eX509Context->mergeCertificateOptions($certificateOptions);
+        $this->xX509Context->mergeCertificateOptions($certificateOptions);
+        $this->issuerX509Context->mergeCertificateOptions($certificateOptions);
     }
 
     /**

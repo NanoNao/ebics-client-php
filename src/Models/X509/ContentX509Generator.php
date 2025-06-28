@@ -2,10 +2,11 @@
 
 namespace EbicsApi\Ebics\Models\X509;
 
-use EbicsApi\Ebics\Contracts\Crypt\RSAInterface;
+use DateTime;
 use EbicsApi\Ebics\Contracts\Crypt\X509Interface;
 use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
-use EbicsApi\Ebics\Models\Crypt\X509;
+use EbicsApi\Ebics\Factories\Crypt\X509Factory;
+use LogicException;
 
 /**
  * Generator simulation for already created certificates and loaded from content.
@@ -15,11 +16,18 @@ use EbicsApi\Ebics\Models\Crypt\X509;
  */
 final class ContentX509Generator implements X509GeneratorInterface
 {
+    private X509Factory $x509Factory;
+
     private string $aContent;
 
     private string $eContent;
 
     private string $xContent;
+
+    public function __construct()
+    {
+        $this->x509Factory = new X509Factory();
+    }
 
     public function setAContent(string $content): void
     {
@@ -36,30 +44,55 @@ final class ContentX509Generator implements X509GeneratorInterface
         $this->xContent = $content;
     }
 
-    public function generateAX509(RSAInterface $privateKey, RSAInterface $publicKey): X509Interface
+    public function generateAX509(): X509Interface
     {
-        $cert = new X509();
+        $cert = $this->x509Factory->create();
 
         $cert->loadX509($this->aContent);
 
         return $cert;
     }
 
-    public function generateEX509(RSAInterface $privateKey, RSAInterface $publicKey): X509Interface
+    public function generateEX509(): X509Interface
     {
-        $cert = new X509();
+        $cert = $this->x509Factory->create();
 
         $cert->loadX509($this->eContent);
 
         return $cert;
     }
 
-    public function generateXX509(RSAInterface $privateKey, RSAInterface $publicKey): X509Interface
+    public function generateXX509(): X509Interface
     {
-        $cert = new X509();
+        $cert = $this->x509Factory->create();
 
         $cert->loadX509($this->xContent);
 
         return $cert;
+    }
+
+    public function generateIssuerX509(): X509Interface
+    {
+        throw new LogicException('Method should not be called.');
+    }
+
+    public function getAX509Context(): X509Context
+    {
+        return new X509Context('', new DateTime(), new DateTime());
+    }
+
+    public function getEX509Context(): X509Context
+    {
+        return new X509Context('', new DateTime(), new DateTime());
+    }
+
+    public function getXX509Context(): X509Context
+    {
+        return new X509Context('', new DateTime(), new DateTime());
+    }
+
+    public function getIssuerX509Context(): X509Context
+    {
+        return new X509Context('', new DateTime(), new DateTime());
     }
 }
