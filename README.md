@@ -14,7 +14,7 @@ Supported EBICS versions: 2.4, 2.5, 3.0; Encryption versions: E002, X002, A005, 
 
 # 💥 (Premium) EBICS API Client
 
-<img src="./doc/ebics_api_client.png" align="left" width="210" style="padding-right:20px">
+<a href="https://youtu.be/-x6uFZMvEeg" target="_blank"><img src="./doc/ebics_api_client.gif" width="300"></a>
 
 Get your <a href="https://sites.google.com/view/ebics-api-client" target="_blank">EBICS API Client</a> standalone microservice in Docker for the easiest EBICS integration.
 Explore the <a href="https://tinyurl.com/safe-ebics" target="_blank">DEMO</a> to see if it meets your needs.
