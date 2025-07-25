@@ -47,10 +47,6 @@ final class PTK extends DownloadOrder
 
     public function createRequest(): Request
     {
-        if ($this->getVersion() === Keyring::VERSION_30) {
-            throw new MethodNotImplemented('3.0');
-        }
-
         return $this->buildRequest();
     }
 

@@ -19,6 +19,7 @@ use EbicsApi\Ebics\Orders\HKD;
 use EbicsApi\Ebics\Orders\HPB;
 use EbicsApi\Ebics\Orders\HPD;
 use EbicsApi\Ebics\Orders\INI;
+use EbicsApi\Ebics\Orders\PTK;
 use EbicsApi\Ebics\Orders\SPR;
 
 /**
@@ -419,6 +420,36 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     /**
      * @dataProvider serversDataProvider
      *
+     * @group PTK
+     * @group V3
+     * @group PTK-V3
+     *
+     * @param int $credentialsId
+     * @param array $codes
+     *
+     * @covers
+     */
+    public function testPTK(int $credentialsId, array $codes): void
+    {
+        $client = $this->setupClientV30($credentialsId, $codes['PTK']['fake']);
+
+        $this->assertExceptionCode($codes['PTK']['code']);
+        $ptk = $client->executeDownloadOrder(new PTK());
+
+        $responseHandler = $client->getResponseHandler();
+        $code = $responseHandler->retrieveH00XReturnCode($ptk->getTransaction()->getLastSegment()->getResponse());
+        $reportText = $responseHandler->retrieveH00XReportText($ptk->getTransaction()->getLastSegment()->getResponse());
+        $this->assertResponseOk($code, $reportText);
+
+        $code = $responseHandler->retrieveH00XReturnCode($ptk->getTransaction()->getReceipt());
+        $reportText = $responseHandler->retrieveH00XReportText($ptk->getTransaction()->getReceipt());
+
+        $this->assertResponseDone($code, $reportText);
+    }
+
+    /**
+     * @dataProvider serversDataProvider
+     *
      * @group BTD
      * @group V3
      * @group BTD-V3
@@ -562,6 +593,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
                     'CSV' => ['code' => null, 'fake' => false],
                     'HPD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
+                    'PTK' => ['code' => null, 'fake' => false],
                 ],
             ],
             [
@@ -578,6 +610,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
                     'CSV' => ['code' => '091005', 'fake' => false],
                     'HPD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
+                    'PTK' => ['code' => null, 'fake' => false],
                 ],
             ],
         ];
