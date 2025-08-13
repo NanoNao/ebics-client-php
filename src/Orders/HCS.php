@@ -61,12 +61,17 @@ final class HCS extends UploadOrder
         $signatureData = new UserSignature();
         $this->userSignatureHandler->handle($signatureData, $this->transaction->getDigest());
 
+        $signatureVersion = $this->context->getKeyring()->getUserSignatureAVersion();
+        $dataDigest = $this->orderDataHandler->hash($this->orderData->getContent());
+
         $this->context
             ->setOrderType('HCS')
             ->setWithES(true)
             ->setTransactionKey($this->transaction->getKey())
             ->setNumSegments($this->transaction->getNumSegments())
-            ->setSignatureData($signatureData);
+            ->setSignatureData($signatureData)
+            ->setSignatureVersion($signatureVersion)
+            ->setDataDigest($dataDigest);
 
         return $this->requestFactory
             ->createRequestBuilderInstance()
@@ -114,7 +119,7 @@ final class HCS extends UploadOrder
                                     );
                             })
                             ->addSignatureData($this->context->getSignatureData(), $this->context->getTransactionKey())
-                            ->addDataDigest($this->context->getKeyring()->getUserSignatureAVersion());
+                            ->addDataDigest($this->context->getSignatureVersion(), $this->context->getDataDigest());
                     });
                 });
             })

@@ -59,9 +59,7 @@ final class BTU extends UploadOrder
         $this->userSignatureHandler->handle($signatureData, $this->transaction->getDigest());
 
         $signatureVersion = $this->context->getKeyring()->getUserSignatureAVersion();
-        $dataDigest = $this->requestFactory->userSignA(
-            $this->transaction->getDigest()
-        );
+        $dataDigest = $this->orderDataHandler->hash($this->orderData->getContent());
 
         $this->context
             ->setOrderType('BTU')
@@ -117,11 +115,7 @@ final class BTU extends UploadOrder
                                     );
                             })
                             ->addSignatureData($this->context->getSignatureData(), $this->context->getTransactionKey())
-                            ->addDataDigest(
-                                $this->context->getSignatureVersion(),
-                                $this->context->getDataDigest()
-                            )
-                            ->addAdditionalOrderInfo();
+                            ->addDataDigest($this->context->getSignatureVersion(), $this->context->getDataDigest());
                     });
                 });
             })
@@ -164,12 +158,12 @@ final class BTU extends UploadOrder
             $xmlMsgName->setAttribute('format', $this->btuContext->getMsgNameFormat());
         }
 
-        if (true === $this->btuContext->getSignatureFlag()) {
+        if ($this->context->getWithES()) {
             $xmlSignatureFlag = $orderDetailsBuilder->appendEmptyElementTo('SignatureFlag', $xmlBTUOrderParams);
 
-            if (true === $this->btuContext->getSignatureFlagEds()) {
-                $xmlSignatureFlag->setAttribute('requestEDS', 'true');
-            }
+            $xmlSignatureFlag->setAttribute('requestEDS', 'true');
         }
+
+        $orderDetailsBuilder->addParameters($xmlBTUOrderParams, $this->btuContext->getParameters());
     }
 }

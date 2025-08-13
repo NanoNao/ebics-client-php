@@ -157,7 +157,8 @@ try {
 | HKD         | Download customer's customer and subscriber information.                                             |
 | HTD         | Download subscriber's customer and subscriber information.                                           |
 | HAA         | Download Bank available order types.                                                                 |
-| PTK         | Download transaction status.                                                                         |
+| PTK         | Download transaction status (Plain text).                                                            |
+| HAC         | Download transaction status (XML).                                                                   |
 | FDL         | Download the files from the bank.                                                                    |
 | FUL         | Upload the files to the bank.                                                                        |
 | BTD         | Download request files of any BTF structure.                                                         |

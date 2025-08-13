@@ -10,30 +10,17 @@ namespace EbicsApi\Ebics\Contexts;
  */
 abstract class BTFContext extends ServiceContext
 {
-    private bool $signatureFlag = false;
-    private bool $signatureFlagEds = false;
+    private array $parameters = [];
 
-    public function setSignatureFlag(bool $signatureFlag): self
+    public function setParameter(string $name, string $value): self
     {
-        $this->signatureFlag = $signatureFlag;
+        $this->parameters[$name] = $value;
 
         return $this;
     }
 
-    public function getSignatureFlag(): bool
+    public function getParameters(): array
     {
-        return $this->signatureFlag;
-    }
-
-    public function setSignatureFlagEds(bool $signatureFlagEds): self
-    {
-        $this->signatureFlagEds = $signatureFlagEds;
-
-        return $this;
-    }
-
-    public function getSignatureFlagEds(): bool
-    {
-        return $this->signatureFlagEds;
+        return $this->parameters;
     }
 }

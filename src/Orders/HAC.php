@@ -10,16 +10,18 @@ use EbicsApi\Ebics\Builders\Request\RootBuilder;
 use EbicsApi\Ebics\Builders\Request\StaticBuilder;
 use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
+use EbicsApi\Ebics\Exceptions\MethodNotImplemented;
 use EbicsApi\Ebics\Models\Http\Request;
+use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\Order\DownloadOrder;
 
 /**
- * Download transaction status (Plain text).
+ * Download transaction status (XML).
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-final class PTK extends DownloadOrder
+final class HAC extends DownloadOrder
 {
     private ?DateTimeInterface $startDateTime;
 
@@ -56,7 +58,7 @@ final class PTK extends DownloadOrder
     private function buildRequest(): Request
     {
         $this->context
-            ->setOrderType('PTK');
+            ->setOrderType('HAC');
 
         return $this
             ->requestFactory->createRequestBuilderInstance()

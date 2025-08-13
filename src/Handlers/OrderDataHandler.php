@@ -148,8 +148,8 @@ abstract class OrderDataHandler
      */
     abstract public function retrieveEncryptionSignature(XmlDocument $document): SignatureInterface;
 
-    public function hash(XmlData $xml): string
+    public function hash(string $content): string
     {
-        return $this->cryptService->hash($xml->getContent());
+        return $this->cryptService->hash($content);
     }
 }

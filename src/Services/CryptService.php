@@ -350,18 +350,12 @@ final class CryptService
     /**
      * Calculate Public Digest.
      *
-     * Try to use certificate public key prioritized.
-     *
-     * Concat the exponent and modulus (hex representation) with a single whitespace.
-     * Remove leading zeros from both.
-     * Calculate digest (SHA256).
-     *
      * @param SignatureInterface $signature
      * @param string $algorithm
      *
      * @return string
      */
-    public function calculateDigest(
+    public function calculatePublicKeyDigest(
         SignatureInterface $signature,
         string $algorithm = 'sha256'
     ): string {

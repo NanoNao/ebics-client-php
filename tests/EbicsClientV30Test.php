@@ -13,6 +13,7 @@ use EbicsApi\Ebics\Orders\BTD;
 use EbicsApi\Ebics\Orders\BTU;
 use EbicsApi\Ebics\Orders\H3K;
 use EbicsApi\Ebics\Orders\HAA;
+use EbicsApi\Ebics\Orders\HAC;
 use EbicsApi\Ebics\Orders\HEV;
 use EbicsApi\Ebics\Orders\HIA;
 use EbicsApi\Ebics\Orders\HKD;
@@ -450,6 +451,36 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     /**
      * @dataProvider serversDataProvider
      *
+     * @group HAC
+     * @group V3
+     * @group HAC-V3
+     *
+     * @param int $credentialsId
+     * @param array $codes
+     *
+     * @covers
+     */
+    public function testHAC(int $credentialsId, array $codes): void
+    {
+        $client = $this->setupClientV30($credentialsId, $codes['HAC']['fake']);
+
+        $this->assertExceptionCode($codes['HAC']['code']);
+        $hac = $client->executeDownloadOrder(new HAC());
+
+        $responseHandler = $client->getResponseHandler();
+        $code = $responseHandler->retrieveH00XReturnCode($hac->getTransaction()->getLastSegment()->getResponse());
+        $reportText = $responseHandler->retrieveH00XReportText($hac->getTransaction()->getLastSegment()->getResponse());
+        $this->assertResponseOk($code, $reportText);
+
+        $code = $responseHandler->retrieveH00XReturnCode($hac->getTransaction()->getReceipt());
+        $reportText = $responseHandler->retrieveH00XReportText($hac->getTransaction()->getReceipt());
+
+        $this->assertResponseDone($code, $reportText);
+    }
+
+    /**
+     * @dataProvider serversDataProvider
+     *
      * @group BTD
      * @group V3
      * @group BTD-V3
@@ -594,6 +625,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
                     'HPD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
                     'PTK' => ['code' => null, 'fake' => false],
+                    'HAC' => ['code' => null, 'fake' => false],
                 ],
             ],
             [
@@ -611,6 +643,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
                     'HPD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
                     'PTK' => ['code' => null, 'fake' => false],
+                    'HAC' => ['code' => null, 'fake' => false],
                 ],
             ],
         ];

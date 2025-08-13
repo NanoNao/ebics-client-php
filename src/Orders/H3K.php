@@ -57,7 +57,7 @@ final class H3K extends StandardOrder
         $signatureData = new UserSignature();
         $this->userSignatureHandler->handle(
             $signatureData,
-            $this->orderDataHandler->hash($orderData)
+            $this->orderDataHandler->hash($orderData->getContent())
         );
 
         $this->context

@@ -51,7 +51,15 @@ final class DataEncryptionInfoBuilder extends XmlBuilder
         if (!($signatureE = $keyring->getBankSignatureE())) {
             throw new SignatureEbicsException('Bank Certificate E is empty.');
         }
-        $certificateEDigest = $this->cryptService->calculateDigest($signatureE, $algorithm);
+
+        if ($signatureE->getCertificateContent()) {
+            $certificateEDigest = $this->cryptService->calculateCertificateFingerprint(
+                $signatureE->getCertificateContent(),
+                $algorithm
+            );
+        } else {
+            $certificateEDigest = $this->cryptService->calculatePublicKeyDigest($signatureE, $algorithm);
+        }
         $encryptionPubKeyDigestNodeValue = base64_encode($certificateEDigest);
 
         $this->appendElementTo('EncryptionPubKeyDigest', $encryptionPubKeyDigestNodeValue, $this->instance, [

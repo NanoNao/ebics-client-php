@@ -51,7 +51,11 @@ abstract class StaticBuilder extends XmlBuilder
 
     public function addTimestamp(DateTimeInterface $dateTime): StaticBuilder
     {
-        $this->appendElementTo('Timestamp', $dateTime->format('Y-m-d\TH:i:s\Z'), $this->instance);
+        $milliseconds = (int)($dateTime->format('u') / 1000);
+
+        $formatted = $dateTime->format('Y-m-d\TH:i:s') . sprintf('.%03dZ', $milliseconds);
+
+        $this->appendElementTo('Timestamp', $formatted, $this->instance);
 
         return $this;
     }
@@ -66,6 +70,13 @@ abstract class StaticBuilder extends XmlBuilder
     public function addUserId(string $userId): StaticBuilder
     {
         $this->appendElementTo('UserID', $userId, $this->instance);
+
+        return $this;
+    }
+
+    public function addSystemId(string $systemId): StaticBuilder
+    {
+        $this->appendElementTo('SystemID', $systemId, $this->instance);
 
         return $this;
     }

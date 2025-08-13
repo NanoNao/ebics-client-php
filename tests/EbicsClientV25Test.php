@@ -10,6 +10,7 @@ use EbicsApi\Ebics\Factories\DocumentFactory;
 use EbicsApi\Ebics\Orders\FDL;
 use EbicsApi\Ebics\Orders\FUL;
 use EbicsApi\Ebics\Orders\HAA;
+use EbicsApi\Ebics\Orders\HAC;
 use EbicsApi\Ebics\Orders\HCS;
 use EbicsApi\Ebics\Orders\HEV;
 use EbicsApi\Ebics\Orders\HIA;
@@ -370,6 +371,35 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
     /**
      * @dataProvider serversDataProvider
      *
+     * @group HAC
+     * @group HAC-V2
+     *
+     * @param int $credentialsId
+     * @param array $codes
+     *
+     * @covers
+     */
+    public function testHAC(int $credentialsId, array $codes): void
+    {
+        $client = $this->setupClientV25($credentialsId, $codes['HAC']['fake']);
+
+        $this->assertExceptionCode($codes['HAC']['code']);
+        $hac = $client->executeDownloadOrder(new HAC());
+
+        $responseHandler = $client->getResponseHandler();
+        $code = $responseHandler->retrieveH00XReturnCode($hac->getTransaction()->getLastSegment()->getResponse());
+        $reportText = $responseHandler->retrieveH00XReportText($hac->getTransaction()->getLastSegment()->getResponse());
+        $this->assertResponseOk($code, $reportText);
+
+        $code = $responseHandler->retrieveH00XReturnCode($hac->getTransaction()->getReceipt());
+        $reportText = $responseHandler->retrieveH00XReportText($hac->getTransaction()->getReceipt());
+
+        $this->assertResponseDone($code, $reportText);
+    }
+
+    /**
+     * @dataProvider serversDataProvider
+     *
      * @group HPD
      * @group HPD-V25
      *
@@ -550,6 +580,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
                     'HTD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
                     'PTK' => ['code' => null, 'fake' => false],
+                    'HAC' => ['code' => null, 'fake' => false],
                     'FDL' => [
                         'camt.xxx.cfonb120.stm' => ['code' => '091112', 'fake' => false],
                     ],
@@ -577,6 +608,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
                     'HTD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => '091006', 'fake' => false],
                     'PTK' => ['code' => '090005', 'fake' => false],
+                    'HAC' => ['code' => '090005', 'fake' => false],
                     'FDL' => [
                         'camt.xxx.cfonb120.stm' => ['code' => '090005', 'fake' => false],
                         'camt.xxx.cfonb240.act' => ['code' => '090005', 'fake' => false],
@@ -605,6 +637,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
                     'HTD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
                     'PTK' => ['code' => null, 'fake' => false],
+                    'HAC' => ['code' => null, 'fake' => false],
                     'FDL' => [
                         'camt.xxx.cfonb120.stm' => ['code' => '091112', 'fake' => false],
                     ],
@@ -632,6 +665,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
                     'HTD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
                     'PTK' => ['code' => null, 'fake' => false],
+                    'HAC' => ['code' => null, 'fake' => false],
                     'FDL' => [
                         'camt.xxx.cfonb120.stm' => ['code' => '091112', 'fake' => false],
                     ],
@@ -659,6 +693,7 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
                     'HTD' => ['code' => null, 'fake' => false],
                     'HAA' => ['code' => null, 'fake' => false],
                     'PTK' => ['code' => null, 'fake' => false],
+                    'HAC' => ['code' => null, 'fake' => false],
                     'FDL' => [
                         'camt.xxx.cfonb120.stm' => ['code' => '091112', 'fake' => false],
                     ],

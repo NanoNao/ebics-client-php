@@ -168,5 +168,7 @@ final class BTD extends DownloadOrder
             );
             $xmlBTDOrderParams->appendChild($xmlDateRange);
         }
+
+        $orderDetailsBuilder->addParameters($xmlBTDOrderParams, $this->btdContext->getParameters());
     }
 }

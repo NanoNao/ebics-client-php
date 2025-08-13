@@ -14,7 +14,7 @@ final class DigestResolverV2 extends DigestResolver
 {
     public function signDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string
     {
-        return $this->cryptService->calculateDigest($signature, $algorithm);
+        return $this->cryptService->calculatePublicKeyDigest($signature, $algorithm);
     }
 
     public function confirmDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string
@@ -22,7 +22,7 @@ final class DigestResolverV2 extends DigestResolver
         if (($certificateContent = $signature->getCertificateContent())) {
             $digest = $this->cryptService->calculateCertificateFingerprint($certificateContent, $algorithm);
         } else {
-            $digest = $this->cryptService->calculateDigest($signature, $algorithm);
+            $digest = $this->cryptService->calculatePublicKeyDigest($signature, $algorithm);
         }
 
         return bin2hex($digest);

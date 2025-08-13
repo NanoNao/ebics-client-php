@@ -2,6 +2,12 @@
 
 * Updated custom keyring details.
 * Dynamic Orders.
+* Updated EDS logic.
+* Updated `Timestamp` format.
+* Added `SystemID` support.
+* Added `Parameter` to BTF.
+* Added `HAC` order type.
+* Fix Upload orders Digest.
 
 ## 2.5
 
