@@ -8,6 +8,7 @@
 * Added `Parameter` to BTF.
 * Added `HAC` order type.
 * Fix Upload orders Digest.
+* Fix `BankX509Generator`
 
 ## 2.5
 

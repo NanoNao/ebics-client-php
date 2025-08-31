@@ -30,12 +30,14 @@ final class BankX509Generator extends X509Generator
                 'DN' => [
                     'id-at-countryName' => $countryName,
                     'id-at-commonName' => $domainName,
+                    'id-at-organizationName' => $establishmentName,
                 ],
             ],
             'issuer' => [
                 'DN' => [
                     'id-at-countryName' => $countryName,
-                    'id-at-commonName' => $establishmentName,
+                    'id-at-commonName' => $domainName,
+                    'id-at-organizationName' => $establishmentName,
                 ],
             ],
         ];
