@@ -563,6 +563,52 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     /**
      * @dataProvider serversDataProvider
      *
+     * @group BTU
+     * @group V3
+     * @group BTU-V3
+     *
+     * @param int $credentialsId
+     * @param array $codes
+     *
+     * @covers
+     */
+    public function testBTUv2(int $credentialsId, array $codes): void
+    {
+        $client = $this->setupClientV30($credentialsId, $codes['BTU']['fake']);
+
+        $this->assertExceptionCode($codes['BTU']['code']);
+
+        $orderData = $this->buildCustomerCreditTransferV2('pain.001.001.09_GBIC_5');
+
+        // XE2
+        $btuContext = BTUContext::resolveInstance()
+            ->setServiceName('MCT')
+            ->setScope('CH')
+            ->setMsgName('pain.001')
+            ->setMsgNameVersion('09')
+            ->setFileName('xe2.pain001.xml');
+
+        $context = new RequestContext();
+        $context->setDateTime(new DateTime());
+
+        $btu = $client->executeUploadOrder(new BTU($btuContext, $orderData, $context));
+
+        $responseHandler = $client->getResponseHandler();
+        $code = $responseHandler->retrieveH00XReturnCode($btu->getTransaction()->getLastSegment()->getResponse());
+        $reportText = $responseHandler->retrieveH00XReportText($btu->getTransaction()->getLastSegment()->getResponse());
+        $this->assertResponseOk($code, $reportText);
+
+        $code = $responseHandler->retrieveH00XReturnCode($btu->getTransaction()->getInitialization()->getResponse());
+        $reportText = $responseHandler->retrieveH00XReportText(
+            $btu->getTransaction()->getInitialization()->getResponse()
+        );
+
+        $this->assertResponseOk($code, $reportText);
+    }
+
+    /**
+     * @dataProvider serversDataProvider
+     *
      * @group CSV
      * @group V3
      * @group CSV-V3

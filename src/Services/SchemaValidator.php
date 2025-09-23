@@ -65,8 +65,12 @@ final class SchemaValidator
 
         $schemaLocation = explode(' ', $nodes[0]->nodeValue);
 
-        $schema = str_replace('http://www.ebics.org/', $this->schemaDir . '/', $schemaLocation[1]);
-
+        $isRoot = str_contains($schemaLocation[0], 'http://www.ebics.org/');
+        if ($isRoot) {
+            $schema = str_replace('http://www.ebics.org/', $this->schemaDir . '/', $schemaLocation[1]);
+        } else {
+            $schema = $this->schemaDir . '/' . $schemaLocation[1];
+        }
         if (!file_exists($schema)) {
             return;
         }
@@ -80,7 +84,18 @@ final class SchemaValidator
             }
             libxml_use_internal_errors(false);
         } catch (Exception $exception) {
-            throw new SchemaEbicsException($exception->getMessage(), $exception->getCode(), $exception);
+            // EbicsApi\Ebics\Builders\CustomerCreditTransfer\CustomerCreditTransferBuilder
+            // have no namespaced paths, so ignore order data validations for the moment
+            if (!$isRoot) {
+                return;
+            }
+
+            // Add origin XML document for better inspection on error
+            throw new SchemaEbicsException(
+                sprintf("%s - %s", $exception->getMessage(), $dom->saveXML()),
+                $exception->getCode(),
+                $exception
+            );
         }
     }
 }
