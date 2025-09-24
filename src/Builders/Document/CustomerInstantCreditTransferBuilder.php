@@ -1,6 +1,6 @@
 <?php
 
-namespace EbicsApi\Ebics\Builders\CustomerCreditTransfer;
+namespace EbicsApi\Ebics\Builders\Document;
 
 use DateTime;
 use EbicsApi\Ebics\Handlers\Traits\XPathTrait;

@@ -54,12 +54,10 @@ abstract class BodyBuilder extends XmlBuilder
 
         $this->instance->appendChild($preValidation);
 
-        $xmlDataDigest = $this->appendEmptyElementTo('DataDigest', $preValidation, [
-            'SignatureVersion' => $signatureVersion,
-        ]);
-
         if (null !== $digest) {
-            $xmlDataDigest->nodeValue = base64_encode($digest);
+            $this->appendElementTo('DataDigest', base64_encode($digest), $preValidation, [
+                'SignatureVersion' => $signatureVersion,
+            ]);
         }
 
         return $this;

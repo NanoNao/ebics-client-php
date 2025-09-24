@@ -2,8 +2,10 @@
 
 namespace EbicsApi\Ebics\Tests;
 
-use EbicsApi\Ebics\Builders\CustomerCreditTransfer\CustomerCreditTransferBuilder;
-use EbicsApi\Ebics\Builders\CustomerDirectDebit\CustomerDirectDebitBuilder;
+use DOMException;
+use EbicsApi\Ebics\Builders\Document\CustomerCreditTransferBuilder;
+use EbicsApi\Ebics\Builders\Document\CustomerDirectDebitBuilder;
+use EbicsApi\Ebics\Builders\Document\CustomerUrgentCreditTransferBuilder;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
 use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
@@ -16,6 +18,7 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\CustomerCreditTransfer;
 use EbicsApi\Ebics\Models\CustomerDirectDebit;
+use EbicsApi\Ebics\Models\DOMDocument;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\StructuredPostalAddress;
 use EbicsApi\Ebics\Models\UnstructuredPostalAddress;
@@ -244,14 +247,13 @@ abstract class AbstractEbicsTestCase extends TestCase
      * @param string $schema
      *
      * @return OrderDataInterface
-     * @throws \DOMException
+     * @throws DOMException
      */
-    protected function buildCustomerCreditTransferV2(string $schema): OrderDataInterface
+    protected function buildCustomerCreditTransferV2(string $schema): DOMDocument
     {
-        $builder = new \EbicsApi\Ebics\Builders\Document\CustomerCreditTransferBuilder($schema);
+        $builder = new CustomerUrgentCreditTransferBuilder($schema);
         $customerCreditTransfer = $builder
             ->createInstance(
-                $schema,
                 'ZKBKCHZZ80A',
                 'SE7500800000000000001123',
                 'Debitor Name'
@@ -293,7 +295,7 @@ abstract class AbstractEbicsTestCase extends TestCase
      * @param string $schema
      *
      * @return CustomerCreditTransfer
-     * @throws \DOMException
+     * @throws DOMException
      */
     protected function buildCustomerCreditTransfer(string $schema): CustomerCreditTransfer
     {
@@ -342,7 +344,7 @@ abstract class AbstractEbicsTestCase extends TestCase
      * @param string $schema
      *
      * @return CustomerDirectDebit
-     * @throws \DOMException
+     * @throws DOMException
      */
     protected function buildCustomerDirectDebit(string $schema): CustomerDirectDebit
     {

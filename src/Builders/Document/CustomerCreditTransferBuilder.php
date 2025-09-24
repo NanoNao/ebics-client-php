@@ -1,22 +1,56 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace EbicsApi\Ebics\Builders\Document;
 
 use DateTime;
+use DOMElement;
 use EbicsApi\Ebics\Contracts\PostalAddressInterface;
+use EbicsApi\Ebics\Handlers\Traits\XPathTrait;
 use EbicsApi\Ebics\Models\CustomerCreditTransfer;
+use EbicsApi\Ebics\Services\DOMHelper;
+use EbicsApi\Ebics\Services\RandomService;
 use InvalidArgumentException;
 
 /**
- * CustomerCreditTransferBuilder
- * Corresponds to EbicsApi\Ebics\Builders\CustomerCreditTransfer\CustomerCreditTransferBuilder but with namespaces
+ * Class CustomerCreditTransferBuilder builder for model @see \EbicsApi\Ebics\Models\CustomerCreditTransfer
+ *
+ * https://www.six-group.com/dam/download/banking-services/interbank-clearing/en/standardization/iso/swiss-recommendations/implementation-guidelines-ct.pdf
+ *  https://www.six-group.com/dam/download/banking-services/interbank-clearing/de/standardization/iso/swiss-recommendations/archives/implementation-guidelines-ct/implementation-guidelines-ct_v1_6_1.pdf
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
- * @author Jan-Philipp Georg (moori)
+ * @author Andrew Svirin
+ * @author Jonathan Luthi
  */
-final class CustomerCreditTransferBuilder extends DocumentBuilder
+final class CustomerCreditTransferBuilder
 {
+    use XPathTrait;
+
+    private RandomService $randomService;
+    private ?CustomerCreditTransfer $instance;
+
+    public function __construct()
+    {
+        $this->randomService = new RandomService();
+    }
+
+    /**
+     * @param string $schema namespace schema urn:iso:std:iso:20022:tech:xsd:pain.001.001.03
+     * @param string $debitorFinInstBIC
+     * @param string $debitorIBAN
+     * @param string $debitorName
+     * @param DateTime|null $executionDate
+     * @param bool $batchBooking By deactivating the batch booking procedure,
+     * you request your credit institution to book each transaction within this order separately.
+     * @param string|null $msgId Overwrite default generated message id - should be unique at
+     * least for 15 days. Used for rejecting duplicated transactions (max length: 35 characters)
+     * @param string|null $paymentReference Overwrite default payment reference -
+     * visible on creditors bank statement (max length: 35 characters)
+     * @param string|null $chargeBearer Overwrite default charge bearer (one of SLEV, CRED, DEBT, SHAR)
+     *
+     * @return $this
+     */
     public function createInstance(
+        string $schema,
         string $debitorFinInstBIC,
         string $debitorIBAN,
         string $debitorName,
@@ -25,77 +59,277 @@ final class CustomerCreditTransferBuilder extends DocumentBuilder
         ?string $msgId = null,
         ?string $paymentReference = null,
         ?string $chargeBearer = null
-    ): self {
+    ): CustomerCreditTransferBuilder {
         $this->instance = new CustomerCreditTransfer();
         $now = new DateTime();
 
-        $doc = $this->el('Document');
-        $doc->setAttributeNS(
+        $xmDocument = $this->instance->createElementNS(
+            $schema,
+            'Document'
+        );
+        $xmDocument->setAttributeNS(
             'http://www.w3.org/2000/xmlns/',
             'xmlns:xsi',
             'http://www.w3.org/2001/XMLSchema-instance'
         );
-        $doc->setAttributeNS(
+        $xmDocument->setAttributeNS(
             'http://www.w3.org/2001/XMLSchema-instance',
             'xsi:schemaLocation',
-            $this->schemaLocation()
+            'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03 pain.001.001.03.xsd'
         );
-        $this->instance->appendChild($doc);
+        $this->instance->appendChild($xmDocument);
 
-        $ccti = $this->el('CstmrCdtTrfInitn');
-        $doc->appendChild($ccti);
+        $xmlCstmrCdtTrfInitn = $this->instance->createElement('CstmrCdtTrfInitn');
+        $xmDocument->appendChild($xmlCstmrCdtTrfInitn);
 
-        $grpHdr = $this->el('GrpHdr');
-        $ccti->appendChild($grpHdr);
-        $grpHdr->appendChild(
-            $this->el('MsgId', $msgId ?: $this->randomService->uniqueIdWithDate('msg'))
-        );
-        $grpHdr->appendChild($this->el('CreDtTm', $now->format('Y-m-d\TH:i:s\Z')));
-        $grpHdr->appendChild($this->el('NbOfTxs', '0'));
-        $grpHdr->appendChild($this->el('CtrlSum', '0'));
+        $xmlGrpHdr = $this->instance->createElement('GrpHdr');
+        $xmlCstmrCdtTrfInitn->appendChild($xmlGrpHdr);
 
-        $initg = $this->el('InitgPty');
-        $initg->appendChild($this->el('Nm', $debitorName));
-        $grpHdr->appendChild($initg);
+        $xmlMsgId = $this->instance->createElement('MsgId');
+        if ($msgId) {
+            $xmlMsgId->nodeValue = $msgId;
+        } else {
+            $xmlMsgId->nodeValue = $this->randomService->uniqueIdWithDate('msg');
+        }
+        $xmlGrpHdr->appendChild($xmlMsgId);
 
-        $pmtInf = $this->el('PmtInf');
-        $ccti->appendChild($pmtInf);
+        $xmlMsgId = $this->instance->createElement('CreDtTm');
+        $xmlMsgId->nodeValue = $now->format('Y-m-d\TH:i:s\.vP');
+        $xmlGrpHdr->appendChild($xmlMsgId);
 
-        $pmtInf->appendChild(
-            $this->el('PmtInfId', $paymentReference ?: $this->randomService->uniqueIdWithDate('pmt'))
-        );
-        $pmtInf->appendChild($this->el('PmtMtd', 'TRF'));
-        $pmtInf->appendChild($this->el('BtchBookg', $batchBooking ? 'true' : 'false'));
-        $pmtInf->appendChild($this->el('NbOfTxs', '0'));
-        $pmtInf->appendChild($this->el('CtrlSum', '0'));
+        $xmlNbOfTxs = $this->instance->createElement('NbOfTxs');
+        $xmlNbOfTxs->nodeValue = '0';
+        $xmlGrpHdr->appendChild($xmlNbOfTxs);
 
-        $pmtTpInf = $this->el('PmtTpInf');
-        $svcLvl = $this->el('SvcLvl');
-        $svcLvl->appendChild($this->el('Cd', 'SEPA'));
-        $pmtTpInf->appendChild($svcLvl);
-        $pmtInf->appendChild($pmtTpInf);
+        $xmlCtrlSum = $this->instance->createElement('CtrlSum');
+        $xmlCtrlSum->nodeValue = '0';
+        $xmlGrpHdr->appendChild($xmlCtrlSum);
 
-        $pmtInf->appendChild($this->buildReqdExctnDt($executionDate ?: $now));
+        $xmlInitgPty = $this->instance->createElement('InitgPty');
+        $xmlGrpHdr->appendChild($xmlInitgPty);
 
-        $dbtr = $this->el('Dbtr');
-        $dbtr->appendChild($this->el('Nm', $debitorName));
-        $pmtInf->appendChild($dbtr);
+        $xmlNm = $this->instance->createElement('Nm');
+        $xmlNm->nodeValue = $debitorName;
+        $xmlInitgPty->appendChild($xmlNm);
 
-        $dbtrAcct = $this->el('DbtrAcct');
-        $id = $this->el('Id');
-        $id->appendChild($this->el('IBAN', $debitorIBAN));
-        $dbtrAcct->appendChild($id);
-        $pmtInf->appendChild($dbtrAcct);
+        $xmlPmtInf = $this->instance->createElement('PmtInf');
+        $xmlCstmrCdtTrfInitn->appendChild($xmlPmtInf);
 
-        $dbtrAgt = $this->el('DbtrAgt');
-        $fin = $this->el('FinInstnId');
-        $fin->appendChild($this->el('BICFI', $debitorFinInstBIC));
-        $dbtrAgt->appendChild($fin);
-        $pmtInf->appendChild($dbtrAgt);
+        $xmlPmtInfId = $this->instance->createElement('PmtInfId');
+        if ($paymentReference) {
+            $xmlPmtInfId->nodeValue = $paymentReference;
+        } else {
+            $xmlPmtInfId->nodeValue = $this->randomService->uniqueIdWithDate('pmt');
+        }
+        $xmlPmtInf->appendChild($xmlPmtInfId);
 
-        $pmtInf->appendChild($this->el('ChrgBr', $chargeBearer ?: 'SLEV'));
+        $xmlPmtMtd = $this->instance->createElement('PmtMtd');
+        $xmlPmtMtd->nodeValue = 'TRF';
+        $xmlPmtInf->appendChild($xmlPmtMtd);
+
+        $xmlBtchBookg = $this->instance->createElement('BtchBookg');
+        $xmlBtchBookg->nodeValue = $batchBooking ? 'true' : 'false';
+        $xmlPmtInf->appendChild($xmlBtchBookg);
+
+        $xmlNbOfTxs = $this->instance->createElement('NbOfTxs');
+        $xmlNbOfTxs->nodeValue = '0';
+        $xmlPmtInf->appendChild($xmlNbOfTxs);
+
+        $xmlCtrlSum = $this->instance->createElement('CtrlSum');
+        $xmlCtrlSum->nodeValue = '0';
+        $xmlPmtInf->appendChild($xmlCtrlSum);
+
+        $xmlPmtTpInf = $this->instance->createElement('PmtTpInf');
+        $xmlPmtInf->appendChild($xmlPmtTpInf);
+
+        $xmlSvcLvl = $this->instance->createElement('SvcLvl');
+        $xmlPmtTpInf->appendChild($xmlSvcLvl);
+
+        $xmlCd = $this->instance->createElement('Cd');
+        $xmlCd->nodeValue = 'SEPA';
+        $xmlSvcLvl->appendChild($xmlCd);
+
+        $xmlReqdExctnDt = $this->instance->createElement('ReqdExctnDt');
+        if ($executionDate) {
+            $xmlReqdExctnDt->nodeValue = $executionDate->format('Y-m-d');
+        } else {
+            $xmlReqdExctnDt->nodeValue = $now->format('Y-m-d');
+        }
+        $xmlPmtInf->appendChild($xmlReqdExctnDt);
+
+        $xmlDbtr = $this->instance->createElement('Dbtr');
+        $xmlPmtInf->appendChild($xmlDbtr);
+
+        $xmlNm = $this->instance->createElement('Nm');
+        $xmlNm->nodeValue = $debitorName;
+        $xmlDbtr->appendChild($xmlNm);
+
+        $xmlDbtrAcct = $this->instance->createElement('DbtrAcct');
+        $xmlPmtInf->appendChild($xmlDbtrAcct);
+
+        $xmlId = $this->instance->createElement('Id');
+        $xmlDbtrAcct->appendChild($xmlId);
+
+        $xmlIBAN = $this->instance->createElement('IBAN');
+        $xmlIBAN->nodeValue = $debitorIBAN;
+        $xmlId->appendChild($xmlIBAN);
+
+        $xmlDbtrAgt = $this->instance->createElement('DbtrAgt');
+        $xmlPmtInf->appendChild($xmlDbtrAgt);
+
+        $xmlFinInstnId = $this->instance->createElement('FinInstnId');
+        $xmlDbtrAgt->appendChild($xmlFinInstnId);
+
+        $xmlBIC = $this->instance->createElement('BIC');
+        $xmlBIC->nodeValue = $debitorFinInstBIC;
+        $xmlFinInstnId->appendChild($xmlBIC);
+
+        $xmlChrgBr = $this->instance->createElement('ChrgBr');
+        if ($chargeBearer) {
+            $xmlChrgBr->nodeValue = $chargeBearer;
+        } else {
+            $xmlChrgBr->nodeValue = 'SLEV';
+        }
+        $xmlPmtInf->appendChild($xmlChrgBr);
 
         return $this;
+    }
+
+    private function createCreditTransferTransactionElement(
+        float $amount,
+        ?string $instrId = null,
+        ?string $endToEndId = null
+    ): DOMElement {
+        $xpath = $this->prepareXPath($this->instance);
+        $nbOfTxsList = $xpath->query('//CstmrCdtTrfInitn//GrpHdr/NbOfTxs');
+        $nbOfTxs = (int)DOMHelper::safeItemValue($nbOfTxsList);
+        $nbOfTxs++;
+
+        $pmtInfList = $xpath->query('//CstmrCdtTrfInitn/PmtInf');
+        $xmlPmtInf = DOMHelper::safeItem($pmtInfList);
+
+        $xmlCdtTrfTxInf = $this->instance->createElement('CdtTrfTxInf');
+        $xmlPmtInf->appendChild($xmlCdtTrfTxInf);
+
+        $xmlPmtId = $this->instance->createElement('PmtId');
+        $xmlCdtTrfTxInf->appendChild($xmlPmtId);
+
+        $xmlEndToEndId = $this->instance->createElement('EndToEndId');
+        if ($endToEndId) {
+            $xmlEndToEndId->nodeValue = $endToEndId;
+        } else {
+            $xmlEndToEndId->nodeValue = $this->randomService->uniqueIdWithDate(
+                'pete' . str_pad((string)$nbOfTxs, 2, '0')
+            );
+        }
+        $xmlPmtId->appendChild($xmlEndToEndId);
+
+        if (!is_null($instrId)) {
+            $xmlInstrId = $this->instance->createElement('InstrId');
+            $xmlInstrId->nodeValue = $instrId;
+            $xmlPmtId->appendChild($xmlInstrId);
+        }
+
+        //update parent's elements
+        $xmlNbOfTxs = DOMHelper::safeItem($nbOfTxsList);
+        $xmlNbOfTxs->nodeValue = (string)$nbOfTxs;
+
+        $nbOfTxsList = $xpath->query('//CstmrCdtTrfInitn/GrpHdr/NbOfTxs');
+        $xmlNbOfTxs = DOMHelper::safeItem($nbOfTxsList);
+        $xmlNbOfTxs->nodeValue = (string)$nbOfTxs;
+
+        $ctrlSumList = $xpath->query('//CstmrCdtTrfInitn/GrpHdr/CtrlSum');
+        $ctrlSum = (float)DOMHelper::safeItemValue($ctrlSumList);
+        $xmlCtrlSum = DOMHelper::safeItem($ctrlSumList);
+        $xmlCtrlSum->nodeValue = number_format($ctrlSum + $amount, 2, '.', '');
+
+        //update PmtInf
+        $nbOfTxsList = $xpath->query('//CstmrCdtTrfInitn/PmtInf/NbOfTxs');
+        $xmlNbOfTxs = DOMHelper::safeItem($nbOfTxsList);
+        $xmlNbOfTxs->nodeValue = (string)$nbOfTxs;
+
+        $ctrlSumList = $xpath->query('//CstmrCdtTrfInitn/PmtInf/CtrlSum');
+        $xmlCtrlSum = DOMHelper::safeItem($ctrlSumList);
+        $xmlCtrlSum->nodeValue = number_format($ctrlSum + $amount, 2, '.', '');
+
+        return $xmlCdtTrfTxInf;
+    }
+
+    private function addAmountElement(DOMElement $xmlCdtTrfTxInf, float $amount, string $currency): void
+    {
+        $xmlAmt = $this->instance->createElement('Amt');
+        $xmlCdtTrfTxInf->appendChild($xmlAmt);
+
+        $xmlInstdAmt = $this->instance->createElement('InstdAmt');
+        $xmlInstdAmt->setAttribute('Ccy', $currency);
+        $xmlInstdAmt->nodeValue = number_format($amount, 2, '.', '');
+        $xmlAmt->appendChild($xmlInstdAmt);
+    }
+
+    private function addCreditor(
+        DOMElement $xmlCdtTrfTxInf,
+        ?string $creditorFinInstBIC,
+        string $creditorIBAN,
+        string $creditorName,
+        ?PostalAddressInterface $postalAddress,
+        ?string $purposeText = null,
+        ?string $purposeCode = null
+    ): void {
+        //agent
+        if ($creditorFinInstBIC !== null) {
+            $xmlCdtrAgt = $this->instance->createElement('CdtrAgt');
+            $xmlCdtTrfTxInf->appendChild($xmlCdtrAgt);
+
+            $xmlFinInstnId = $this->instance->createElement('FinInstnId');
+            $xmlCdtrAgt->appendChild($xmlFinInstnId);
+
+            $xmlBIC = $this->instance->createElement('BIC');
+            $xmlBIC->nodeValue = $creditorFinInstBIC;
+            $xmlFinInstnId->appendChild($xmlBIC);
+        }
+
+        // Creditor
+        $xmlCdtr = $this->instance->createElement('Cdtr');
+        $xmlCdtTrfTxInf->appendChild($xmlCdtr);
+
+        $xmlNm = $this->instance->createElement('Nm');
+        $xmlNm->nodeValue = $creditorName;
+        $xmlCdtr->appendChild($xmlNm);
+
+        if ($postalAddress !== null) {
+            $xmlCdtr->appendChild($postalAddress->toDomElement($this->instance));
+        }
+
+        // Account
+        $xmlCdtrAcct = $this->instance->createElement('CdtrAcct');
+        $xmlCdtTrfTxInf->appendChild($xmlCdtrAcct);
+
+        $xmlId = $this->instance->createElement('Id');
+        $xmlCdtrAcct->appendChild($xmlId);
+
+        $xmlIBAN = $this->instance->createElement('IBAN');
+        $xmlIBAN->nodeValue = str_replace(' ', '', $creditorIBAN);
+        $xmlId->appendChild($xmlIBAN);
+
+        // Purpose - Code
+        if ($purposeCode) {
+            $xmlPurp = $this->instance->createElement('Purp');
+            $xmlCdtTrfTxInf->appendChild($xmlPurp);
+
+            $xmlCd = $this->instance->createElement('Cd');
+            $xmlCd->nodeValue = $purposeCode;
+            $xmlPurp->appendChild($xmlCd);
+        }
+
+        // Purpose - Text
+        if ($purposeText !== null) {
+            $xmlRmtInf = $this->instance->createElement('RmtInf');
+            $xmlCdtTrfTxInf->appendChild($xmlRmtInf);
+
+            $xmlUstrd = $this->instance->createElement('Ustrd');
+            $xmlUstrd->nodeValue = $purposeText;
+            $xmlRmtInf->appendChild($xmlUstrd);
+        }
     }
 
     public function addBankTransaction(
@@ -107,15 +341,17 @@ final class CustomerCreditTransferBuilder extends DocumentBuilder
         ?string $purposeText = null,
         ?string $endToEndId = null,
         ?string $purposeCode = null
-    ): self {
+    ): CustomerCreditTransferBuilder {
         if ($currency !== 'EUR') {
             throw new InvalidArgumentException('The SEPA transaction is restricted to EUR currency.');
         }
 
-        $tx = $this->createCreditTransferTransactionElement($amount, null, $endToEndId);
-        $this->addAmountElement($tx, $amount, $currency);
+        $xmlCdtTrfTxInf = $this->createCreditTransferTransactionElement($amount, null, $endToEndId);
+
+        $this->addAmountElement($xmlCdtTrfTxInf, $amount, $currency);
+
         $this->addCreditor(
-            $tx,
+            $xmlCdtTrfTxInf,
             null,
             $creditorIBAN,
             $creditorName,
@@ -138,27 +374,42 @@ final class CustomerCreditTransferBuilder extends DocumentBuilder
         ?string $chargeBearer = null,
         ?string $endToEndId = null,
         ?string $purposeCode = null
-    ): self {
+    ): CustomerCreditTransferBuilder {
         if ($currency !== 'EUR') {
             throw new InvalidArgumentException('The SEPA transaction is restricted to EUR currency.');
         }
 
-        $tx = $this->createCreditTransferTransactionElement($amount, null, $endToEndId);
+        $xmlCdtTrfTxInf = $this->createCreditTransferTransactionElement($amount, null, $endToEndId);
 
-        $this->addAmountElement($tx, $amount, $currency);
+        // Payment Type Information
+        $xmlPmtTpInf = $this->instance->createElement('PmtTpInf');
+        $xmlCdtTrfTxInf->appendChild($xmlPmtTpInf);
 
-        if ($chargeBearer !== null) {
-            $tx->appendChild($this->el('ChrgBr', $chargeBearer));
+        $xmlSvcLvl = $this->instance->createElement('SvcLvl');
+        $xmlPmtTpInf->appendChild($xmlSvcLvl);
+
+        $xmlCd = $this->instance->createElement('Cd');
+        $xmlCd->nodeValue = 'SEPA';
+        $xmlSvcLvl->appendChild($xmlCd);
+
+        $this->addAmountElement($xmlCdtTrfTxInf, $amount, $currency);
+
+        $xmlChrgBr = $this->instance->createElement('ChrgBr');
+        if ($chargeBearer) {
+            $xmlChrgBr->nodeValue = $chargeBearer;
+        } else {
+            $xmlChrgBr->nodeValue = 'SLEV';
         }
+        $xmlCdtTrfTxInf->appendChild($xmlChrgBr);
 
         $this->addCreditor(
-            $tx,
+            $xmlCdtTrfTxInf,
             $creditorFinInstBIC,
             $creditorIBAN,
             $creditorName,
             $postalAddress,
             $purposeText,
-            $purposeCode
+            $purposeCode,
         );
 
         return $this;
@@ -174,19 +425,29 @@ final class CustomerCreditTransferBuilder extends DocumentBuilder
         ?string $purposeText = null,
         ?string $endToEndId = null,
         ?string $purposeCode = null
-    ): self {
-        $tx = $this->createCreditTransferTransactionElement($amount, null, $endToEndId);
-        $this->addAmountElement($tx, $amount, $currency);
+    ): CustomerCreditTransferBuilder {
+        $xmlCdtTrfTxInf = $this->createCreditTransferTransactionElement($amount, null, $endToEndId);
+
+        $this->addAmountElement($xmlCdtTrfTxInf, $amount, $currency);
+
         $this->addCreditor(
-            $tx,
+            $xmlCdtTrfTxInf,
             $creditorFinInstBIC,
             $creditorIBAN,
             $creditorName,
             $postalAddress,
             $purposeText,
-            $purposeCode
+            $purposeCode,
         );
 
         return $this;
+    }
+
+    public function popInstance(): CustomerCreditTransfer
+    {
+        $instance = $this->instance;
+        $this->instance = null;
+
+        return $instance;
     }
 }
