@@ -46,6 +46,25 @@ abstract class BodyBuilder extends XmlBuilder
         return $this;
     }
 
+    public function addPreValidation(string $signatureVersion, ?string $digest = null): BodyBuilder
+    {
+        $preValidation = $this->createEmptyElement('PreValidation', [
+            'authenticate' => 'true'
+        ]);
+
+        $this->instance->appendChild($preValidation);
+
+        $xmlDataDigest = $this->appendEmptyElementTo('DataDigest', $preValidation, [
+            'SignatureVersion' => $signatureVersion,
+        ]);
+
+        if (null !== $digest) {
+            $xmlDataDigest->nodeValue = base64_encode($digest);
+        }
+
+        return $this;
+    }
+
     public function getInstance(): DOMElement
     {
         return $this->instance;

@@ -5,6 +5,7 @@ namespace EbicsApi\Ebics\Tests;
 use EbicsApi\Ebics\Builders\CustomerCreditTransfer\CustomerCreditTransferBuilder;
 use EbicsApi\Ebics\Builders\CustomerDirectDebit\CustomerDirectDebitBuilder;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
+use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
 use EbicsApi\Ebics\EbicsClient;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
@@ -235,6 +236,55 @@ abstract class AbstractEbicsTestCase extends TestCase
             'aVersion' => $credentialsEnc['aVersion'],
             'password' => $credentialsEnc['password'],
         ];
+    }
+
+    /**
+     * Create simple instance of CustomerCreditTransfer.
+     *
+     * @param string $schema
+     *
+     * @return OrderDataInterface
+     * @throws \DOMException
+     */
+    protected function buildCustomerCreditTransferV2(string $schema): OrderDataInterface
+    {
+        $builder = new \EbicsApi\Ebics\Builders\Document\CustomerCreditTransferBuilder($schema);
+        $customerCreditTransfer = $builder
+            ->createInstance(
+                $schema,
+                'ZKBKCHZZ80A',
+                'SE7500800000000000001123',
+                'Debitor Name'
+            )
+            ->addBankTransaction(
+                'MARKDEF1820',
+                'DE09820000000083001503',
+                new StructuredPostalAddress('CH', 'Triesen', '9495'),
+                100.10,
+                'EUR',
+                'Test payment  1'
+            )
+            ->addSEPATransaction(
+                'GIBASKBX',
+                'SK4209000000000331819272',
+                'Creditor Name 4',
+                null, // new UnstructuredPostalAddress(),
+                200.02,
+                'EUR',
+                'Test payment  2'
+            )
+            ->addForeignTransaction(
+                'NWBKGB2L',
+                'GB29 NWBK 6016 1331 9268 19',
+                'United Development Ltd',
+                new UnstructuredPostalAddress('GB', 'George Street', 'BA1 2FJ Bath'),
+                65.10,
+                'CHF',
+                'Test payment 3'
+            )
+            ->popInstance();
+
+        return $customerCreditTransfer;
     }
 
     /**
