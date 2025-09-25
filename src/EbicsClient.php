@@ -482,18 +482,21 @@ final class EbicsClient implements EbicsClientInterface
         $uploadSegment = $this->responseHandler->extractUploadSegment($request, $response);
         $transaction->setInitialization($uploadSegment);
 
-        $segment = $this->segmentFactory->createTransferSegment();
-        $segment->setTransactionKey($transaction->getKey());
-        $segment->setSegmentNumber(1);
-        $segment->setIsLastSegment(true);
-        $segment->setNumSegments($transaction->getNumSegments());
-        $segment->setOrderData($transaction->getOrderData());
-        $segment->setTransactionId($transaction->getInitialization()->getTransactionId());
+        // Segments can be many but requires realization of buffering.
+        if ($transaction->getNumSegments() === 1) {
+            $segment = $this->segmentFactory->createTransferSegment();
+            $segment->setTransactionKey($transaction->getKey());
+            $segment->setSegmentNumber(1);
+            $segment->setIsLastSegment(true);
+            $segment->setNumSegments($transaction->getNumSegments());
+            $segment->setOrderData($transaction->getOrderData());
+            $segment->setTransactionId($transaction->getInitialization()->getTransactionId());
 
-        if ($segment->getTransactionId()) {
-            $transaction->addSegment($segment);
-            $transaction->setKey($segment->getTransactionId());
-            $this->transferTransfer($transaction);
+            if ($segment->getTransactionId()) {
+                $transaction->addSegment($segment);
+                $transaction->setKey($segment->getTransactionId());
+                $this->transferTransfer($transaction);
+            }
         }
 
         return $transaction;
