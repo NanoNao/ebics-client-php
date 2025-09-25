@@ -7,7 +7,6 @@ use EbicsApi\Ebics\Builders\Document\CustomerCreditTransferBuilder;
 use EbicsApi\Ebics\Builders\Document\CustomerDirectDebitBuilder;
 use EbicsApi\Ebics\Builders\Document\CustomerUrgentCreditTransferBuilder;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
-use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
 use EbicsApi\Ebics\EbicsClient;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
@@ -18,12 +17,12 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\CustomerCreditTransfer;
 use EbicsApi\Ebics\Models\CustomerDirectDebit;
-use EbicsApi\Ebics\Models\DOMDocument;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\StructuredPostalAddress;
 use EbicsApi\Ebics\Models\UnstructuredPostalAddress;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
+use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Services\DebuggerHttpClient;
 use EbicsApi\Ebics\Services\FakerHttpClient;
 use EbicsApi\Ebics\Services\FileKeyringManager;
@@ -246,10 +245,10 @@ abstract class AbstractEbicsTestCase extends TestCase
      *
      * @param string $schema
      *
-     * @return OrderDataInterface
+     * @return XmlData
      * @throws DOMException
      */
-    protected function buildCustomerCreditTransferV2(string $schema): DOMDocument
+    protected function buildCustomerCreditTransferV2(string $schema): XmlData
     {
         $builder = new CustomerUrgentCreditTransferBuilder($schema);
         $customerCreditTransfer = $builder

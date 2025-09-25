@@ -8,8 +8,8 @@ use EbicsApi\Ebics\Models\CustomerCreditTransfer;
 use InvalidArgumentException;
 
 /**
- * CustomerCreditTransferBuilder
- * Corresponds to EbicsApi\Ebics\Builders\CustomerCreditTransfer\CustomerCreditTransferBuilder but with namespaces
+ * CustomerUrgentCreditTransferBuilder
+ * Corresponds to EbicsApi\Ebics\Builders\Document\CustomerCreditTransferBuilder but with namespaces
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Jan-Philipp Georg (moori)
