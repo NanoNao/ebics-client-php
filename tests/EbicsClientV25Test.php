@@ -566,34 +566,6 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
     {
         return [
             [
-                1, // Credentials Id.
-                [
-                    'HEV' => ['code' => null, 'fake' => false],
-                    'INI' => ['code' => null, 'fake' => false],
-                    'HIA' => ['code' => null, 'fake' => false],
-                    'H3K' => ['code' => null, 'fake' => false],
-                    'HCS' => ['code' => null, 'fake' => false],
-                    'HPB' => ['code' => null, 'fake' => false],
-                    'SPR' => ['code' => null, 'fake' => true],
-                    'HPD' => ['code' => null, 'fake' => false],
-                    'HKD' => ['code' => null, 'fake' => false],
-                    'HTD' => ['code' => null, 'fake' => false],
-                    'HAA' => ['code' => null, 'fake' => false],
-                    'PTK' => ['code' => null, 'fake' => false],
-                    'HAC' => ['code' => null, 'fake' => false],
-                    'FDL' => [
-                        'camt.xxx.cfonb120.stm' => ['code' => '091112', 'fake' => false],
-                    ],
-                    'FUL' => [
-                        'pain.001.001.03.sct' => [
-                            'code' => '091112',
-                            'fake' => false,
-                            'document' => '<?xml version="1.0" encoding="UTF-8"?><Root></Root>',
-                        ],
-                    ],
-                ],
-            ],
-            [
                 2, // Credentials Id.
                 [
                     'HEV' => ['code' => null, 'fake' => false],

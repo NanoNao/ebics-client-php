@@ -37,6 +37,7 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\DownloadSegment;
 use EbicsApi\Ebics\Models\DownloadTransaction;
+use EbicsApi\Ebics\Models\EmptyOrderData;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\Http\Response;
 use EbicsApi\Ebics\Models\InitializationSegment;
@@ -222,9 +223,19 @@ final class EbicsClient implements EbicsClientInterface
                 $order->setTransaction($transaction);
                 $orderData = $order->getOrderData();
                 $this->schemaValidator->validate($orderData);
-                $transaction->setOrderData($orderData->getContent());
-                $transaction->setNumSegments($orderData->getContent() == ' ' ? 0 : 1);
-                $transaction->setDigest($this->cryptService->hash($transaction->getOrderData()));
+
+                if ($orderData->getContent() === EmptyOrderData::CONTENT) {
+                    $transaction->setOrderData([$orderData->getContent()]);
+                    $transaction->setNumSegments(0);
+                } else {
+                    $orderDataChunks = [];
+                    for ($i = 0; $i < strlen($orderData->getContent()); $i += UploadTransaction::CHUNK_SIZE) {
+                        $orderDataChunks[] = substr($orderData->getContent(), $i, UploadTransaction::CHUNK_SIZE);
+                    }
+                    $transaction->setOrderData($orderDataChunks);
+                    $transaction->setNumSegments(count($orderDataChunks));
+                }
+                $transaction->setDigest($this->cryptService->hash($orderData->getContent()));
 
                 return $order->createRequest();
             }
@@ -482,21 +493,23 @@ final class EbicsClient implements EbicsClientInterface
         $uploadSegment = $this->responseHandler->extractUploadSegment($request, $response);
         $transaction->setInitialization($uploadSegment);
 
-        // Segments can be many but requires realization of buffering.
-        if ($transaction->getNumSegments() === 1) {
-            $segment = $this->segmentFactory->createTransferSegment();
-            $segment->setTransactionKey($transaction->getKey());
-            $segment->setSegmentNumber(1);
-            $segment->setIsLastSegment(true);
-            $segment->setNumSegments($transaction->getNumSegments());
-            $segment->setOrderData($transaction->getOrderData());
-            $segment->setTransactionId($transaction->getInitialization()->getTransactionId());
+        if ($transaction->getNumSegments() > 0) {
+            foreach ($transaction->getOrderData() as $orderDataChunkId => $orderDataChunk) {
+                $segment = $this->segmentFactory->createTransferSegment();
+                $segment->setTransactionKey($transaction->getKey());
+                $segment->setSegmentNumber($orderDataChunkId + 1);
+                $segment->setIsLastSegment($segment->getSegmentNumber() === $transaction->getNumSegments());
+                $segment->setOrderData($orderDataChunk);
 
-            if ($segment->getTransactionId()) {
-                $transaction->addSegment($segment);
-                $transaction->setKey($segment->getTransactionId());
-                $this->transferTransfer($transaction);
+                $segment->setNumSegments($transaction->getNumSegments());
+                $segment->setTransactionId($transaction->getInitialization()->getTransactionId());
+
+                if ($segment->getTransactionId()) {
+                    $transaction->addSegment($segment);
+                }
             }
+
+            $this->transferTransfer($transaction);
         }
 
         return $transaction;

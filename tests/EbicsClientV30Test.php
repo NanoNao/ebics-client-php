@@ -157,7 +157,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
      * @dataProvider serversDataProvider
      *
      * @group INI
-     * @group INI-V30
+     * @group INI-V3
      *
      * @param int $credentialsId
      * @param array $codes
@@ -202,7 +202,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
      * @dataProvider serversDataProvider
      *
      * @group HIA
-     * @group HIA-V30
+     * @group HIA-V3
      *
      * @param int $credentialsId
      * @param array $codes

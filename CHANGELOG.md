@@ -1,5 +1,6 @@
 ## 3.0
 
+* Support large files upload.
 * Updated custom keyring details.
 * Dynamic Orders.
 * Updated EDS logic.

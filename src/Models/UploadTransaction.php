@@ -12,10 +12,15 @@ use EbicsApi\Ebics\Contracts\UploadTransactionInterface;
  */
 final class UploadTransaction extends Transaction implements UploadTransactionInterface
 {
+    public const CHUNK_SIZE = 1048576; // 1MB
+
     private string $key;
     private int $numSegments;
     private array $segments;
-    private string $orderData;
+    /**
+     * @var string[]
+     */
+    private array $orderData;
     private string $digest;
     private UploadSegment $initialization;
 
@@ -61,12 +66,19 @@ final class UploadTransaction extends Transaction implements UploadTransactionIn
         return end($this->segments);
     }
 
-    public function setOrderData(string $orderData): void
+    /**
+     * @param string[] $orderData
+     * @return void
+     */
+    public function setOrderData(array $orderData): void
     {
         $this->orderData = $orderData;
     }
 
-    public function getOrderData(): ?string
+    /**
+     * @return string[]
+     */
+    public function getOrderData(): array
     {
         return $this->orderData;
     }

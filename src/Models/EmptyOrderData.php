@@ -12,13 +12,15 @@ use EbicsApi\Ebics\Contracts\OrderDataInterface;
  */
 final class EmptyOrderData extends DOMDocument implements OrderDataInterface
 {
+    public const CONTENT = ' ';
+
     public function getContent(): string
     {
-        return ' ';
+        return self::CONTENT;
     }
 
     public function getFormattedContent(): string
     {
-        return ' ';
+        return self::CONTENT;
     }
 }

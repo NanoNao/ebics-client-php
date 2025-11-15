@@ -35,7 +35,7 @@ class AuthSignatureHandlerTest extends AbstractEbicsTestCase
     public function setUp(): void
     {
         parent::setUp();
-        $credentialsId = 1;
+        $credentialsId = 2;
         $client = $this->setupClientV25($credentialsId);
         $this->setupKeys($client->getKeyring());
 
