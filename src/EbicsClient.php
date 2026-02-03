@@ -343,6 +343,11 @@ final class EbicsClient implements EbicsClientInterface
             return;
         }
 
+        // For Download Postprocess Skipped (postponed).
+        if ('011001' === $errorCode) {
+            return;
+        }
+
         $reportText = $this->responseHandler->retrieveH00XReportText($response);
         EbicsExceptionFactory::buildExceptionFromCode($errorCode, $reportText, $request, $response);
     }

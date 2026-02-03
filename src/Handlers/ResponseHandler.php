@@ -261,6 +261,11 @@ abstract class ResponseHandler
                 return;
             }
 
+            // For Download Postprocess Skipped (postponed).
+            if ('011001' === $errorCode) {
+                return;
+            }
+
             $reportText = $this->retrieveH00XReportText($response);
             EbicsExceptionFactory::buildExceptionFromCode($errorCode, $reportText, $request, $response);
         }
