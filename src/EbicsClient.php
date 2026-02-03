@@ -422,14 +422,6 @@ final class EbicsClient implements EbicsClientInterface
             $lastSegment = $segment;
         }
 
-        if (null !== $ackClosure) {
-            $acknowledged = call_user_func_array($ackClosure, [$transaction]);
-        } else {
-            $acknowledged = true;
-        }
-
-        $this->transferReceipt($transaction, $acknowledged);
-
         $orderDataEncoded = $this->bufferFactory->create();
         foreach ($transaction->getSegments() as $segment) {
             $orderDataEncoded->write($segment->getOrderData());
@@ -459,6 +451,14 @@ final class EbicsClient implements EbicsClientInterface
 
         $transaction->setOrderData($orderData->readContent());
         unset($orderData);
+
+        if (null !== $ackClosure) {
+            $acknowledged = call_user_func_array($ackClosure, [$transaction]);
+        } else {
+            $acknowledged = true;
+        }
+
+        $this->transferReceipt($transaction, $acknowledged);
 
         return $transaction;
     }
