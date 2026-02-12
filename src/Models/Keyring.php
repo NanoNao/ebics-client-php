@@ -156,9 +156,9 @@ final class Keyring
     }
 
     /**
-     * @param X509GeneratorInterface $x509Generator
+     * @param X509GeneratorInterface|null $x509Generator
      */
-    public function setCertificateGenerator(X509GeneratorInterface $x509Generator): void
+    public function setCertificateGenerator(?X509GeneratorInterface $x509Generator): void
     {
         $this->x509Generator = $x509Generator;
     }
