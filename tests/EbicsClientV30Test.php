@@ -532,7 +532,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
 
         $this->assertExceptionCode($codes['BTU']['code']);
 
-        $orderData = $this->buildCustomerCreditTransfer('urn:iso:std:iso:20022:tech:xsd:pain.001.001.09');
+        $orderData = $this->buildCustomerCreditTransfer();
 
         // XE2
         $btuContext = BTUContext::resolveInstance()
@@ -578,7 +578,7 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
 
         $this->assertExceptionCode($codes['BTU']['code']);
 
-        $orderData = $this->buildCustomerCreditTransferV2('pain.001.001.09_GBIC_5');
+        $orderData = $this->buildCustomerCreditTransfer();
 
         // XE2
         $btuContext = BTUContext::resolveInstance()

@@ -2,10 +2,6 @@
 
 namespace EbicsApi\Ebics\Tests;
 
-use DOMException;
-use EbicsApi\Ebics\Builders\Document\CustomerCreditTransferBuilder;
-use EbicsApi\Ebics\Builders\Document\CustomerDirectDebitBuilder;
-use EbicsApi\Ebics\Builders\Document\CustomerUrgentCreditTransferBuilder;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
 use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
 use EbicsApi\Ebics\EbicsClient;
@@ -18,11 +14,8 @@ use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\CustomerCreditTransfer;
 use EbicsApi\Ebics\Models\CustomerDirectDebit;
 use EbicsApi\Ebics\Models\Keyring;
-use EbicsApi\Ebics\Models\StructuredPostalAddress;
-use EbicsApi\Ebics\Models\UnstructuredPostalAddress;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
-use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Services\DebuggerHttpClient;
 use EbicsApi\Ebics\Services\FakerHttpClient;
 use EbicsApi\Ebics\Services\FileKeyringManager;
@@ -242,137 +235,25 @@ abstract class AbstractEbicsTestCase extends TestCase
 
     /**
      * Create simple instance of CustomerCreditTransfer.
-     *
-     * @param string $schema
-     *
-     * @return XmlData
-     * @throws DOMException
      */
-    protected function buildCustomerCreditTransferV2(string $schema): XmlData
+    protected function buildCustomerCreditTransfer(): CustomerCreditTransfer
     {
-        $builder = new CustomerUrgentCreditTransferBuilder($schema);
-        $customerCreditTransfer = $builder
-            ->createInstance(
-                'ZKBKCHZZ80A',
-                'SE7500800000000000001123',
-                'Debitor Name'
-            )
-            ->addBankTransaction(
-                'MARKDEF1820',
-                'DE09820000000083001503',
-                new StructuredPostalAddress('CH', 'Triesen', '9495'),
-                100.10,
-                'EUR',
-                'Test payment  1'
-            )
-            ->addSEPATransaction(
-                'GIBASKBX',
-                'SK4209000000000331819272',
-                'Creditor Name 4',
-                null, // new UnstructuredPostalAddress(),
-                200.02,
-                'EUR',
-                'Test payment  2'
-            )
-            ->addForeignTransaction(
-                'NWBKGB2L',
-                'GB29 NWBK 6016 1331 9268 19',
-                'United Development Ltd',
-                new UnstructuredPostalAddress('GB', 'George Street', 'BA1 2FJ Bath'),
-                65.10,
-                'CHF',
-                'Test payment 3'
-            )
-            ->popInstance();
+        $xml = new CustomerCreditTransfer();
 
-        return $customerCreditTransfer;
-    }
+        $xml->loadXML(file_get_contents($this->fixtures . '/pain.001.001.12.xml'));
 
-    /**
-     * Create simple instance of CustomerCreditTransfer.
-     *
-     * @param string $schema
-     *
-     * @return CustomerCreditTransfer
-     * @throws DOMException
-     */
-    protected function buildCustomerCreditTransfer(string $schema): CustomerCreditTransfer
-    {
-        $builder = new CustomerCreditTransferBuilder();
-        $customerCreditTransfer = $builder
-            ->createInstance(
-                $schema,
-                'ZKBKCHZZ80A',
-                'SE7500800000000000001123',
-                'Debitor Name'
-            )
-            ->addBankTransaction(
-                'MARKDEF1820',
-                'DE09820000000083001503',
-                new StructuredPostalAddress('CH', 'Triesen', '9495'),
-                100.10,
-                'EUR',
-                'Test payment  1'
-            )
-            ->addSEPATransaction(
-                'GIBASKBX',
-                'SK4209000000000331819272',
-                'Creditor Name 4',
-                null, // new UnstructuredPostalAddress(),
-                200.02,
-                'EUR',
-                'Test payment  2'
-            )
-            ->addForeignTransaction(
-                'NWBKGB2L',
-                'GB29 NWBK 6016 1331 9268 19',
-                'United Development Ltd',
-                new UnstructuredPostalAddress('GB', 'George Street', 'BA1 2FJ Bath'),
-                65.10,
-                'CHF',
-                'Test payment 3'
-            )
-            ->popInstance();
-
-        return $customerCreditTransfer;
+        return $xml;
     }
 
     /**
      * Create simple instance of CustomerDirectDebit.
-     *
-     * @param string $schema
-     *
-     * @return CustomerDirectDebit
-     * @throws DOMException
      */
-    protected function buildCustomerDirectDebit(string $schema): CustomerDirectDebit
+    protected function buildCustomerDirectDebit(): CustomerDirectDebit
     {
-        $builder = new CustomerDirectDebitBuilder();
-        $customerDirectDebit = $builder
-            ->createInstance(
-                $schema,
-                'ZKBKCHZZ80A',
-                'SE7500800000000000001123',
-                'Creditor Name'
-            )
-            ->addTransaction(
-                'MARKDEF1820',
-                'DE09820000000083001503',
-                'Debitor Name 1',
-                100.10,
-                'EUR',
-                'Test payment  1'
-            )
-            ->addTransaction(
-                'GIBASKBX',
-                'SK4209000000000331819272',
-                'Debitor Name 2',
-                200.02,
-                'EUR',
-                'Test payment  2'
-            )
-            ->popInstance();
+        $xml = new CustomerDirectDebit();
 
-        return $customerDirectDebit;
+        $xml->loadXML(file_get_contents($this->fixtures . '/pain.000.001.11.xml'));
+
+        return $xml;
     }
 }

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.11">
+  <CstmrDrctDbtInitn>
+    <GrpHdr>
+      <MsgId>message-id</MsgId>
+      <CreDtTm>2023-01-01T10:00:00</CreDtTm>
+      <NbOfTxs>1</NbOfTxs>
+      <CtrlSum>123.45</CtrlSum>
+      <InitgPty>
+        <Nm>Initiating Party Name</Nm>
+        <Id>
+          <OrgId>
+            <Othr>
+              <Id>initiating-party-id</Id>
+            </Othr>
+          </OrgId>
+        </Id>
+      </InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>payment-info-id</PmtInfId>
+      <PmtMtd>DD</PmtMtd>
+      <ReqdColltnDt>2023-01-02</ReqdColltnDt>
+      <Cdtr>
+        <Nm>Creditor Name</Nm>
+      </Cdtr>
+      <CdtrAcct>
+        <Id>
+          <IBAN>DE89370400440532013000</IBAN>
+        </Id>
+      </CdtrAcct>
+      <CdtrAgt>
+        <FinInstnId>
+          <BICFI>COBADEFFXXX</BICFI>
+        </FinInstnId>
+      </CdtrAgt>
+      <DrctDbtTxInf>
+        <PmtId>
+          <EndToEndId>end-to-end-id</EndToEndId>
+        </PmtId>
+        <InstdAmt Ccy="EUR">123.45</InstdAmt>
+        <DrctDbtTx>
+          <MndtRltdInf>
+            <MndtId>mandate-id</MndtId>
+            <DtOfSgntr>2022-06-15</DtOfSgntr>
+          </MndtRltdInf>
+        </DrctDbtTx>
+        <DbtrAgt>
+          <FinInstnId>
+            <BICFI>SPAYDEFFXXX</BICFI>
+          </FinInstnId>
+        </DbtrAgt>
+        <Dbtr>
+          <Nm>Debtor Name</Nm>
+          <PstlAdr>
+            <Ctry>FR</Ctry>
+            <AdrLine>5 Rue de Rivoli</AdrLine>
+            <AdrLine>Paris 75001</AdrLine>
+          </PstlAdr>
+        </Dbtr>
+        <DbtrAcct>
+          <Id>
+            <IBAN>DE89370400440532013000</IBAN>
+          </Id>
+        </DbtrAcct>
+        <RmtInf>
+          <Ustrd>Unstructured Remittance Information</Ustrd>
+        </RmtInf>
+      </DrctDbtTxInf>
+    </PmtInf>
+  </CstmrDrctDbtInitn>
+</Document>
