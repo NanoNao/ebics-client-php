@@ -21,6 +21,7 @@ final class X509Context
     private RSAInterface $subjectPublicKey;
     private RSAInterface $issuerPublicKey;
     private ?RSAInterface $issuerPrivateKey = null;
+    /** @var array<string, mixed> */
     private array $certificateOptions = [];
 
     public function __construct(string $serialNumber, DateTimeInterface $startDate, DateTimeInterface $endDate)
@@ -93,15 +94,15 @@ final class X509Context
     /**
      * Merge arrays recursively by substitution not assoc arrays.
      *
-     * @param array $options1
-     * @param array $options2
+     * @param array<string, mixed> $options1
+     * @param array<string, mixed> $options2
      *
-     * @return array
+     * @return array<string, mixed>
      */
     private function mergeOptions(array $options1, array $options2): array
     {
         foreach ($options2 as $key => $value) {
-            if (is_string($key) && array_key_exists($key, $options1) && is_array($value)) {
+            if (array_key_exists($key, $options1) && is_array($value)) {
                 $options1[$key] = $this->mergeOptions($options1[$key], $options2[$key]);
             } else {
                 $options1[$key] = $value;
@@ -114,7 +115,7 @@ final class X509Context
     /**
      * Merge arrays recursively by substitution not assoc arrays.
      *
-     * @param array $options
+     * @param array<string, mixed> $options
      * @param bool $over
      * @return void
      */
@@ -127,6 +128,9 @@ final class X509Context
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getCertificateOptions(): array
     {
         return $this->certificateOptions;

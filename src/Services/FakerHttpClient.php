@@ -21,11 +21,14 @@ final class FakerHttpClient implements HttpClientInterface
     private $fixturesDir;
 
     /**
-     * @var array
+     * @var array<int, string>
      */
     private $extendedOrderTypes;
 
-    public function __construct(string $fixturesDir, array $extendedOrderTypes = null)
+    /**
+     * @param array<int, string>|null $extendedOrderTypes
+     */
+    public function __construct(string $fixturesDir, ?array $extendedOrderTypes = null)
     {
         $this->fixturesDir = $fixturesDir;
 
@@ -107,7 +110,7 @@ final class FakerHttpClient implements HttpClientInterface
      * Fake Order type responses.
      *
      * @param string $orderType
-     * @param array|null $options = [
+     * @param array<string, string|null>|null $options = [
      *     'file_format' => '<string>',
      * ]
      *

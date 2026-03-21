@@ -18,6 +18,9 @@ final class KeyStorageLocator implements KeyStorageLocatorInterface
      */
     private array $locateMap;
 
+    /**
+     * @param array<string, KeyStorageInterface>|null $locateMap
+     */
     public function __construct(?array $locateMap = null)
     {
         $this->locateMap = $locateMap ?? [

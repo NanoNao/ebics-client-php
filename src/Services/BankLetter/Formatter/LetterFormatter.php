@@ -42,11 +42,7 @@ abstract class LetterFormatter implements FormatterInterface
         ];
 
     /**
-     * Set translations.
-     *
-     * @param array $translations
-     *
-     * @return void
+     * @inheritDoc
      */
     public function setTranslations(array $translations): void
     {

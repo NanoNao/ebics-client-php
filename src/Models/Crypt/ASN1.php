@@ -6,6 +6,7 @@ use DateTime;
 use DateTimeInterface;
 use DateTimeZone;
 use EbicsApi\Ebics\Contracts\Crypt\ASN1Interface;
+use EbicsApi\Ebics\Contracts\Crypt\BigIntegerInterface;
 use LogicException;
 
 /**
@@ -18,59 +19,53 @@ final class ASN1 implements ASN1Interface
      *
      * @link http://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf#page=12
      */
-    const CLASS_UNIVERSAL = 0;
-    const CLASS_APPLICATION = 1;
-    const CLASS_CONTEXT_SPECIFIC = 2;
-    const CLASS_PRIVATE = 3;
+    const int CLASS_UNIVERSAL = 0;
+    const int CLASS_APPLICATION = 1;
+    const int CLASS_CONTEXT_SPECIFIC = 2;
+    const int CLASS_PRIVATE = 3;
 
     /**
-     * Tag Classes
+     * Universal Tag Numbers
      *
      * @link http://www.obj-sys.com/asn1tutorial/node124.html
      */
-    const TYPE_BOOLEAN = 1;
-    const TYPE_INTEGER = 2;
-    const TYPE_BIT_STRING = 3;
-    const TYPE_OCTET_STRING = 4;
-    const TYPE_NULL = 5;
-    const TYPE_OBJECT_IDENTIFIER = 6;
-    //const TYPE_OBJECT_DESCRIPTOR = 7;
-    //const TYPE_INSTANCE_OF       = 8; // EXTERNAL
-    const TYPE_REAL = 9;
-    const TYPE_ENUMERATED = 10;
-    //const TYPE_EMBEDDED          = 11;
-    const TYPE_UTF8_STRING = 12;
-    //const TYPE_RELATIVE_OID      = 13;
-    const TYPE_SEQUENCE = 16; // SEQUENCE OF
-    const TYPE_SET = 17; // SET OF
+    const int TYPE_BOOLEAN = 1;
+    const int TYPE_INTEGER = 2;
+    const int TYPE_BIT_STRING = 3;
+    const int TYPE_OCTET_STRING = 4;
+    const int TYPE_NULL = 5;
+    const int TYPE_OBJECT_IDENTIFIER = 6;
+    const int TYPE_REAL = 9;
+    const int TYPE_ENUMERATED = 10;
+    const int TYPE_UTF8_STRING = 12;
+    const int TYPE_SEQUENCE = 16; // SEQUENCE OF
+    const int TYPE_SET = 17; // SET OF
 
     /**
-     * More Tag Classes
+     * Additional Universal String Type Numbers
      *
-     * @access private
      * @link http://www.obj-sys.com/asn1tutorial/node10.html
      */
-    const TYPE_NUMERIC_STRING = 18;
-    const TYPE_PRINTABLE_STRING = 19;
-    const TYPE_TELETEX_STRING = 20; // T61String
-    const TYPE_VIDEOTEX_STRING = 21;
-    const TYPE_IA5_STRING = 22;
-    const TYPE_UTC_TIME = 23;
-    const TYPE_GENERALIZED_TIME = 24;
-    const TYPE_GRAPHIC_STRING = 25;
-    const TYPE_VISIBLE_STRING = 26; // ISO646String
-    const TYPE_GENERAL_STRING = 27;
-    const TYPE_UNIVERSAL_STRING = 28;
-    //const TYPE_CHARACTER_STRING = 29;
-    const TYPE_BMP_STRING = 30;
+    const int TYPE_NUMERIC_STRING = 18;
+    const int TYPE_PRINTABLE_STRING = 19;
+    const int TYPE_TELETEX_STRING = 20; // T61String
+    const int TYPE_VIDEOTEX_STRING = 21;
+    const int TYPE_IA5_STRING = 22;
+    const int TYPE_UTC_TIME = 23;
+    const int TYPE_GENERALIZED_TIME = 24;
+    const int TYPE_GRAPHIC_STRING = 25;
+    const int TYPE_VISIBLE_STRING = 26; // ISO646String
+    const int TYPE_GENERAL_STRING = 27;
+    const int TYPE_UNIVERSAL_STRING = 28;
+    const int TYPE_BMP_STRING = 30;
 
     /**
      * Tag Aliases
      *
-     * These tags are kinda place holders for other tags.
+     * These tags are kinda placeholders for other tags.
      */
-    const TYPE_CHOICE = -1;
-    const TYPE_ANY = -2;
+    const int TYPE_CHOICE = -1;
+    const int TYPE_ANY = -2;
 
     /**
      * ASN.1 object identifier
@@ -120,7 +115,6 @@ final class ASN1 implements ASN1Interface
         self::TYPE_VISIBLE_STRING => 'visibleString',
         self::TYPE_GENERAL_STRING => 'generalString',
         self::TYPE_UNIVERSAL_STRING => 'universalString',
-        //self::TYPE_CHARACTER_STRING     => 'characterString',
         self::TYPE_BMP_STRING => 'bmpString'
     ];
 
@@ -142,31 +136,33 @@ final class ASN1 implements ASN1Interface
 
     protected array $location;
 
-    public function loadOIDs($oids)
+    public function loadOIDs($oids): void
     {
         $this->oids = $oids;
     }
 
     public function decodeBER($encoded): array
     {
-        // encapsulate in an array for BC with the old decodeBER
+        // Wrap in an array for BC with the old decodeBER return format.
         return [$this->decodeBERInternal($encoded)];
     }
 
     /**
-     * Parse BER-encoding (Helper function)
+     * Parse BER-encoding (internal recursive implementation).
      *
-     * Sometimes we want to get the BER encoding of a particular tag.  $start lets us do that
-     * without having to reencode. $encoded is passed by reference for the recursive calls done
-     * for self::TYPE_BIT_STRING and self::TYPE_OCTET_STRING. In those cases, the indefinite length is used.
+     * Decodes a single TLV (Tag-Length-Value) element starting at $encoded_pos
+     * within $encoded. $start tracks the absolute byte offset within the original
+     * input, which is used to compute the 'start' and 'length' fields of each
+     * returned element. Recursive calls are made for constructed types
+     * (SEQUENCE, SET, BIT STRING, OCTET STRING) and for non-UNIVERSAL classes.
      *
-     * @param string $encoded
-     * @param int $start
-     * @param int $encoded_pos
+     * @param string $encoded Raw BER-encoded bytes.
+     * @param int $start Absolute byte offset of the current element in the original input.
+     * @param int $encoded_pos Read position within $encoded for the current call.
      *
-     * @return array|false
+     * @return array|false Decoded element array, or false if the data is truncated or invalid.
      */
-    private function decodeBERInternal(string $encoded, int $start = 0, int $encoded_pos = 0)
+    private function decodeBERInternal(string $encoded, int $start = 0, int $encoded_pos = 0): array|false
     {
         $current = ['start' => $start];
 
@@ -201,7 +197,7 @@ final class ASN1 implements ASN1Interface
             $length &= 0x7F;
             $temp = substr($encoded, $encoded_pos, $length);
             $encoded_pos += $length;
-            // tags of indefinte length don't really have a header length; this length includes the tag
+            // For long-form definite length, the header length covers the tag byte plus all length octets.
             $current += ['headerlength' => $length + 2];
             $start += $length;
 
@@ -220,7 +216,7 @@ final class ASN1 implements ASN1Interface
         $content = substr($encoded, $encoded_pos, $length);
         $content_pos = 0;
 
-        // at this point $length can be overwritten. it's only accurate for definite length things as is
+        // From this point $length reflects only the definite-length value and is not accurate for indefinite forms.
 
         /* Class is UNIVERSAL, APPLICATION, PRIVATE, or CONTEXT-SPECIFIC. The UNIVERSAL class is restricted to the ASN.1
            built-in types. It defines an application-independent data type that must be distinguishable from all other
@@ -346,7 +342,7 @@ final class ASN1 implements ASN1Interface
                 $current['content'] = [];
                 $content_len = strlen($content);
                 while ($content_pos < $content_len) {
-                    // if indefinite length construction was used and we have an end-of-content string next
+                    // if indefinite length construction was used, and we have an end-of-content string next
                     // see paragraphs 8.1.1.3, 8.1.3.2, 8.1.3.6, 8.1.5, and (for an example) 8.6.4.2
                     if (!isset($current['headerlength']) && substr($content, $content_pos, 2) == "\0\0") {
                         $length = $offset + 2; // +2 for the EOC
@@ -390,7 +386,7 @@ final class ASN1 implements ASN1Interface
             case self::TYPE_GENERAL_STRING:
                 // All registered C and G sets, space and delete
             case self::TYPE_UTF8_STRING:
-                // ????
+                // Unicode encoded as UTF-8
             case self::TYPE_BMP_STRING:
                 $current['content'] = substr($content, $content_pos);
                 break;
@@ -401,18 +397,21 @@ final class ASN1 implements ASN1Interface
 
         $start += $length;
 
-        // ie. length is the length of the full TLV encoding - it's not just the length of the value
+        // The returned 'length' is the total TLV length (tag + length octets + value), not just the value length.
         return $current + ['length' => $start - $current['start']];
     }
 
     /**
-     * BER-decode the OID
+     * BER-decode an OID value.
      *
-     * Called by _decode_ber()
+     * Called by decodeBERInternal(). Reverses the base-128 septet encoding
+     * and reconstructs the dotted-decimal OID string, including splitting
+     * the first combined octet back into the first two arc components per
+     * X.690 §8.19.
      *
-     * @param string $content
+     * @param string $content Raw OID value bytes (without tag or length).
      *
-     * @return string
+     * @return string Dotted-decimal OID string (e.g. '1.2.840.113549').
      */
     private function decodeOID(string $content): string
     {
@@ -451,22 +450,30 @@ final class ASN1 implements ASN1Interface
             array_unshift($oid, 2);
         }
 
-        $oid = array_map('strval', $oid);
+        $oid = array_map(static function ($v): string {
+            if ($v instanceof BigIntegerInterface) {
+                return $v->toString();
+            }
+            return (string)$v;
+        }, $oid);
 
         return implode('.', $oid);
     }
 
     /**
-     * BER-decode the time
+     * BER-decode a UTCTime or GeneralizedTime value into a DateTime.
      *
-     * Called by _decode_ber() and in the case of implicit tags asn1map().
+     * Called by decodeBERInternal() and, for implicitly tagged time fields, by asn1map().
+     * Handles the two-digit year prefix ambiguity in UTCTime (years >= 50 are mapped to
+     * the 1900s, years < 50 to the 2000s), fractional seconds in GeneralizedTime,
+     * and both 'Z' (UTC) and explicit ±HHMM timezone suffixes.
      *
-     * @param string $content
-     * @param int $tag
+     * @param string $content Raw time string from the encoded content bytes.
+     * @param int $tag Either self::TYPE_UTC_TIME or self::TYPE_GENERALIZED_TIME.
      *
-     * @return DateTime|false
+     * @return DateTime|false Parsed DateTime object, or false if parsing fails.
      */
-    private function decodeTime(string $content, int $tag)
+    private function decodeTime(string $content, int $tag): DateTime|false
     {
         /* UTCTime:
            http://tools.ietf.org/html/rfc5280#section-4.1.2.5.1
@@ -487,7 +494,7 @@ final class ASN1 implements ASN1Interface
             }
             $prefix = substr($content, 0, 2) >= 50 ? '19' : '20';
             $content = $prefix . $content;
-        } elseif (strpos($content, '.') !== false) {
+        } elseif (str_contains($content, '.')) {
             $format .= '.u';
         }
 
@@ -495,21 +502,15 @@ final class ASN1 implements ASN1Interface
             $content = substr($content, 0, -1) . '+0000';
         }
 
-        if (strpos($content, '-') !== false || strpos($content, '+') !== false) {
+        if (str_contains($content, '-') || str_contains($content, '+')) {
             $format .= 'O';
         }
 
-        // error supression isn't necessary as of PHP 7.0:
-        // http://php.net/manual/en/migration70.other-changes.php
         return DateTime::createFromFormat($format, $content);
     }
 
     public function asn1map($decoded, $mapping, $special = [])
     {
-        if (!is_array($decoded)) {
-            return false;
-        }
-
         if (isset($mapping['explicit']) && is_array($decoded['content'])) {
             $decoded = $decoded['content'][0];
         }
@@ -608,10 +609,7 @@ final class ASN1 implements ASN1Interface
                             } else {
                                 // Can only match if no constant expected and type matches or is generic.
                                 $maymatch = !isset($child['constant']) &&
-                                    array_search(
-                                        $child['type'],
-                                        [$temp['type'], self::TYPE_ANY, self::TYPE_CHOICE]
-                                    ) !== false;
+                                    in_array($child['type'], [$temp['type'], self::TYPE_ANY, self::TYPE_CHOICE]);
                             }
                         }
                     }
@@ -684,10 +682,7 @@ final class ASN1 implements ASN1Interface
                             } else {
                                 // Can only match if no constant expected and type matches or is generic.
                                 $maymatch = !isset($child['constant']) &&
-                                    array_search(
-                                        $child['type'],
-                                        [$temp['type'], self::TYPE_ANY, self::TYPE_CHOICE]
-                                    ) !== false;
+                                    in_array($child['type'], [$temp['type'], self::TYPE_ANY, self::TYPE_CHOICE]);
                             }
                         }
 
@@ -721,7 +716,7 @@ final class ASN1 implements ASN1Interface
                 }
                 return $map;
             case self::TYPE_OBJECT_IDENTIFIER:
-                return isset($this->oids[$decoded['content']]) ? $this->oids[$decoded['content']] : $decoded['content'];
+                return $this->oids[$decoded['content']] ?? $decoded['content'];
             case self::TYPE_UTC_TIME:
             case self::TYPE_GENERALIZED_TIME:
                 // for explicitly tagged optional stuff
@@ -734,7 +729,7 @@ final class ASN1 implements ASN1Interface
                 if (!is_object($decoded['content'])) {
                     $decoded['content'] = $this->decodeTime($decoded['content'], $decoded['type']);
                 }
-                return $decoded['content'] && $decoded['content'] instanceof DateTimeInterface ?
+                return $decoded['content'] instanceof DateTimeInterface ?
                     $decoded['content']->format($this->format) : false;
             case self::TYPE_BIT_STRING:
                 if (isset($mapping['mapping'])) {
@@ -794,9 +789,7 @@ final class ASN1 implements ASN1Interface
                 }
                 if (isset($mapping['mapping'])) {
                     $temp = (int)$temp->toString();
-                    return isset($mapping['mapping'][$temp]) ?
-                        $mapping['mapping'][$temp] :
-                        false;
+                    return $mapping['mapping'][$temp] ?? false;
                 }
                 return $temp;
             default:
@@ -804,7 +797,7 @@ final class ASN1 implements ASN1Interface
         }
     }
 
-    public function loadFilters($filters)
+    public function loadFilters($filters): void
     {
         $this->filters = $filters;
     }
@@ -819,16 +812,24 @@ final class ASN1 implements ASN1Interface
     }
 
     /**
-     * ASN.1 Encode (Helper function)
+     * DER-encode a PHP value (internal recursive implementation).
      *
-     * @param mixed $source
-     * @param array $mapping
-     * @param string|null $idx
-     * @param array $special
+     * Recursively encodes the value in $source according to $mapping. $idx is
+     * the field key within the parent SEQUENCE/SET and is used to maintain the
+     * internal $location path for filter lookups and error messages. $special
+     * holds optional pre-encoding callbacks keyed by field name.
      *
-     * @return string|false
+     * Returns an empty string for fields whose value equals the mapping default
+     * (i.e. implicitly optional fields that should be omitted from the output).
+     *
+     * @param mixed $source PHP value to encode.
+     * @param array<string, mixed> $mapping ASN.1 type mapping descriptor.
+     * @param string|null $idx Field key within the parent structure, or null at the root.
+     * @param array<string, callable> $special Optional callbacks keyed by field name, applied before encoding.
+     *
+     * @return string|false DER-encoded bytes, empty string if omitted, or false on error.
      */
-    private function encodeDERInternal($source, array $mapping, ?string $idx = null, array $special = [])
+    private function encodeDERInternal($source, array $mapping, ?string $idx = null, array $special = []): string|false
     {
         // do not encode (implicitly optional) fields with value set to default
         if (isset($mapping['default']) && $source === $mapping['default']) {
@@ -845,7 +846,7 @@ final class ASN1 implements ASN1Interface
         $tag = $mapping['type'];
 
         switch ($tag) {
-            case self::TYPE_SET: // Children order is not important, thus process in sequence.
+            case self::TYPE_SET: // SET OF children are sorted after encoding; SET children order is not significant.
             case self::TYPE_SEQUENCE:
                 $tag |= 0x20; // set the constructed bit
 
@@ -907,11 +908,13 @@ final class ASN1 implements ASN1Interface
                             (see ITU-T Rec. X.683 | ISO/IEC 8824-4, 8.3)."
                          */
                         if (isset($child['explicit']) || $child['type'] == self::TYPE_CHOICE) {
-                            $subtag = chr((self::CLASS_CONTEXT_SPECIFIC << 6) | 0x20 | $child['constant']);
+                            $subtag = chr(((self::CLASS_CONTEXT_SPECIFIC << 6) | 0x20 | $child['constant']) & 0xFF);
                             $temp = $subtag . $this->encodeLength(strlen($temp)) . $temp;
                         } else {
                             $subtag = chr(
-                                (self::CLASS_CONTEXT_SPECIFIC << 6) | (ord($temp[0]) & 0x20) | $child['constant']
+                                ((self::CLASS_CONTEXT_SPECIFIC << 6) | (ord(
+                                    $temp[0]
+                                ) & 0x20) | $child['constant']) & 0xFF
                             );
                             $temp = $subtag . substr($temp, 1);
                         }
@@ -943,11 +946,13 @@ final class ASN1 implements ASN1Interface
                     // if isset($child['constant']) is true then isset($child['optional']) should be true as well
                     if (isset($child['constant'])) {
                         if (isset($child['explicit']) || $child['type'] == self::TYPE_CHOICE) {
-                            $subtag = chr((self::CLASS_CONTEXT_SPECIFIC << 6) | 0x20 | $child['constant']);
+                            $subtag = chr(((self::CLASS_CONTEXT_SPECIFIC << 6) | 0x20 | $child['constant']) & 0xFF);
                             $temp = $subtag . $this->encodeLength(strlen($temp)) . $temp;
                         } else {
                             $subtag = chr(
-                                (self::CLASS_CONTEXT_SPECIFIC << 6) | (ord($temp[0]) & 0x20) | $child['constant']
+                                ((self::CLASS_CONTEXT_SPECIFIC << 6) | (ord(
+                                    $temp[0]
+                                ) & 0x20) | $child['constant']) & 0xFF
                             );
                             $temp = $subtag . substr($temp, 1);
                         }
@@ -959,7 +964,7 @@ final class ASN1 implements ASN1Interface
                 }
 
                 if ($temp && isset($mapping['cast'])) {
-                    $temp[0] = chr(($mapping['class'] << 6) | ($tag & 0x20) | $mapping['cast']);
+                    $temp[0] = chr((($mapping['class'] << 6) | ($tag & 0x20) | $mapping['cast']) & 0xFF);
                 }
 
                 return $temp;
@@ -1016,7 +1021,7 @@ final class ASN1 implements ASN1Interface
                     $bits = implode('', array_pad($bits, $size + $offset + 1, 0));
                     $bytes = explode(' ', rtrim(chunk_split($bits, 8, ' ')));
                     foreach ($bytes as $byte) {
-                        $value .= chr((int)bindec($byte));
+                        $value .= chr((int)bindec($byte) & 0xFF);
                     }
 
                     break;
@@ -1136,20 +1141,22 @@ final class ASN1 implements ASN1Interface
     }
 
     /**
-     * DER-encode the length
+     * DER-encode a length value.
      *
-     * DER supports lengths up to (2**8)**127, however, we'll only support lengths up to (2**8)**4.  See
-     * {@link http://itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf#p=13 X.690 paragraph 8.1.3}
-     * for more information.
+     * Uses short form (single octet) for lengths up to 0x7F, and long form
+     * (multi-octet) for larger values. Supports lengths up to (2**8)**4
+     * (i.e. fits in four bytes), though the standard allows up to (2**8)**126.
      *
-     * @param int $length
+     * @link https://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf#page=13 X.690 §8.1.3
      *
-     * @return string
+     * @param int $length Non-negative integer length value to encode.
+     *
+     * @return string Encoded length bytes.
      */
     private function encodeLength(int $length): string
     {
         if ($length <= 0x7F) {
-            return chr($length);
+            return chr($length & 0xFF);
         }
 
         $temp = ltrim(pack('N', $length), chr(0));
@@ -1157,13 +1164,16 @@ final class ASN1 implements ASN1Interface
     }
 
     /**
-     * DER-encode the OID
+     * DER-encode an OID value.
      *
-     * Called by _encode_der()
+     * Called by encodeDERInternal(). Accepts either a dotted-decimal OID string
+     * (e.g. '1.2.840.113549') or a name resolvable via the loaded OID map.
+     * Encodes the first two arc components into a single octet per X.690 §8.19.4,
+     * then encodes subsequent components as base-128 big-endian septets.
      *
-     * @param string $source
+     * @param string $source Dotted-decimal OID or OID name.
      *
-     * @return string
+     * @return string DER-encoded OID value bytes (without tag or length).
      */
     private function encodeOID(string $source): string
     {
@@ -1209,7 +1219,7 @@ final class ASN1 implements ASN1Interface
         return $value;
     }
 
-    public function convert($in, $from = self::TYPE_UTF8_STRING, $to = self::TYPE_UTF8_STRING)
+    public function convert($in, $from = self::TYPE_UTF8_STRING, $to = self::TYPE_UTF8_STRING): string|false
     {
         if (!isset($this->stringTypeSize[$from]) || !isset($this->stringTypeSize[$to])) {
             return false;
@@ -1296,7 +1306,7 @@ final class ASN1 implements ASN1Interface
                     $c = ($c >> 6) | 0x000000C0;
                 // no break
                 default:
-                    $v .= chr($c);
+                    $v .= chr($c & 0xFF);
                     break;
             }
             $out .= strrev($v);

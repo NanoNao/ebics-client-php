@@ -17,7 +17,7 @@ interface ASN1Interface
      *
      * Load the relevant OIDs for a particular ASN.1 semantic mapping.
      *
-     * @param array $oids
+     * @param array<string, string> $oids
      *
      * @return void
      */
@@ -41,9 +41,9 @@ interface ASN1Interface
      *
      * "Special" mappings may be applied on a per tag-name basis via $special.
      *
-     * @param array $decoded
-     * @param array $mapping
-     * @param array $special
+     * @param array<string, mixed> $decoded
+     * @param array<string, mixed> $mapping
+     * @param array<string, callable> $special
      *
      * @return array|string|false|null
      */
@@ -52,7 +52,7 @@ interface ASN1Interface
     /**
      * Load filters
      *
-     * @param array $filters
+     * @param array<string, mixed> $filters
      *
      * @return void
      */
@@ -66,9 +66,9 @@ interface ASN1Interface
      *
      * "Special" mappings can be applied via $special.
      *
-     * @param string|array $source
-     * @param array $mapping
-     * @param array $special
+     * @param string|array<string, mixed> $source
+     * @param array<string, mixed> $mapping
+     * @param array<string, callable> $special
      *
      * @return string
      */

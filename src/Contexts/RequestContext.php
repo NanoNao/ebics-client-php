@@ -244,7 +244,7 @@ final class RequestContext
         return $this;
     }
 
-    public function getDataDigest(): ?string
+    public function getDataDigest(): string
     {
         return $this->dataDigest;
     }

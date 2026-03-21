@@ -39,7 +39,7 @@ final class UploadSegment extends Segment
         $this->orderId = $orderId;
     }
 
-    public function getOrderId(): ?string
+    public function getOrderId(): string
     {
         return $this->orderId;
     }

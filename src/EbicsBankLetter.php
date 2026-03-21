@@ -36,6 +36,9 @@ final class EbicsBankLetter
     private BankLetterFactory $bankLetterFactory;
     private CryptService $cryptService;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(array $options = [])
     {
         $this->cryptService = new CryptService(

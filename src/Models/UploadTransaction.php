@@ -88,7 +88,7 @@ final class UploadTransaction extends Transaction implements UploadTransactionIn
         $this->digest = $digest;
     }
 
-    public function getDigest(): ?string
+    public function getDigest(): string
     {
         return $this->digest;
     }

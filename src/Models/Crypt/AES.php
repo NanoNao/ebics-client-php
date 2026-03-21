@@ -7,111 +7,103 @@ use EbicsApi\Ebics\Contracts\Crypt\AESInterface;
 use LogicException;
 
 /**
- * Pure-PHP implementation of AES.
- * Able only CBC mode.
+ * Pure-PHP implementation of AES cipher in CBC mode, backed by the OpenSSL extension.
+ *
+ * Supports 128-bit and 256-bit key lengths.
+ * Padding scheme: ANSI X.923 (zero-padded bytes, final byte encodes the padding length).
+ *
+ * Requires the PHP `openssl` extension.
  */
 final class AES implements AESInterface
 {
     /**
-     * Base value for the mcrypt implementation $engine switch
+     * OpenSSL engine identifier.
      */
     const ENGINE_OPENSSL = 3;
 
     /**
-     * The Key Length (in bytes)
+     * Active key length in bytes (16 or 32).
+     * Derived automatically from the key unless set explicitly via setKeyLength().
      */
     protected int $key_length = 16;
 
     /**
-     * Padding status
+     * Whether ANSI X.923 padding is applied on encrypt and stripped on decrypt.
      */
     protected bool $padding = true;
 
     /**
-     * Is the mode one that is paddable?
+     * Whether the current mode supports padding.
+     * Always true for CBC mode.
      */
     protected bool $paddable = false;
 
     /**
-     * Has the key length explicitly been set or should it be derived from the key, itself?
+     * Whether the key length was set explicitly via setKeyLength().
+     * When false, the key length is derived from the key bytes in setKey().
      */
     protected bool $explicit_key_length = false;
 
     /**
-     * The Block Length of the block cipher
+     * AES block size in bytes. Fixed at 16 for AES.
      */
     protected int $block_size = 16;
 
     /**
-     * Holds which crypt engine internaly should be use,
-     * which will be determined automatically on __construct()
-     *
-     * Currently available $engines are:
-     * - self::ENGINE_OPENSSL  (very fast, php-extension: openssl, extension_loaded('openssl') required)
+     * The active cipher engine. Currently always ENGINE_OPENSSL.
      */
     protected ?int $engine;
 
     /**
-     * Does internal cipher state need to be (re)initialized?
+     * Whether the internal cipher state (IV, key, cipher name) needs to be re-initialised
+     * before the next encrypt/decrypt call.
      */
     protected bool $changed = true;
 
     /**
-     * The Key
+     * The encryption/decryption key.
+     * Defaults to a 16 null-byte key until set via setKey().
      */
     protected string $key = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
     /**
-     * The Initialization Vector
+     * The Initialization Vector supplied by the caller via setIV().
      */
     protected string $iv;
 
     /**
-     * A "sliding" Initialization Vector
+     * Working copy of the IV used during encryption.
+     * Initialised from $iv in clearBuffers().
      */
     protected string $encryptIV;
 
     /**
-     * A "sliding" Initialization Vector
+     * Working copy of the IV used during decryption.
+     * Initialised from $iv in clearBuffers().
      */
     protected string $decryptIV;
 
     /**
-     * The openssl specific name of the cipher in ECB mode
+     * OpenSSL cipher name for CBC mode, e.g. "aes-128-cbc" or "aes-256-cbc".
      *
-     * If OpenSSL does not support the mode we're trying to use (CTR)
-     * it can still be emulated with ECB mode.
-     *
-     * @link http://www.php.net/openssl-get-cipher-methods
-     */
-    protected string $cipherNameOpensslEcb;
-
-    /**
-     * The openssl specific name of the cipher
-     *
-     * Only used if $engine == self::ENGINE_OPENSSL
-     *
-     * @link http://www.php.net/openssl-get-cipher-methods
+     * @link https://www.php.net/openssl-get-cipher-methods
      */
     protected string $cipherNameOpenssl;
 
     /**
-     * Determines what options are passed to openssl_encrypt/decrypt
+     * Flags passed to openssl_encrypt() / openssl_decrypt().
+     * Always OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING on PHP 5.4+.
      *
-     * @var mixed
+     * @var int
      */
     protected $opensslOptions;
 
     /**
-     * Default Constructor.
-     *
-     * Determines whether or not the mcrypt extension should be used.
+     * Initialises the cipher in CBC mode and selects the OpenSSL engine.
      */
     public function __construct()
     {
-        // $mode dependent settings
         $this->paddable = true;
-
         $this->setEngine();
     }
 
@@ -188,26 +180,24 @@ final class AES implements AESInterface
         if (!$result) {
             throw new LogicException('Encryption failed.');
         }
-        if (!defined('OPENSSL_RAW_DATA')) {
-            $result = substr($result, 0, -$this->block_size);
-        }
 
         return $result;
     }
 
     /**
-     * Pads a string
+     * Applies ANSI X.923 padding to $text so its length is a multiple of the block size.
      *
-     * Pads a string using the RSA PKCS padding standards so that its length is a multiple of the blocksize.
-     * $this->block_size - (strlen($text) % $this->block_size) bytes are added, each of which is equal to
-     * chr($this->block_size - (strlen($text) % $this->block_size)
+     * Padding bytes are all 0x00 except for the final byte, which encodes
+     * the total number of padding bytes added.
      *
-     * If padding is disabled and $text is not a multiple of the blocksize, the string will be padded regardless
-     * and padding will, hence forth, be enabled.
+     * When padding is disabled and the input is not block-aligned, a
+     * LogicException is thrown.
      *
-     * @param string $text
+     * @param string $text Plaintext to pad.
      *
-     * @return string
+     * @return string Padded plaintext.
+     *
+     * @throws LogicException If padding is disabled and $text length is not block-aligned.
      */
     private function pad(string $text): string
     {
@@ -223,9 +213,8 @@ final class AES implements AESInterface
             }
         }
 
-        // Padding ANSI X 923.
         $paddingSize = $this->block_size - (strlen($text) % $this->block_size);
-        $padding = str_repeat(chr(0), $paddingSize - 1) . chr($paddingSize);
+        $padding = str_repeat(chr(0), $paddingSize - 1) . chr($paddingSize & 0xFF);
 
         return $text . $padding;
     }
@@ -233,12 +222,7 @@ final class AES implements AESInterface
     public function decryptBuffer(BufferInterface $ciphertext, BufferInterface $plaintext): void
     {
         if ($this->paddable) {
-            // we pad with chr(0) since that's what mcrypt_generic does.  to quote from
-            // {@link http://www.php.net/function.mcrypt-generic}: "The data is padded with "\0"
-            // to make sure the length of the data is n * blocksize."
-
             $length = ($this->block_size - $ciphertext->length() % $this->block_size) % $this->block_size;
-
             $strpadRight = str_repeat(chr(0), $length);
         }
 
@@ -283,9 +267,6 @@ final class AES implements AESInterface
     public function decrypt($ciphertext): string
     {
         if ($this->paddable) {
-            // we pad with chr(0) since that's what mcrypt_generic does.  to quote from
-            // {@link http://www.php.net/function.mcrypt-generic}: "The data is padded with "\0"
-            // to make sure the length of the data is n * blocksize."
             $ciphertext = str_pad(
                 $ciphertext,
                 strlen($ciphertext) + ($this->block_size - strlen($ciphertext) % $this->block_size) % $this->block_size,
@@ -298,28 +279,6 @@ final class AES implements AESInterface
             $this->changed = false;
         }
 
-        if (!defined('OPENSSL_RAW_DATA')) {
-            /** @var string|false */
-            $substr = substr($ciphertext, -$this->block_size);
-            if (false === $substr) {
-                throw new LogicException('Substr failed.');
-            }
-            $padding = str_repeat(chr($this->block_size), $this->block_size) ^ $substr;
-
-            if (!($encrypted = openssl_encrypt(
-                $padding,
-                $this->cipherNameOpensslEcb,
-                $this->key,
-                $this->opensslOptions
-            ))) {
-                throw new LogicException('Encryption failed.');
-            }
-            $ciphertext .= substr(
-                $encrypted,
-                0,
-                $this->block_size
-            );
-        }
         if (!($plaintext = openssl_decrypt(
             $ciphertext,
             $this->cipherNameOpenssl,
@@ -334,11 +293,13 @@ final class AES implements AESInterface
     }
 
     /**
-     * Sets the engine as appropriate
+     * Selects and validates the OpenSSL engine.
      *
-     * @return void
+     * Sets $this->engine to ENGINE_OPENSSL if the resolved cipher name
+     * is available in the current OpenSSL installation, or null otherwise.
+     * Marks the cipher state as changed.
      */
-    private function setEngine()
+    private function setEngine(): void
     {
         $this->engine = null;
 
@@ -357,15 +318,12 @@ final class AES implements AESInterface
     }
 
     /**
-     * Clears internal buffers
+     * Resets the working IV and trims/pads the key to the active key length.
      *
-     * Clearing/resetting the internal buffers is done everytime
-     * after disableContinuousBuffer() or on cipher $engine (re)init
-     * ie after setKey() or setIV()
-     *
-     * @return void
+     * Called automatically before the first encrypt/decrypt after any state
+     * change (setKey, setIV, setKeyLength).
      */
-    private function clearBuffers()
+    private function clearBuffers(): void
     {
         $substr = substr($this->iv ?? '', 0, $this->block_size);
         $this->encryptIV = $this->decryptIV = str_pad($substr, $this->block_size, "\0");
@@ -374,11 +332,16 @@ final class AES implements AESInterface
     }
 
     /**
-     * Test for engine validity
+     * Validates the given engine and, if valid, initialises the cipher name and OpenSSL options.
      *
-     * @param int $engine
+     * For ENGINE_OPENSSL this checks that the resolved cipher (e.g. "aes-128-cbc")
+     * is listed by openssl_get_cipher_methods().
      *
-     * @return bool
+     * @param int $engine One of the ENGINE_* constants.
+     *
+     * @return bool True if the engine is available and ready to use.
+     *
+     * @throws LogicException For unknown engine values.
      */
     private function isValidEngine(int $engine): bool
     {
@@ -391,38 +354,28 @@ final class AES implements AESInterface
                 if ($this->block_size != 16) {
                     return false;
                 }
-                $this->cipherNameOpensslEcb = 'aes-' . ($this->key_length << 3) . '-ecb';
-                $this->cipherNameOpenssl = 'aes-' . ($this->key_length << 3) . '-' . $this->opensslTranslateMode();
+                $this->cipherNameOpenssl = 'aes-' . ($this->key_length << 3) . '-cbc';
                 break;
             default:
                 throw new LogicException('Unhandled engine.');
         }
 
-        // prior to PHP 5.4.0 OPENSSL_RAW_DATA and OPENSSL_ZERO_PADDING were not defined.
-        // instead of expecting an integer $options openssl_encrypt expected a boolean $raw_data.
-        if (!defined('OPENSSL_RAW_DATA')) {
-            $this->opensslOptions = true;
-        } else {
-            $this->opensslOptions = OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING;
-        }
+        $this->opensslOptions = OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING;
 
-        $methods = openssl_get_cipher_methods();
-        if (in_array($this->cipherNameOpenssl, $methods)) {
-            return true;
-        }
-
-        return false;
+        return in_array($this->cipherNameOpenssl, openssl_get_cipher_methods());
     }
 
     /**
-     * Unpads a string.
+     * Strips ANSI X.923 padding from a decrypted block.
      *
-     * If padding is enabled and the reported padding length is invalid the encryption key will be assumed to be wrong
-     * and false will be returned.
+     * Reads the padding length from the final byte and removes that many bytes.
+     * When padding is disabled the text is returned unchanged.
      *
-     * @param string $text
+     * @param string $text Decrypted, padded text.
      *
-     * @return string
+     * @return string Unpadded plaintext.
+     *
+     * @throws LogicException If the padding length byte is zero or exceeds the block size.
      */
     private function unpad(string $text): string
     {
@@ -437,17 +390,5 @@ final class AES implements AESInterface
         }
 
         return substr($text, 0, -$length);
-    }
-
-    /**
-     * OpenSSL Mode Mapper
-     *
-     * May need to be overwritten by classes extending this one in some cases
-     *
-     * @return string
-     */
-    private function opensslTranslateMode(): string
-    {
-        return 'cbc';
     }
 }

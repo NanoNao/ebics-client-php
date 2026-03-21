@@ -17,7 +17,7 @@ final class DownloadSegment extends Segment
     private ?int $numSegments;
     private string $orderData;
 
-    public function getTransactionId(): ?string
+    public function getTransactionId(): string
     {
         return $this->transactionId;
     }

@@ -92,7 +92,7 @@ final class EbicsClient implements EbicsClientInterface
      * @param Bank $bank
      * @param User $user
      * @param Keyring $keyring
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function __construct(Bank $bank, User $user, Keyring $keyring, array $options = [])
     {
@@ -606,7 +606,7 @@ final class EbicsClient implements EbicsClientInterface
      * Create new signature.
      *
      * @param string $type
-     * @param array|null $details
+     * @param array<string, mixed>|null $details
      * @return SignatureInterface
      * @throws PasswordEbicsException
      */

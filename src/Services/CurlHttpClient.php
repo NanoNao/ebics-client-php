@@ -32,7 +32,7 @@ final class CurlHttpClient extends HttpClient implements HttpClientInterface
             'Content-Type: ' . self::CONTENT_TYPE,
         ]);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -42,7 +42,6 @@ final class CurlHttpClient extends HttpClient implements HttpClientInterface
         if (curl_errno($ch)) {
             $errorMsg = curl_error($ch);
         }
-        curl_close($ch);
 
         if (!is_string($contents)) {
             throw new TimeoutEbicsException(

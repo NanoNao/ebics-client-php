@@ -20,10 +20,13 @@ abstract class XmlBuilder
         $this->dom = $dom;
     }
 
+    /**
+     * @param array<string, string> $attributes
+     */
     public function createEmptyElement(
         string $qualifiedName,
         array $attributes = [],
-        string $namespace = null
+        ?string $namespace = null
     ): DOMElement {
         $element = $this->dom->createElementNS(
             $namespace ?? $this->dom->documentElement->namespaceURI,
@@ -37,11 +40,14 @@ abstract class XmlBuilder
         return $element;
     }
 
+    /**
+     * @param array<string, string> $attributes
+     */
     public function createElement(
         string $qualifiedName,
         string $value,
         array $attributes = [],
-        string $namespace = null
+        ?string $namespace = null
     ): DOMElement {
         $element = $this->createEmptyElement($qualifiedName, $attributes, $namespace);
 
@@ -50,6 +56,9 @@ abstract class XmlBuilder
         return $element;
     }
 
+    /**
+     * @param array<string, string> $attributes
+     */
     public function appendEmptyElementTo(
         string $qualifiedName,
         DOMElement $parent,
@@ -62,6 +71,9 @@ abstract class XmlBuilder
         return $element;
     }
 
+    /**
+     * @param array<string, string> $attributes
+     */
     public function appendElementTo(
         string $qualifiedName,
         string $value,

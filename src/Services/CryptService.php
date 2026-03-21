@@ -298,9 +298,9 @@ final class CryptService
     /**
      * System.arrayCopy java function interpretation.
      *
-     * @param array $a
+     * @param array<int, int> $a
      * @param int $c
-     * @param array $b
+     * @param array<int, int> $b
      * @param int $d
      * @param int $length
      */

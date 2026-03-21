@@ -54,6 +54,9 @@ abstract class OrderDetailsBuilder extends XmlBuilder
         return $this;
     }
 
+    /**
+     * @param array<string, string> $parameters
+     */
     public function addParameters(DOMElement $orderParams, array $parameters): void
     {
         foreach ($parameters as $name => $value) {

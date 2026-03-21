@@ -17,7 +17,7 @@ final class BigInteger implements BigIntegerInterface
      *
      * @var mixed
      */
-    protected $value;
+    protected mixed $value;
 
     /**
      * Holds the BigInteger's magnitude.
@@ -34,7 +34,7 @@ final class BigInteger implements BigIntegerInterface
      *
      * @var BigIntegerInterface|false
      */
-    protected $bitmask = false;
+    protected BigIntegerInterface|false $bitmask = false;
 
     /**
      * Converts base-10, and binary strings (base-256) to BigIntegers.
@@ -45,7 +45,7 @@ final class BigInteger implements BigIntegerInterface
      * @param int|string $x base-10 number or base-$base number if $base set.
      * @param int $base
      */
-    public function __construct($x = 0, int $base = 10)
+    public function __construct(int|string $x = 0, int $base = 10)
     {
         if (!defined('PHP_INT_SIZE')) {
             define('PHP_INT_SIZE', 4);
@@ -146,7 +146,7 @@ final class BigInteger implements BigIntegerInterface
 
         while (bccomp($current, '0', 0) > 0) {
             $temp = bcmod($current, '16777216');
-            $value = chr($temp >> 16) . chr($temp >> 8) . chr((int)$temp) . $value;
+            $value = chr(($temp >> 16) & 0xFF) . chr(($temp >> 8) & 0xFF) . chr($temp & 0xFF) . $value;
             $current = bcdiv($current, '16777216', 0);
         }
 
@@ -200,7 +200,7 @@ final class BigInteger implements BigIntegerInterface
         return bccomp($this->value, $y->getValue(), 0);
     }
 
-    public function modPow($e, $n)
+    public function modPow($e, $n): BigIntegerInterface
     {
         $n = $this->bitmask !== false && $this->bitmask->compare($n) < 0 ? $this->bitmask : $n->abs();
 
@@ -437,7 +437,7 @@ final class BigInteger implements BigIntegerInterface
      *
      * The ability to DER-encode integers is needed to create RSA public keys for use with OpenSSL
      *
-     * @param int $length
+     * @param int<0, max> $length
      *
      * @return string
      */
@@ -460,7 +460,7 @@ final class BigInteger implements BigIntegerInterface
      *
      * @return BigIntegerInterface
      */
-    private function randomNumberHelper(int $size)
+    private function randomNumberHelper(int $size): BigIntegerInterface
     {
         $random = '';
 
@@ -565,7 +565,7 @@ final class BigInteger implements BigIntegerInterface
         return $this->normalize(new self($left & $right, 256));
     }
 
-    public function setupPrecision($bits)
+    public function setupPrecision($bits): void
     {
         $this->precision = $bits;
 
@@ -589,17 +589,17 @@ final class BigInteger implements BigIntegerInterface
         return $this->value;
     }
 
-    public function setValue($value)
+    public function setValue($value): void
     {
         $this->value = $value;
     }
 
-    public function setBitmask($bitmask)
+    public function setBitmask($bitmask): void
     {
         $this->bitmask = $bitmask;
     }
 
-    public function setPrecision($precision)
+    public function setPrecision($precision): void
     {
         $this->precision = $precision;
     }

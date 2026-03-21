@@ -30,7 +30,7 @@ interface EbicsClientInterface
 
     /**
      * Create user signatures A, E and X on first launch.
-     * @param array|null $options Setup to specify custom certificate, private, public keys and version
+     * @param array<string, mixed>|null $options Setup to specify custom certificate, private, public keys and version
      * for Electronic Signature, Authorization and Identification, Encryption details.
      */
     public function createUserSignatures(?array $options = null): void;

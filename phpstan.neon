@@ -1,6 +1,7 @@
 parameters:
-	checkMissingIterableValueType: false
-	checkGenericClassInNonGenericObjectType: false
-	level: 7
-	paths:
-		- src
+    level: 7
+    paths:
+        - src
+    ignoreErrors:
+        - '#has no value type specified in iterable type#'
+        - '#generic class .+ does not specify its types#'

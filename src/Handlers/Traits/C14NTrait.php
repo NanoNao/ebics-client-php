@@ -33,8 +33,10 @@ trait C14NTrait
         }
         $result = '';
 
-        /* @var $node DOMNode */
         foreach ($nodes as $node) {
+            if (!($node instanceof DOMNode)) {
+                continue;
+            }
             $result .= $node->C14N($exclusive, $withComments);
         }
 

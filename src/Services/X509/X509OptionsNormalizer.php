@@ -55,6 +55,11 @@ final class X509OptionsNormalizer
         ];
     }
 
+    /**
+     * @param array{rdnSequence: array<int, array<int, array{type: string, value: array<mixed>}>>} $options
+     *
+     * @return array<string, mixed>
+     */
     public static function denormalizeDN(array $options): array
     {
         $result = [];

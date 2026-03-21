@@ -92,7 +92,7 @@ interface X509Interface
     /**
      * Save X.509 certificate.
      *
-     * @param array|false $cert
+     * @param array<string,mixed>|false $cert
      *
      * @return string|false
      */
@@ -211,7 +211,7 @@ interface X509Interface
      *
      * @param string $id
      * @param int $disposition optional
-     * @param array|null $csr optional
+     * @param array<string,mixed>|null $csr optional
      *
      * @return mixed
      */

@@ -14,7 +14,7 @@ use LogicException;
 final class ArrayKeyringManager extends KeyringManager
 {
     /**
-     * @inheritDoc
+     * @param array<mixed>|string $resource
      */
     public function loadKeyring($resource, string $passphrase, string $defaultVersion = Keyring::VERSION_25): Keyring
     {
@@ -32,7 +32,8 @@ final class ArrayKeyringManager extends KeyringManager
     }
 
     /**
-     * @inheritDoc
+     * @param array<mixed>|string $resource
+     * @param-out array<mixed> $resource
      */
     public function saveKeyring(Keyring $keyring, &$resource): void
     {

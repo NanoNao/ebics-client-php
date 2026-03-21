@@ -203,7 +203,7 @@ abstract class X509Generator implements X509GeneratorInterface
     /**
      * Set extensions.
      * @param X509Interface $x509
-     * @param array $extensions
+     * @param array<string, array{value: mixed, critical?: bool, replace?: bool}> $extensions
      * @return void
      * @throws X509GeneratorException
      */
@@ -240,7 +240,7 @@ abstract class X509Generator implements X509GeneratorInterface
 
     /**
      * @param RSAInterface $publicKey
-     * @param array $options
+     * @param array{domain: string|null, DN: array<string, string>} $options
      *
      * @return X509Interface
      */
@@ -267,7 +267,7 @@ abstract class X509Generator implements X509GeneratorInterface
      * @param RSAInterface $privateKey
      * @param RSAInterface $publicKey
      * @param X509Interface $subject
-     * @param array $options
+     * @param array{DN: array<string, string>} $options
      *
      * @return X509Interface
      */

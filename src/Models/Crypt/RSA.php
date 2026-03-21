@@ -21,7 +21,7 @@ final class RSA implements RSAInterface
      * @see self::setSaltLength()
      * @see self::setMGFHash()
      */
-    const SIGNATURE_PSS = 1;
+    const int SIGNATURE_PSS = 1;
 
     /**
      * Use the PKCS#1 scheme by default.
@@ -29,14 +29,14 @@ final class RSA implements RSAInterface
      * Although self::SIGNATURE_PSS offers more security, including PKCS#1 signing is necessary for purposes of
      * backwards compatibility with protocols (like SSH-2) written before PSS's introduction.
      */
-    const SIGNATURE_PKCS1 = 2;
+    const int SIGNATURE_PKCS1 = 2;
 
     /**
      * PKCS#1 formatted private key
      *
      * Used by OpenSSH
      */
-    const PRIVATE_FORMAT_PKCS1 = 0;
+    const int PRIVATE_FORMAT_PKCS1 = 0;
 
     /**
      * Raw public key
@@ -51,40 +51,40 @@ final class RSA implements RSAInterface
      *
      * 1, n, modulo, modulus
      */
-    const PUBLIC_FORMAT_RAW = 3;
+    const int PUBLIC_FORMAT_RAW = 3;
 
     /**
      * @see self::PUBLIC_FORMAT_PKCS1
      */
-    const PUBLIC_FORMAT_PKCS1 = 4;
-    const PUBLIC_FORMAT_PKCS1_RAW = 4;
+    const int PUBLIC_FORMAT_PKCS1 = 4;
+    const int PUBLIC_FORMAT_PKCS1_RAW = 4;
 
     /**
      * @see self::PUBLIC_FORMAT_PKCS8
      */
-    const PUBLIC_FORMAT_PKCS8 = 7;
+    const int PUBLIC_FORMAT_PKCS8 = 7;
 
     /**
      * ASN1 Sequence (with the constucted bit set)
      *
      * @see self::ASN1_SEQUENCE
      */
-    const ASN1_SEQUENCE = 48;
+    const int ASN1_SEQUENCE = 48;
 
     /**
      * ASN1 Integer
      */
-    const ASN1_INTEGER = 2;
+    const int ASN1_INTEGER = 2;
 
     /**
      * ASN1 Bit String
      */
-    const ASN1_BITSTRING = 3;
+    const int ASN1_BITSTRING = 3;
 
     /**
      * ASN1 Object Identifier
      */
-    const ASN1_OBJECT = 6;
+    const int ASN1_OBJECT = 6;
 
     /**
      * Modulus length
@@ -215,7 +215,7 @@ final class RSA implements RSAInterface
         $this->hLen = $this->hash->getLength();
     }
 
-    public function createKey($bits = 1024, $timeout = false, $partial = []): KeyPair
+    public function createKey($bits = 1024, $timeout = false, array $partial = []): KeyPair
     {
         if (!defined('CRYPT_RSA_EXPONENT')) {
             // http://en.wikipedia.org/wiki/65537_%28number%29
@@ -281,10 +281,10 @@ final class RSA implements RSAInterface
     /**
      * Break a public or private key down into its constituant components
      *
-     * @param string|array $key
+     * @param string|array<string|int, mixed> $key
      * @param int $type
      *
-     * @return array|bool
+     * @return array<string, mixed>|bool
      */
     private function parseKey($key, int $type)
     {
@@ -344,9 +344,6 @@ final class RSA implements RSAInterface
                    standard and any bugs that may exist in that implementation are part of the standard, as well.
 
                    * OpenSSL is the de facto standard.  It's utilized by OpenSSH and other projects */
-                if (!is_string($key)) {
-                    throw new LogicException('Key must be a string.');
-                }
                 if (preg_match('#DEK-Info: (.+),(.+)#', $key, $matches)) {
                     $iv = pack('H*', trim($matches[2]));
 
@@ -397,7 +394,7 @@ final class RSA implements RSAInterface
 
                    ie. PKCS8 keys*/
 
-                if ($tag == self::ASN1_INTEGER && substr($key, 0, 3) == "\x01\x00\x30") {
+                if ($tag == self::ASN1_INTEGER && str_starts_with($key, "\x01\x00\x30")) {
                     $this->stringShift($key, 3);
                     $tag = self::ASN1_SEQUENCE;
                 }
@@ -550,7 +547,7 @@ final class RSA implements RSAInterface
     private function encodeLength(int $length): string
     {
         if ($length <= 0x7F) {
-            return chr($length);
+            return chr($length & 0xFF);
         }
 
         $temp = ltrim(pack('N', $length), chr(0));
@@ -652,7 +649,7 @@ final class RSA implements RSAInterface
                     if (!($ivLen = openssl_cipher_iv_length($method))) {
                         throw new LogicException('Can no determinate cipher length.');
                     }
-                    $iv = (string)openssl_random_pseudo_bytes($ivLen);
+                    $iv = openssl_random_pseudo_bytes($ivLen);
 
                     $symkey = pack('H*', md5($this->password . $iv)); // symkey is short for symmetric key
                     $symkey .= substr(pack('H*', md5($symkey . $this->password . $iv)), 0, 8);
@@ -854,8 +851,8 @@ final class RSA implements RSAInterface
                     throw new LogicException('Key must be a string.');
                 }
                 switch (true) {
-                    case strpos($key, '-BEGIN PUBLIC KEY-') !== false:
-                    case strpos($key, '-BEGIN RSA PUBLIC KEY-') !== false:
+                    case str_contains($key, '-BEGIN PUBLIC KEY-'):
+                    case str_contains($key, '-BEGIN RSA PUBLIC KEY-'):
                         $this->setPublicKey();
                 }
                 break;
@@ -872,7 +869,7 @@ final class RSA implements RSAInterface
             throw new LogicException('K can not be less than 0.');
         }
 
-        /** @var string[]|false */
+        /** @var list<string> */
         $ciphertext = str_split($ciphertext, $this->k);
         if (empty($ciphertext)) {
             throw new LogicException('Ciphertext was not split.');
@@ -907,11 +904,7 @@ final class RSA implements RSAInterface
             throw new LogicException('Length must be more 0.');
         }
 
-        /** @var string[]|false */
         $plaintext = str_split($plaintext, $length);
-        if (false === $plaintext) {
-            throw new LogicException('Plaintext was not split.');
-        }
         $ciphertext = '';
         foreach ($plaintext as $m) {
             $ciphertext .= $this->rsaesPkcs1V15Encrypt($m);
@@ -971,6 +964,78 @@ final class RSA implements RSAInterface
     }
 
     /**
+     * Verifies a signature against a message using the loaded public key.
+     *
+     * Delegates to RSASSA-PSS-VERIFY or RSASSA-PKCS1-V1_5-VERIFY depending
+     * on the current signature mode set via setSignatureMode().
+     *
+     * @param string $message The original message that was signed.
+     * @param string $signature The raw binary signature to verify.
+     *
+     * @return bool True if the signature is valid, false otherwise.
+     */
+    public function verify(string $message, string $signature): bool
+    {
+        if (empty($this->modulus) || empty($this->exponent)) {
+            return false;
+        }
+
+        switch ($this->signatureMode) {
+            case self::SIGNATURE_PKCS1:
+                return $this->rsassaPkcs1V15Verify($message, $signature);
+            default:
+                return $this->rsassaPssVerify($message, $signature);
+        }
+    }
+
+    /**
+     * RSASSA-PSS-VERIFY
+     *
+     * See {@link http://tools.ietf.org/html/rfc3447#section-8.1.2 RFC3447#section-8.1.2}.
+     *
+     * @param string $m The message.
+     * @param string $s The signature.
+     *
+     * @return bool
+     */
+    private function rsassaPssVerify(string $m, string $s): bool
+    {
+        if (strlen($s) != $this->k) {
+            return false;
+        }
+
+        $s2 = $this->os2ip($s);
+        $m2 = $this->exponentiate($s2);
+        $em = $this->i2osp($m2, $this->k);
+
+        return $this->emsaPssVerify($m, $em, 8 * $this->k - 1);
+    }
+
+    /**
+     * RSASSA-PKCS1-V1_5-VERIFY
+     *
+     * See {@link http://tools.ietf.org/html/rfc3447#section-8.2.2 RFC3447#section-8.2.2}.
+     *
+     * @param string $m The message.
+     * @param string $s The signature.
+     *
+     * @return bool
+     */
+    private function rsassaPkcs1V15Verify(string $m, string $s): bool
+    {
+        if (strlen($s) != $this->k) {
+            return false;
+        }
+
+        $s2 = $this->os2ip($s);
+        $m2 = $this->exponentiate($s2);
+        $em = $this->i2osp($m2, $this->k);
+        $em2 = $this->emsaPkcs1V15Encode($m, $this->k);
+
+        return $this->equals($em, $em2);
+    }
+
+    /**
      * RSASSA-PKCS1-V1_5-SIGN
      *
      * See {@link http://tools.ietf.org/html/rfc3447#section-8.2.1 RFC3447#section-8.2.1}.
@@ -984,17 +1049,14 @@ final class RSA implements RSAInterface
     private function rsassaPkcs1V15Sign(string $m): string
     {
         // EMSA-PKCS1-v1_5 encoding
-
         $em = $this->emsaPkcs1V15Encode($m, $this->k);
 
         // RSA signature
-
         $m = $this->os2ip($em);
         $s = $this->rsasp1($m);
         $s = $this->i2osp($s, $this->k);
 
         // Output the signature S
-
         return $s;
     }
 
@@ -1037,7 +1099,7 @@ final class RSA implements RSAInterface
      *
      * @return BigIntegerInterface
      */
-    private function os2ip($x)
+    private function os2ip(int|string $x): BigIntegerInterface
     {
         return new BigInteger($x, 256);
     }
@@ -1177,18 +1239,16 @@ final class RSA implements RSAInterface
         $mLen = strlen($m);
 
         // Length checking
-
         if ($mLen > $this->k - 11) {
             throw new LogicException('Message too long');
         }
 
         // EME-PKCS1-v1_5 encoding
-
         $psLen = $this->k - $mLen - 3;
         $ps = '';
         while (strlen($ps) != $psLen) {
             $length = $psLen - strlen($ps);
-            $temp = (string)openssl_random_pseudo_bytes($length);
+            $temp = openssl_random_pseudo_bytes($length);
             $temp = str_replace("\x00", '', $temp);
             $ps .= $temp;
         }
@@ -1210,7 +1270,6 @@ final class RSA implements RSAInterface
         $c = $this->i2osp($c, $this->k);
 
         // Output the ciphertext C
-
         return $c;
     }
 
@@ -1355,7 +1414,7 @@ final class RSA implements RSAInterface
         if (empty($maskedDB)) {
             throw new LogicException('maskedDB can not be empty');
         }
-        $maskedDB[0] = ~chr(0xFF << ($emBits & 7)) & $maskedDB[0];
+        $maskedDB[0] = chr(~(0xFF << ($emBits & 7)) & ord($maskedDB[0]) & 0xFF);
         $em = $maskedDB . $h . chr(0xBC);
 
         return $em;
@@ -1381,19 +1440,15 @@ final class RSA implements RSAInterface
             return false;
         }
 
-        /** @var string|false */
         $maskedDB = substr($em, 0, -$this->hLen - 1);
-        if (false === $maskedDB) {
-            throw new LogicException('Substr failed.');
-        }
         $h = substr($em, -$this->hLen - 1, $this->hLen);
-        $temp = chr(0xFF << ($emBits & 7));
-        if ((~$maskedDB[0] & $temp) != $temp) {
+        $temp = chr((0xFF << ($emBits & 7)) & 0xFF);
+        if ((chr(~ord($maskedDB[0]) & 0xFF) & $temp) != $temp) {
             return false;
         }
         $dbMask = $this->mgf1($h, $emLen - $this->hLen - 1);
         $db = $maskedDB ^ $dbMask;
-        $db[0] = ~chr(0xFF << ($emBits & 7)) & $db[0];
+        $db[0] = chr(~(0xFF << ($emBits & 7)) & ord($db[0]) & 0xFF);
         $temp = $emLen - $this->hLen - $sLen - 2;
         if (substr($db, 0, $temp) != str_repeat(chr(0), $temp) || ord($db[$temp]) != 1) {
             return false;

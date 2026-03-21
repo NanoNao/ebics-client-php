@@ -63,7 +63,7 @@ interface RSAInterface
      *
      * Returns true on success and false on failure (ie. an incorrect password was provided or the key was malformed)
      *
-     * @param string|array $key
+     * @param string|array<mixed> $key
      * @param false|int $type optional
      *
      * @return bool
@@ -139,7 +139,7 @@ interface RSAInterface
      *
      * @param int $bits
      * @param int|false $timeout
-     * @param array $partial
+     * @param array<mixed> $partial
      *
      * @return KeyPair
      */

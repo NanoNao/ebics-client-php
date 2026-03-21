@@ -32,7 +32,7 @@ final class UploadOrderResult extends OrderResult
         $this->dataDocument = $document;
     }
 
-    public function getDataDocument(): ?OrderDataInterface
+    public function getDataDocument(): OrderDataInterface
     {
         return $this->dataDocument;
     }

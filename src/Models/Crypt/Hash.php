@@ -9,7 +9,7 @@ use LogicException;
  * Pure-PHP implementations of keyed-hash message authentication codes (HMACs) and various cryptographic hashing
  * functions.
  *
- * Uses hash() or mhash() if available and an internal implementation, otherwise.  Currently supports the following:
+ * Uses hash() or mhash() if available and an internal implementation, otherwise.  Currently, supports the following:
  * sha1, sha256
  */
 final class Hash implements HashInterface

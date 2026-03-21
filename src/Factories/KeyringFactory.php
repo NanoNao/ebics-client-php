@@ -25,7 +25,7 @@ final class KeyringFactory
     }
 
     /**
-     * @param array $data
+     * @param array<string, mixed> $data
      *
      * @return Keyring
      */
@@ -60,7 +60,7 @@ final class KeyringFactory
     }
 
     /**
-     * @param array $data
+     * @param array<string, mixed> $data
      * @param string $typePrefix
      * @param string $signaturePrefix
      *

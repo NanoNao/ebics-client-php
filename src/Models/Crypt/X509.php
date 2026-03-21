@@ -29,37 +29,12 @@ use LogicException;
 class X509 implements X509Interface
 {
     /**
-     * Save as DER
-     */
-    const FORMAT_DER = 1;
-
-    /**
-     * Auto-detect the format
-     *
-     * Used only by the load*() functions
-     */
-    const FORMAT_AUTO_DETECT = 3;
-
-    /**
      * Attribute value disposition.
      * If disposition is >= 0, this is the index of the target value.
      */
-    const ATTR_ALL = -1; // All attribute values (array).
-    const ATTR_APPEND = -2; // Add a value.
-    const ATTR_REPLACE = -3; // Clear first, then add a value.
-
-    /**
-     * Return internal array representation
-     */
-    const DN_ARRAY = 0;
-    /**
-     * Return string
-     */
-    const DN_STRING = 1;
-    /**
-     * Return canonical ASN.1 RDNs string
-     */
-    const DN_CANON = 4;
+    const int ATTR_ALL = -1; // All attribute values (array).
+    const int ATTR_APPEND = -2; // Add a value.
+    const int ATTR_REPLACE = -3; // Clear first, then add a value.
 
     /**
      * ASN.1 syntax for various extensions
@@ -99,6 +74,8 @@ class X509 implements X509Interface
 
     /**
      * The currently loaded certificate
+     *
+     * @var array|null
      */
     protected ?array $currentCert = null;
 
@@ -832,26 +809,26 @@ class X509 implements X509Interface
         ];
     }
 
-    final public function saveX509CurrentCert()
+    final public function saveX509CurrentCert(): string|false
     {
         return $this->saveX509($this->currentCert);
     }
 
-    final public function setStartDate($date)
+    final public function setStartDate($date): void
     {
         $date = new DateTime($date, new DateTimeZone(@date_default_timezone_get()));
 
         $this->startDate = $date->format('D, d M Y H:i:s O');
     }
 
-    final public function setEndDate($date)
+    final public function setEndDate($date): void
     {
         $date = new DateTime($date, new DateTimeZone(@date_default_timezone_get()));
 
         $this->endDate = $date->format('D, d M Y H:i:s O');
     }
 
-    final public function setSerialNumber($serial, $base = -256)
+    final public function setSerialNumber($serial, $base = -256): void
     {
         $this->serialNumber = new BigInteger($serial, $base);
     }
@@ -867,8 +844,8 @@ class X509 implements X509Interface
 
         $subjectPublicKey = $subject->formatSubjectPublicKey();
 
-        $currentCert = isset($this->currentCert) ? $this->currentCert : null;
-        $signatureSubject = isset($this->signatureSubject) ? $this->signatureSubject : null;
+        $currentCert = $this->currentCert ?? null;
+        $signatureSubject = $this->signatureSubject ?? null;
 
         if (isset($subject->currentCert) &&
             is_array($subject->currentCert) &&
@@ -964,7 +941,7 @@ class X509 implements X509Interface
         $altName = [];
 
         if (isset($subject->domains) && count($subject->domains)) {
-            $altName = array_map([X509::class, 'dnsName'], $subject->domains);
+            $altName = array_map(fn(string $domain): array => $this->dnsName($domain), $subject->domains);
         }
 
         if (isset($subject->ipAddresses) && count($subject->ipAddresses)) {
@@ -1023,6 +1000,11 @@ class X509 implements X509Interface
             $this->mapInExtensions($x509, 'tbsCertificate/extensions', $asn1);
         }
 
+        if (!is_array($x509)) {
+            $this->currentCert = null;
+            return false;
+        }
+
         $key = &$x509['tbsCertificate']['subjectPublicKeyInfo']['subjectPublicKey'];
         $key = $this->reformatKey($x509['tbsCertificate']['subjectPublicKeyInfo']['algorithm']['algorithm'], $key);
 
@@ -1067,7 +1049,7 @@ class X509 implements X509Interface
         return $result;
     }
 
-    final public function saveX509($cert)
+    final public function saveX509($cert): string|false
     {
         if (!is_array($cert) || !isset($cert['tbsCertificate'])) {
             return false;
@@ -1138,7 +1120,7 @@ class X509 implements X509Interface
             '-----END CERTIFICATE-----';
     }
 
-    final public function setPublicKey($key)
+    final public function setPublicKey($key): void
     {
         $key->setPublicKey();
         $this->publicKey = $key;
@@ -1150,7 +1132,7 @@ class X509 implements X509Interface
             return $this->publicKey;
         }
 
-        if (isset($this->currentCert) && is_array($this->currentCert)) {
+        if (isset($this->currentCert)) {
             $paths = [
                 'tbsCertificate/subjectPublicKeyInfo',
                 'certificationRequestInfo/subjectPKInfo',
@@ -1182,7 +1164,7 @@ class X509 implements X509Interface
         return $publicKey;
     }
 
-    final public function setPrivateKey($key)
+    final public function setPrivateKey($key): void
     {
         $this->privateKey = $key;
     }
@@ -1242,17 +1224,17 @@ class X509 implements X509Interface
             $this->currentCert['tbsCertList']['issuer'] : $this->dn;
     }
 
-    final public function setDomain()
+    final public function setDomain(): void
     {
         $this->domains = func_get_args();
         $this->removeDNProp('id-at-commonName');
         $this->setDNProp('id-at-commonName', $this->domains[0]);
     }
 
-    final public function setKeyIdentifier($value)
+    final public function setKeyIdentifier($value): void
     {
         if (empty($value)) {
-            unset($this->currentKeyIdentifier);
+            $this->currentKeyIdentifier = null;
         } else {
             $this->currentKeyIdentifier = base64_encode($value);
         }
@@ -1379,19 +1361,16 @@ class X509 implements X509Interface
     /**
      * Get a reference to a subarray
      *
-     * @param array $root
+     * @param array<mixed> $root
+     * @param-out array<mixed> $root
      * @param string $path absolute path with / as component separator
      * @param bool $create optional
      *
-     * @return array|false
+     * @return array<mixed>|false
      */
     private function &subArray(array &$root, string $path, bool $create = false)
     {
         $false = false;
-
-        if (!is_array($root)) {
-            return $false;
-        }
 
         foreach (explode('/', $path) as $i) {
             if (!is_array($root)) {
@@ -1442,23 +1421,12 @@ class X509 implements X509Interface
     }
 
     /**
-     * Check for validity of subarray
-     *
-     * This is intended for use in conjunction with _subArrayUnchecked(),
-     * implementing the checks included in _subArray() but without copying
-     * a potentially large array by passing its reference by-value to is_array().
-     *
-     * @param array $root
+     * @param array<mixed> $root
      * @param string $path
-     *
      * @return boolean
      */
     private function isSubArrayValid(array $root, string $path): bool
     {
-        if (!is_array($root)) {
-            return false;
-        }
-
         foreach (explode('/', $path) as $i) {
             if (!is_array($root)) {
                 return false;
@@ -1478,13 +1446,13 @@ class X509 implements X509Interface
      * Map extension values from octet string to extension-specific internal
      *   format.
      *
-     * @param array $root (by reference)
+     * @param array<mixed> $root (by reference)
      * @param string $path
      * @param ASN1Interface $asn1
      *
      * @return void
      */
-    private function mapInExtensions(array &$root, string $path, ASN1Interface $asn1)
+    private function mapInExtensions(array &$root, string $path, ASN1Interface $asn1): void
     {
         $extensions = &$this->subArrayUnchecked($root, $path);
 
@@ -1499,8 +1467,8 @@ class X509 implements X509Interface
                 $map = $this->getMapping($id);
                 if (!is_bool($map)) {
                     $decoder = $id == 'id-ce-nameConstraints' ?
-                        [$this, '_decodeNameConstraintIP'] :
-                        [$this, '_decodeIP'];
+                        [$this, 'decodeNameConstraintIP'] :
+                        [$this, 'decodeIP'];
                     $mapped = $asn1->asn1map($decoded[0], $map, ['iPAddress' => $decoder]);
                     $value = $mapped === false ? $decoded[0] : $mapped;
                 } else {
@@ -1508,6 +1476,62 @@ class X509 implements X509Interface
                 }
             }
         }
+    }
+
+    /**
+     * Decodes an IP address
+     *
+     * Takes in a base64 encoded "blob" and returns a human readable IP address
+     *
+     * @param string $ip
+     * @access private
+     * @return string
+     */
+    public function decodeIP(string $ip): string
+    {
+        $result = inet_ntop(base64_decode($ip));
+        if ($result === false) {
+            throw new \UnexpectedValueException('Failed to decode IP address from base64 blob.');
+        }
+        return $result;
+    }
+
+    /**
+     * Decodes an IP address in a name constraints extension
+     *
+     * Takes in a base64 encoded "blob" and returns a human-readable IP address / mask
+     *
+     * @param string $ip
+     * @access private
+     * @return array
+     */
+    public function decodeNameConstraintIP(string $ip): array
+    {
+        $ip = base64_decode($ip);
+        $size = strlen($ip) >> 1;
+        $mask = substr($ip, $size);
+        $ip = substr($ip, 0, $size);
+        return array(inet_ntop($ip), inet_ntop($mask));
+    }
+
+    /**
+     * Encodes an IP address
+     *
+     * Takes a human-readable IP address into a base64-encoded "blob"
+     *
+     * @param string|array<int, string> $ip
+     * @access private
+     * @return string
+     */
+    public function encodeIP(string|array $ip): string
+    {
+        if (is_string($ip)) {
+            $binary = inet_pton($ip);
+            return base64_encode($binary !== false ? $binary : '');
+        }
+        $start = inet_pton($ip[0]);
+        $end = inet_pton($ip[1]);
+        return base64_encode(($start !== false ? $start : '') . ($end !== false ? $end : ''));
     }
 
     /**
@@ -1566,21 +1590,21 @@ class X509 implements X509Interface
     /**
      * Get a reference to an extension subarray
      *
-     * @param array|null $root
+     * @param array<mixed>|null $root
+     * @param-out array<mixed> $root
      * @param string|null $path optional absolute path with / as component separator
      * @param bool $create optional
      *
-     * @return array|false
+     * @return array<mixed>|false
      */
     private function &extensions(?array &$root, ?string $path = null, bool $create = false)
     {
         if (!isset($root)) {
-            $root = $this->currentCert;
+            $root = $this->currentCert ?? [];
         }
 
         switch (true) {
             case !empty($path):
-            case !is_array($root):
                 break;
             case isset($root['tbsCertificate']):
                 $path = 'tbsCertificate/extensions';
@@ -1601,7 +1625,7 @@ class X509 implements X509Interface
      * Map extension values from extension-specific internal format to
      *   octet string.
      *
-     * @param array $root (by reference)
+     * @param array<mixed> $root (by reference)
      * @param string $path
      * @param ASN1Interface $asn1
      *
@@ -1648,7 +1672,11 @@ class X509 implements X509Interface
                         throw new LogicException($id . ' is not a currently supported extension');
                     }
                 } else {
-                    $temp = $asn1->encodeDER($value, $map, ['iPAddress' => [$this, '_encodeIP']]);
+                    $temp = $asn1->encodeDER(
+                        $value,
+                        $map,
+                        ['iPAddress' => fn() => $this->encodeIP(...func_get_args())]
+                    );
                     $value = base64_encode($temp);
                 }
             }
@@ -1703,11 +1731,12 @@ class X509 implements X509Interface
      * Passing a reference (i.e. $root) by-value (i.e. to is_array())
      * creates a copy. If $root is an especially large array, this is expensive.
      *
-     * @param array $root
+     * @param array<mixed> $root
+     * @param-out array<mixed> $root
      * @param string $path absolute path with / as component separator
      * @param bool $create optional
      *
-     * @return array|false
+     * @return array<mixed>|false
      */
     private function &subArrayUnchecked(array &$root, string $path, bool $create = false)
     {
@@ -1810,7 +1839,7 @@ class X509 implements X509Interface
      * Returns the extension if it exists and false if not
      *
      * @param string $id
-     * @param array|null $cert optional
+     * @param array<mixed>|null $cert optional
      *
      * @return mixed
      */
@@ -1838,7 +1867,7 @@ class X509 implements X509Interface
      *
      * @return void
      */
-    private function removeDNProp(string $propName)
+    private function removeDNProp(string $propName): void
     {
         if (empty($this->dn)) {
             return;
@@ -1866,7 +1895,7 @@ class X509 implements X509Interface
     final public function getIssuerDNProp($propName, $withType = false)
     {
         switch (true) {
-            case !isset($this->currentCert) || !is_array($this->currentCert):
+            case !isset($this->currentCert):
                 break;
             case isset($this->currentCert['tbsCertificate']):
                 return $this->getDNProp($propName, $this->currentCert['tbsCertificate']['issuer'], $withType);
@@ -1881,10 +1910,10 @@ class X509 implements X509Interface
      * Get Distinguished Name properties
      *
      * @param string $propName
-     * @param array|null $dn optional
+     * @param array<mixed>|null $dn optional
      * @param bool $withType optional
      *
-     * @return array|false
+     * @return array<int,mixed>|false
      */
     private function getDNProp(string $propName, ?array $dn = null, bool $withType = false)
     {

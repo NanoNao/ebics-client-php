@@ -1,3 +1,7 @@
+## 3.1
+
+* Safety improvements.
+
 ## 3.0
 
 * Support large files upload.

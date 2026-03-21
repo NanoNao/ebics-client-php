@@ -59,7 +59,11 @@ abstract class AuthSignatureHandler
         // Find Header element to insert after.
         if (null === $xmlRequestHeader) {
             $headerList = $this->queryH00XXpath($dom, '//header');
-            $xmlRequestHeader = DOMHelper::safeItem($headerList);
+            $item = DOMHelper::safeItem($headerList);
+            if (!$item instanceof DOMNode) {
+                throw new \LogicException('Header element not found or is not a DOMNode.');
+            }
+            $xmlRequestHeader = $item;
         }
 
         $this->insertAfter($xmlAuthSignature, $xmlRequestHeader);

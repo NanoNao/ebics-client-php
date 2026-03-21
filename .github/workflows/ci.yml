@@ -4,90 +4,90 @@ name: CI
 
 # Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the dev branch
-  push:
-    branches: [ 3.x, 2.x, 1.x ]
-  pull_request:
-    branches: [ 3.x, 2.x, 1.x ]
-  release:
-    # Only use the types keyword to narrow down the activity types that will trigger your workflow.
-    types: [published, created, edited]
+    # Triggers the workflow on push or pull request events but only for the dev branch
+    push:
+        branches: [ 3.x, 2.x, 1.x ]
+    pull_request:
+        branches: [ 3.x, 2.x, 1.x ]
+    release:
+        # Only use the types keyword to narrow down the activity types that will trigger your workflow.
+        types: [ published, created, edited ]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch:
 
 # Set minimal permissions needed for Composer + GitHub Packages
 permissions:
-  contents: read
+    contents: read
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # Analyse code by PHPStan
-  phpstan:
-    name: PHPStan
-    runs-on: ubuntu-latest
-    # This workflow is only of value to the ebics-api/ebics-client-php repository and
-    # would always fail in forks
-    if: github.repository == 'ebics-api/ebics-client-php'
-    steps:
-      - name: Checkout PR code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-      - name: Composer Install
-        run: composer install --no-scripts --no-progress --ansi
-      - name: Run phpstan
-        run: composer code-analyse
+    # Analyse code by PHPStan
+    phpstan:
+        name: PHPStan
+        runs-on: ubuntu-latest
+        # This workflow is only of value to the ebics-api/ebics-client-php repository and
+        # would always fail in forks
+        if: github.repository == 'ebics-api/ebics-client-php'
+        steps:
+            -   name: Checkout PR code
+                uses: actions/checkout@v3
+                with:
+                    ref: ${{ github.event.pull_request.head.ref }}
+                    repository: ${{ github.event.pull_request.head.repo.full_name }}
+            -   name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: '8.5'
+            -   name: Composer Install
+                run: composer install --no-scripts --no-progress --ansi
+            -   name: Run phpstan
+                run: composer code-analyse
 
-  # Style code by Code Sniffer
-  phpcs:
-    name: PHPCS
-    runs-on: ubuntu-latest
-    # This workflow is only of value to the ebics-api/ebics-client-php repository and
-    # would always fail in forks
-    if: github.repository == 'ebics-api/ebics-client-php'
-    steps:
-      - name: Checkout PR code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-      - name: Composer Install
-        run: composer install --no-scripts --no-progress --ansi
-      - name: Run phpcs
-        run: composer code-style
+    # Style code by Code Sniffer
+    phpcs:
+        name: PHPCS
+        runs-on: ubuntu-latest
+        # This workflow is only of value to the ebics-api/ebics-client-php repository and
+        # would always fail in forks
+        if: github.repository == 'ebics-api/ebics-client-php'
+        steps:
+            -   name: Checkout PR code
+                uses: actions/checkout@v3
+                with:
+                    ref: ${{ github.event.pull_request.head.ref }}
+                    repository: ${{ github.event.pull_request.head.repo.full_name }}
+            -   name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: '8.5'
+            -   name: Composer Install
+                run: composer install --no-scripts --no-progress --ansi
+            -   name: Run phpcs
+                run: composer code-style
 
-  # Test code by PHPUnit
-  phpunit:
-    name: PHPUnit
-    runs-on: ubuntu-latest
-    # This workflow is only of value to ebics-api/ebics-client-php repository and
-    # would always fail in forks
-    if: github.repository == 'ebics-api/ebics-client-php'
-    steps:
-      - name: Checkout PR code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-      - name: Composer Install
-        run: composer install --no-scripts --no-progress --ansi
-      - name: Prepare data
-        run: unzip -P "$PASSWORD" ./tests/_data.zip -d .
-        env:
-            PASSWORD: ${{ secrets.PWD }}
-      - name: Run phpunit
-        run: composer code-test
+    # Test code by PHPUnit
+    phpunit:
+        name: PHPUnit
+        runs-on: ubuntu-latest
+        # This workflow is only of value to ebics-api/ebics-client-php repository and
+        # would always fail in forks
+        if: github.repository == 'ebics-api/ebics-client-php'
+        steps:
+            -   name: Checkout PR code
+                uses: actions/checkout@v3
+                with:
+                    ref: ${{ github.event.pull_request.head.ref }}
+                    repository: ${{ github.event.pull_request.head.repo.full_name }}
+            -   name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: '8.5'
+            -   name: Composer Install
+                run: composer install --no-scripts --no-progress --ansi
+            -   name: Prepare data
+                run: unzip -P "$PASSWORD" ./tests/_data.zip -d .
+                env:
+                    PASSWORD: ${{ secrets.PWD }}
+            -   name: Run phpunit
+                run: composer code-test

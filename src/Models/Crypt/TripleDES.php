@@ -8,7 +8,7 @@ use LogicException;
 /**
  * Pure-PHP implementation of Triple DES.
  *
- * Uses openssl.  Operates in the EDE3 mode (encrypt-decrypt-encrypt).
+ * Uses openssl. Operates in the EDE3 mode (encrypt-decrypt-encrypt).
  */
 final class TripleDES implements TripleDESInterface
 {
@@ -16,39 +16,41 @@ final class TripleDES implements TripleDESInterface
     private string $key;
     private string $iv;
 
-    public function setKey($key)
+    public function setKey(string $key): void
     {
         $this->key = $key;
     }
 
-    public function setIV($iv)
+    public function setIV(string $iv): void
     {
         $this->iv = $iv;
     }
 
-    public function decrypt($ciphertext): string
+    public function decrypt(string $ciphertext): string
     {
-        if (!($decrypted = openssl_decrypt(
+        $decrypted = openssl_decrypt(
             $ciphertext,
             $this->method,
             $this->key,
             OPENSSL_RAW_DATA,
             $this->iv
-        ))) {
+        );
+        if ($decrypted === false) {
             throw new LogicException('Decryption failed.');
         }
         return $decrypted;
     }
 
-    public function encrypt($plaintext): string
+    public function encrypt(string $plaintext): string
     {
-        if (!($encrypted = openssl_encrypt(
+        $encrypted = openssl_encrypt(
             $plaintext,
             $this->method,
             $this->key,
             OPENSSL_RAW_DATA,
             $this->iv
-        ))) {
+        );
+        if ($encrypted === false) {
             throw new LogicException('Encryption failed.');
         }
         return $encrypted;

@@ -14,17 +14,14 @@ use LogicException;
 final class FileKeyringManager extends KeyringManager
 {
     /**
-     * @inheritDoc
+     * @param array<mixed>|string $resource
      */
     public function loadKeyring($resource, string $passphrase, string $defaultVersion = Keyring::VERSION_25): Keyring
     {
         if (!is_string($resource)) {
             throw new LogicException('Expects string.');
         }
-        if (is_file($resource)
-            && ($content = file_get_contents($resource))
-            && is_string($content)
-        ) {
+        if (is_file($resource) && ($content = file_get_contents($resource)) !== false) {
             $keyring = $this->keyringFactory->createKeyringFromData(json_decode($content, true));
         } else {
             $keyring = $this->createKeyring($defaultVersion);
@@ -35,7 +32,8 @@ final class FileKeyringManager extends KeyringManager
     }
 
     /**
-     * @inheritDoc
+     * @param array<mixed>|string $resource
+     * @param-out string $resource
      */
     public function saveKeyring(Keyring $keyring, &$resource): void
     {

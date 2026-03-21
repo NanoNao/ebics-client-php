@@ -28,9 +28,9 @@ final class DownloadOrderResult extends OrderResult
     }
 
     /**
-     * @return XmlDocument[]|string[]|null
+     * @return XmlDocument[]|string[]
      */
-    public function getDataFiles(): ?array
+    public function getDataFiles(): array
     {
         return $this->dataFiles;
     }
@@ -40,7 +40,7 @@ final class DownloadOrderResult extends OrderResult
         $this->document = $document;
     }
 
-    public function getDocument(): ?XmlDocument
+    public function getDocument(): XmlDocument
     {
         return $this->document;
     }

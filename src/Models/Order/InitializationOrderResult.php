@@ -22,7 +22,7 @@ final class InitializationOrderResult extends OrderResult
         $this->document = $document;
     }
 
-    public function getDocument(): ?XmlDocument
+    public function getDocument(): XmlDocument
     {
         return $this->document;
     }

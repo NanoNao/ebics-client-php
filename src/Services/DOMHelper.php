@@ -2,6 +2,7 @@
 
 namespace EbicsApi\Ebics\Services;
 
+use DOMNameSpaceNode;
 use DOMNode;
 use DOMNodeList;
 use RuntimeException;
@@ -13,8 +14,6 @@ final class DOMHelper
 {
     /**
      * @param DOMNodeList|false $domNodeList
-     *
-     * @return DOMNodeList
      */
     public static function safeItems($domNodeList): DOMNodeList
     {
@@ -27,10 +26,8 @@ final class DOMHelper
 
     /**
      * @param DOMNodeList|false $domNodeList
-     *
-     * @return DOMNode
      */
-    public static function safeItem($domNodeList): DOMNode
+    public static function safeItem($domNodeList): DOMNode|DOMNameSpaceNode
     {
         if (false === $domNodeList) {
             throw new RuntimeException('DOM Node List should not be empty.');
@@ -45,8 +42,6 @@ final class DOMHelper
 
     /**
      * @param DOMNodeList|false $domNodeList
-     *
-     * @return string
      */
     public static function safeItemValue($domNodeList): string
     {
@@ -57,8 +52,6 @@ final class DOMHelper
 
     /**
      * @param DOMNodeList|false $domNodeList
-     *
-     * @return string
      */
     public static function safeItemValueOrNull($domNodeList): ?string
     {

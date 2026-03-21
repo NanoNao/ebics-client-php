@@ -25,7 +25,7 @@ interface FormatterInterface
     /**
      * Set translations.
      *
-     * @param array $translations
+     * @param array<string, string> $translations
      *
      * @return void
      */

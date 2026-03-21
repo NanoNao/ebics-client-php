@@ -15,8 +15,8 @@ use EbicsApi\Ebics\Models\Http\Response;
 abstract class EbicsResponseException extends EbicsException implements EbicsResponseExceptionInterface
 {
     private string $responseCode;
-    private ?Request $request;
-    private ?Response $response;
+    private Request $request;
+    private Response $response;
     private ?string $meaning;
 
     /**
