@@ -698,9 +698,9 @@ final class ASN1 implements ASN1Interface
 
                         // Got the match: use it.
                         if (isset($special[$key])) {
-                            $candidate = call_user_func($special[$key], $candidate ?? null);
+                            $candidate = call_user_func($special[$key], $candidate);
                         }
-                        $map[$key] = $candidate ?? null;
+                        $map[$key] = $candidate;
                         break;
                     }
                 }

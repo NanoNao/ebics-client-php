@@ -16,8 +16,37 @@ use EbicsApi\Ebics\Models\Order\StandardOrder;
 use EbicsApi\Ebics\Models\Order\StandardOrderResult;
 
 /**
- * Make INI request.
- * Send to the bank public signature of signature A005|A006.
+ * EBICS INI (Initialization) Order - Send signature A (A005/A006) to the bank.
+ *
+ * EBICS Protocol Context:
+ * The INI order transmits the user's authorization signature (Signature A) public key
+ * to the bank. This is part of the initial key exchange process required before
+ * executing authorized orders.
+ *
+ * Protocol Details:
+ * - Order Type: INI
+ * - Order Attribute: DZNNN (no authentication, no encryption needed)
+ * - Order Data Format: SignaturePubKeyOrderData (XML containing SignaturePubKeyInfo)
+ * - Transaction Type: Standard order (single request-response)
+ *
+ * Signature A (A005/A006) Purpose:
+ * - Used to sign order requests requiring user authorization
+ * - Proves the user's authority to execute orders
+ * - Required for upload orders (FUL, BTU) and certain download orders
+ *
+ * A005 vs A006:
+ * - A005: Older signature format (RSA with SHA-1)
+ * - A006: Newer signature format (RSA with SHA-256, recommended)
+ *
+ * Typical Usage:
+ * 1. Generate signature A via createUserSignatures()
+ * 2. Execute INI order to register with bank
+ * 3. Bank stores the public key for future signature verification
+ *
+ * Execution Sequence:
+ * INI → HIA → HPB  (for versions 2.4/2.5)
+ * or
+ * H3K → HPB  (for version 3.0, combined initialization)
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin

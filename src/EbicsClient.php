@@ -162,6 +162,18 @@ final class EbicsClient implements EbicsClientInterface
         $this->httpClient = $options['http_client'] ?? new CurlHttpClient();
     }
 
+    /**
+     * @inheritDoc
+     *
+     * The process involves:
+     * 1. Preparing the order context with bank and user identification
+     * 2. Creating the XML request with appropriate signatures
+     * 3. Initializing a transaction with the bank
+     * 4. Processing the bank's response and storing cryptographic material
+     *
+     * @throws EbicsException If request creation or transaction initialization fails
+     * @throws EbicsResponseException If the bank returns an error response
+     */
     public function executeInitializationOrder(InitializationOrderInterface $order): InitializationOrderResult
     {
         $order->useRequestFactory($this->requestFactory);
@@ -179,6 +191,19 @@ final class EbicsClient implements EbicsClientInterface
         return $result;
     }
 
+    /**
+     * @inheritDoc
+     *
+     * The execution flow:
+     * 1. Prepare the order context
+     * 2. Create the XML request with user signature
+     * 3. Send request to bank via HTTP POST
+     * 4. Parse and validate the response
+     * 5. Return the result with any retrieved data
+     *
+     * @throws EbicsException If request creation fails
+     * @throws EbicsResponseException If the bank returns an error response
+     */
     public function executeStandardOrder(StandardOrderInterface $order): StandardOrderResult
     {
         $order->useRequestFactory($this->requestFactory);
@@ -194,6 +219,19 @@ final class EbicsClient implements EbicsClientInterface
         return $result;
     }
 
+    /**
+     * @inheritDoc
+     *
+     * The method automatically:
+     * - Handles segmented downloads for large files
+     * - Reassembles segments into complete data
+     * - Decrypts the data using the transaction key
+     * - Decompresses ZIP-encoded data
+     * - Parses the result according to the specified format (text, XML, files)
+     *
+     * @throws EbicsException If request creation, download, or decryption fails
+     * @throws EbicsResponseException If the bank returns an error response
+     */
     public function executeDownloadOrder(DownloadOrderInterface $order): DownloadOrderResult
     {
         $order->useRequestFactory($this->requestFactory);
@@ -212,6 +250,19 @@ final class EbicsClient implements EbicsClientInterface
         return $result;
     }
 
+    /**
+     * @inheritDoc
+     *
+     * The method automatically:
+     * - Validates the order data against XML schema
+     * - Splits large data into segments (CHUNK_SIZE)
+     * - Computes digest for data integrity
+     * - Encrypts the order data with the transaction key
+     * - Uploads all segments sequentially
+     *
+     * @throws EbicsException If request creation, upload, or encryption fails
+     * @throws EbicsResponseException If the bank returns an error response
+     */
     public function executeUploadOrder(UploadOrderInterface $order): UploadOrderResult
     {
         $order->useRequestFactory($this->requestFactory);
@@ -248,7 +299,9 @@ final class EbicsClient implements EbicsClientInterface
 
     /**
      * @inheritDoc
-     * @throws EbicsException
+     *
+     * @throws EbicsException If signature generation fails
+     * @throws PasswordEbicsException If keyring password is invalid
      */
     public function createUserSignatures(?array $options = null): void
     {
@@ -265,6 +318,8 @@ final class EbicsClient implements EbicsClientInterface
 
     /**
      * @inheritDoc
+     *
+     * @throws EbicsException If certificate generation fails
      */
     public function generateIssuerCertificate(): array
     {
@@ -286,10 +341,30 @@ final class EbicsClient implements EbicsClientInterface
     }
 
     /**
-     * Mark download or upload transaction as receipt or not.
+     * Send receipt acknowledgment for a download/upload transaction.
      *
-     * @throws EbicsException
-     * @throws Exceptions\EbicsResponseException
+     * EBICS Protocol Context:
+     * The receipt (acknowledgment) phase is the final step in the EBICS download/upload
+     * transaction model. After successfully retrieving or uploading data, the client
+     * must send a receipt to the bank to confirm the transaction completion.
+     *
+     * The receipt contains:
+     * - Transaction ID: Identifies the transaction being acknowledged
+     * - Acknowledged flag: true = success, false = failure/rollback
+     *
+     * When acknowledged=true, the bank marks the transaction as completed.
+     * When acknowledged=false, the bank may allow redownloading or require action.
+     *
+     * For download orders, the receipt is sent after data decryption and validation.
+     * For upload orders, the receipt confirms successful segment transfer.
+     *
+     * @param DownloadTransaction $transaction The transaction to acknowledge
+     * @param bool $acknowledged True for success, false for failure/rollback
+     *
+     * @return void
+     *
+     * @throws EbicsException If receipt creation fails
+     * @throws EbicsResponseException If bank returns an error response
      */
     private function transferReceipt(DownloadTransaction $transaction, bool $acknowledged): void
     {
@@ -302,10 +377,30 @@ final class EbicsClient implements EbicsClientInterface
     }
 
     /**
-     * Upload transaction segments and mark transaction as transfer.
+     * Upload transaction segments to the bank during the transfer phase.
      *
-     * @throws EbicsException
-     * @throws Exceptions\EbicsResponseException
+     * EBICS Protocol Context:
+     * The transfer phase of an upload transaction sends all order data segments
+     * to the bank after the initialization phase. Each segment is:
+     *
+     * 1. Encrypted with the transaction key received during initialization
+     * 2. Assigned a sequential segment number
+     * 3. Marked as last segment or intermediate segment
+     * 4. Sent to the bank via HTTP POST
+     * 5. Acknowledged by the bank with a response code
+     *
+     * The bank processes segments sequentially and only considers the upload
+     * complete when all segments (including the last segment marker) are received.
+     *
+     * Large files are automatically chunked into segments of UploadTransaction::CHUNK_SIZE
+     * to comply with EBICS protocol size limitations.
+     *
+     * @param UploadTransaction $uploadTransaction The upload transaction with segments to transfer
+     *
+     * @return void
+     *
+     * @throws EbicsException If segment creation or upload fails
+     * @throws EbicsResponseException If bank returns an error response
      */
     private function transferTransfer(UploadTransaction $uploadTransaction): void
     {
@@ -325,10 +420,31 @@ final class EbicsClient implements EbicsClientInterface
     }
 
     /**
-     * @param Request $request
-     * @param Response $response
+     * Validate the EBICS response return code and throw exception on error.
      *
-     * @throws Exceptions\IncorrectResponseEbicsException
+     * EBICS Protocol Context:
+     * EBICS responses use standardized return codes (H00X namespace) to indicate
+     * transaction status. This method checks for:
+     *
+     * - '000000': Success - order executed successfully
+     * - '011000': Transaction Done - download/upload completed
+     * - '011001': Download Postprocess Skipped - data available but postponed
+     *
+     * Any other code indicates an error and throws an EbicsResponseException
+     * with the appropriate error message from the bank's report text.
+     *
+     * Common error codes:
+     * - 010000: Authentication failed
+     * - 010001: Signature verification failed
+     * - 061009: Invalid order data
+     * - 091001: Invalid host ID
+     *
+     * @param Request $request The original request for error context
+     * @param Response $response The bank's response containing return code
+     *
+     * @return void
+     *
+     * @throws EbicsResponseException If return code indicates an error
      */
     private function checkH00XReturnCode(Request $request, Response $response): void
     {
@@ -354,10 +470,27 @@ final class EbicsClient implements EbicsClientInterface
 
 
     /**
-     * Walk by segments to build transaction.
+     * Initialize an EBICS transaction by sending the request and receiving the response.
      *
-     * @throws EbicsException
-     * @throws IncorrectResponseEbicsException
+     * EBICS Protocol Context:
+     * The initialization phase is the first step in download/upload transactions.
+     * The client sends the order request with:
+     * - Order type (FDL, FUL, BTD, BTU)
+     * - Date range (for downloads)
+     * - Order parameters
+     * - User signature for authentication
+     *
+     * The bank responds with:
+     * - Transaction ID for subsequent phases
+     * - Return code indicating success/failure
+     * - For uploads: Transaction key for encryption
+     *
+     * @param callable $requestClosure Closure that creates the XML request
+     *
+     * @return InitializationTransaction The initialized transaction object
+     *
+     * @throws EbicsException If request creation fails
+     * @throws EbicsResponseException If bank returns an error response
      */
     private function initializeTransaction(callable $requestClosure): InitializationTransaction
     {
@@ -372,8 +505,26 @@ final class EbicsClient implements EbicsClientInterface
     }
 
     /**
-     * @throws EbicsException
-     * @throws IncorrectResponseEbicsException
+     * Send initialization request and retrieve the initialization segment from the bank.
+     *
+     * EBICS Protocol Context:
+     * Sends the order request to the bank's EBICS endpoint and processes
+     * the response to extract the initialization segment. The segment contains:
+     *
+     * - Transaction ID: Unique identifier for the multi-phase transaction
+     * - Return code: Transaction status (success/failure)
+     * - Order data: Any data returned by the bank (e.g., for HPB orders)
+     * - Max segment size: For subsequent download/upload phases
+     *
+     * For initialization orders (INI, HIA, HPB, H3K), this is the only segment
+     * as these are single-phase transactions.
+     *
+     * @param Request $request The XML request to send
+     *
+     * @return InitializationSegment The response segment with transaction details
+     *
+     * @throws EbicsException If HTTP request fails
+     * @throws EbicsResponseException If bank returns an error response
      */
     private function retrieveInitializationSegment(Request $request): InitializationSegment
     {
@@ -385,14 +536,42 @@ final class EbicsClient implements EbicsClientInterface
     }
 
     /**
-     * Walk by segments to build transaction.
+     * Execute a multi-phase download transaction.
      *
-     * @param callable $requestClosure
-     * @param callable|null $ackClosure Custom closure to handle acknowledge.
+     * EBICS Protocol Context:
+     * This method orchestrates the complete download process following the
+     * EBICS download transaction model:
      *
-     * @return DownloadTransaction
-     * @throws EbicsException
-     * @throws EbicsResponseException
+     * 1. Initialization Phase:
+     *    - Create download request with order type and date range
+     *    - Send request to bank
+     *    - Receive transaction ID and max segment size
+     *
+     * 2. Retrieval Phase:
+     *    - Loop through all segments until last segment is reached
+     *    - Request each segment using transaction ID and segment number
+     *    - Reassemble segments into complete order data
+     *
+     * 3. Decryption Phase:
+     *    - Base64 decode the order data
+     *    - Decrypt using transaction key from the bank
+     *    - Decompress ZIP-encoded data
+     *
+     * 4. Receipt Phase:
+     *    - Call custom acknowledgment closure if provided
+     *    - Send receipt confirmation to bank (default: acknowledged=true)
+     *
+     * The method handles automatic segment management, buffering large data
+     * to prevent memory issues with large file downloads.
+     *
+     * @param callable $requestClosure Closure that creates the XML request
+     * @param callable|null $ackClosure Optional closure to customize receipt acknowledgment
+     *   Receives DownloadTransaction and returns bool for acknowledged status
+     *
+     * @return DownloadTransaction The completed transaction with order data
+     *
+     * @throws EbicsException If download, decryption, or receipt fails
+     * @throws EbicsResponseException If bank returns an error response
      */
     private function downloadTransaction(callable $requestClosure, ?callable $ackClosure = null): DownloadTransaction
     {
@@ -469,7 +648,25 @@ final class EbicsClient implements EbicsClientInterface
     }
 
     /**
-     * @throws EbicsException
+     * Retrieve a download segment from the bank.
+     *
+     * EBICS Protocol Context:
+     * Requests a specific segment of the downloadable data from the bank.
+     * Each segment response contains:
+     *
+     * - Transaction ID: For subsequent segment requests
+     * - Segment number: Current segment position
+     * - Last segment flag: Whether more segments follow
+     * - Total segments: Total number of segments (when known)
+     * - Order data: The actual segment data (base64 encoded, encrypted)
+     * - Transaction key: For decrypting the order data (in first segment)
+     *
+     * @param Request $request The segment request with transaction ID and segment number
+     *
+     * @return DownloadSegment The retrieved segment with data
+     *
+     * @throws EbicsException If HTTP request fails
+     * @throws EbicsResponseException If bank returns an error response
      */
     private function retrieveDownloadSegment(Request $request): DownloadSegment
     {
@@ -481,9 +678,40 @@ final class EbicsClient implements EbicsClientInterface
     }
 
     /**
-     * @throws EbicsException
-     * @throws EbicsResponseException
-     * @throws IncorrectResponseEbicsException
+     * Execute a multi-phase upload transaction.
+     *
+     * EBICS Protocol Context:
+     * This method orchestrates the complete upload process following the
+     * EBICS upload transaction model:
+     *
+     * 1. Initialization Phase:
+     *    - Create upload request with order type and metadata
+     *    - Send request to bank
+     *    - Receive transaction ID and transaction key for encryption
+     *
+     * 2. Transfer Phase (if data exists):
+     *    - Split order data into segments (CHUNK_SIZE)
+     *    - Encrypt each segment with transaction key
+     *    - Upload each segment sequentially
+     *    - Receive acknowledgment for each segment
+     *
+     * 3. Receipt Phase:
+     *    - Bank processes all segments
+     *    - Returns final transaction status
+     *
+     * The method handles:
+     * - Order data validation against XML schema
+     * - Automatic segmentation of large data
+     * - Digest computation for data integrity
+     * - Transaction key management for encryption
+     *
+     * @param callable $requestClosure Closure that creates the XML request
+     *   Receives UploadTransaction and returns Request
+     *
+     * @return UploadTransaction The completed transaction with upload status
+     *
+     * @throws EbicsException If upload or encryption fails
+     * @throws EbicsResponseException If bank returns an error response
      */
     private function uploadTransaction(callable $requestClosure): UploadTransaction
     {

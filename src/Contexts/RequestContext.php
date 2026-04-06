@@ -11,7 +11,43 @@ use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
 
 /**
- * Class RequestContext context container for @see \EbicsApi\Ebics\Factories\RequestFactory
+ * EBICS Request Context - Container for EBICS request parameters and transaction state.
+ *
+ * EBICS Protocol Context:
+ * The RequestContext holds all parameters required to build an EBICS XML request and
+ * manage the transaction state throughout the request-response lifecycle. It serves
+ * as a data container that flows through the order creation and execution process.
+ *
+ * Key Components:
+ *
+ * Identity & Security:
+ * - bank: EBICS server identification (Host ID, URL, country)
+ * - user: Subscriber identification (Partner ID, User ID)
+ * - keyring: Cryptographic material (signatures, certificates, keys)
+ * - withES: Whether electronic signature is required for the order
+ *
+ * Transaction State:
+ * - transactionId: Unique identifier for multi-phase transactions
+ * - transactionKey: AES key for encrypting order data (from bank)
+ * - segmentNumber/isLastSegment: For segmented downloads/uploads
+ * - numSegments: Total number of segments to transfer
+ *
+ * Date Ranges:
+ * - startDateTime/endDateTime: For download orders with date filtering
+ * - dateTime: Current timestamp for request signing
+ *
+ * Order Data:
+ * - orderType: EBICS order code (INI, HIA, FDL, FUL, etc.)
+ * - orderData: XML payload for upload orders
+ * - dataDigest: Hash of order data for integrity verification
+ *
+ * Product Information:
+ * - product: Client product name sent in requests
+ * - language: Language preference for bank responses
+ *
+ * Advanced:
+ * - ackClosure: Custom closure to control receipt acknowledgment
+ * - orderContext: Order-specific parameters (FDL, FUL, BTD, BTU contexts)
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin

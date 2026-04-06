@@ -20,8 +20,51 @@ use EbicsApi\Ebics\Models\Order\UploadOrder;
 use EbicsApi\Ebics\Models\UserSignature;
 
 /**
- * Standard order type for submitting the files to the bank. Using this order type ensures a
- * transparent transfer of files of any format.
+ * EBICS FUL (File Upload) Order - Upload files to the bank.
+ *
+ * EBICS Protocol Context:
+ * The FUL order is used to upload generic files to the bank, such as SEPA payment
+ * orders, Direct Debit files, or other financial transaction data. It provides
+ * a transparent transfer mechanism for files of any format.
+ *
+ * Protocol Details:
+ * - Order Type: FUL
+ * - Order Attribute: DZHNN (with authentication) or OZHNN (with electronic signature)
+ * - Order Data Format: Arbitrary file data (automatically compressed and encrypted)
+ * - Transaction Type: Upload order (multi-phase: initialization → transfer → receipt)
+ *
+ * Upload Process:
+ * 1. Initialization Phase:
+ *    - Create FUL order with file format and parameters
+ *    - Send request with order metadata (numSegments, digest)
+ *    - Receive transaction key from bank
+ *
+ * 2. Transfer Phase:
+ *    - Split file into segments (CHUNK_SIZE = typically 1MB)
+ *    - Encrypt each segment with transaction key
+ *    - Upload segments sequentially
+ *    - Bank acknowledges each segment
+ *
+ * 3. Receipt Phase:
+ *    - Bank confirms receipt of all segments
+ *    - Returns transaction status code
+ *
+ * Order Parameters:
+ * - FileFormat: Specifies the file format (e.g., 'pain.001', 'pain.008')
+ * - CountryCode: Country-specific format variant
+ * - Parameters: Additional order-specific parameters
+ *
+ * Security Features:
+ * - User signature (A005/A006) signs the order digest
+ * - Transaction key encrypts the order data
+ * - Bank signatures verify the response
+ *
+ * Typical Usage:
+ * - Upload SEPA Credit Transfer (pain.001) files
+ * - Upload SEPA Direct Debit (pain.008) files
+ * - Upload other payment orders to the bank
+ *
+ * Supported Versions: 2.4, 2.5 (3.0 not yet implemented)
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin

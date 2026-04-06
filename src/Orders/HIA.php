@@ -16,8 +16,45 @@ use EbicsApi\Ebics\Models\Order\StandardOrder;
 use EbicsApi\Ebics\Models\Order\StandardOrderResult;
 
 /**
- * Make HIA request.
- * Send to the bank public signatures of authentication (X002) and encryption (E002).
+ * EBICS HIA (Handshake Initialization Authentication) Order.
+ *
+ * EBICS Protocol Context:
+ * The HIA order transmits the user's encryption (E002) and authentication (X002)
+ * public keys to the bank. This completes the key exchange process started with
+ * the INI order, establishing all three required signature types.
+ *
+ * Protocol Details:
+ * - Order Type: HIA
+ * - Order Attribute: DZNNN (no authentication, no encryption needed)
+ * - Order Data Format: HIARequestOrderData (XML with AuthenticationPubKeyInfo and EncryptionPubKeyInfo)
+ * - Transaction Type: Standard order (single request-response)
+ *
+ * Signature E (E002) Purpose:
+ * - Used to encrypt order data during transmission
+ * - Ensures confidentiality of sensitive financial data
+ * - Bank uses this public key to encrypt responses to the client
+ *
+ * Signature X (X002) Purpose:
+ * - Used to authenticate the client to the EBICS server
+ * - Signs every request to prove client identity
+ * - Required for all EBICS orders
+ *
+ * HIA Request Structure:
+ * - AuthenticationPubKeyInfo: X002 public key and certificate
+ * - AuthenticationVersion: X002 version identifier
+ * - EncryptionPubKeyInfo: E002 public key and certificate
+ * - EncryptionVersion: E002 version identifier
+ * - PartnerID and UserID: User identification
+ *
+ * Typical Usage:
+ * 1. Generate signatures E and X via createUserSignatures()
+ * 2. Execute HIA order after INI order (or standalone for version 3.0)
+ * 3. Bank stores both public keys for secure communication
+ *
+ * Execution Sequence:
+ * INI → HIA → HPB  (for versions 2.4/2.5)
+ * or
+ * H3K → HPB  (for version 3.0, where H3K combines INI+HIA)
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
