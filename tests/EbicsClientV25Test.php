@@ -561,8 +561,10 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
 
     /**
      * Provider for servers.
+     *
+     * @return array<int, array{int, array}>
      */
-    public function serversDataProvider()
+    public static function serversDataProvider(): array
     {
         return [
             [

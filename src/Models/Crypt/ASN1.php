@@ -665,6 +665,7 @@ final class ASN1 implements ASN1Interface
                             continue;
                         }
                         $maymatch = true;
+                        $candidate = null;
                         if ($child['type'] != self::TYPE_CHOICE) {
                             $childClass = self::CLASS_UNIVERSAL;
                             $constant = null;

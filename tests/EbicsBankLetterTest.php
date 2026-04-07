@@ -22,10 +22,12 @@ class EbicsBankLetterTest extends AbstractEbicsTestCase
      *
      * @group prepare-bank-letter-txt
      *
-     * @param EbicsClientInterface $client
+     * @param int $credentialsId
+     * @param string $version
      */
-    public function testPrepareBankLetterTxt(EbicsClientInterface $client)
+    public function testPrepareBankLetterTxt(int $credentialsId, string $version)
     {
+        $client = $this->setupClientFromProvider($credentialsId, $version);
         $ebicsBankLetter = new EbicsBankLetter();
 
         $bankLetter = $ebicsBankLetter->prepareBankLetter(
@@ -46,10 +48,12 @@ class EbicsBankLetterTest extends AbstractEbicsTestCase
      *
      * @group prepare-bank-letter-html
      *
-     * @param EbicsClientInterface $client
+     * @param int $credentialsId
+     * @param string $version
      */
-    public function testPrepareBankLetterHtml(EbicsClientInterface $client)
+    public function testPrepareBankLetterHtml(int $credentialsId, string $version)
     {
+        $client = $this->setupClientFromProvider($credentialsId, $version);
         $ebicsBankLetter = new EbicsBankLetter();
 
         $bankLetter = $ebicsBankLetter->prepareBankLetter(
@@ -70,10 +74,12 @@ class EbicsBankLetterTest extends AbstractEbicsTestCase
      *
      * @group prepare-bank-letter-pdf
      *
-     * @param EbicsClientInterface $client
+     * @param int $credentialsId
+     * @param string $version
      */
-    public function testPrepareBankLetterPdf(EbicsClientInterface $client)
+    public function testPrepareBankLetterPdf(int $credentialsId, string $version)
     {
+        $client = $this->setupClientFromProvider($credentialsId, $version);
         $ebicsBankLetter = new EbicsBankLetter();
 
         $bankLetter = $ebicsBankLetter->prepareBankLetter(
@@ -89,22 +95,28 @@ class EbicsBankLetterTest extends AbstractEbicsTestCase
 
     /**
      * Provider for clients.
+     *
+     * @return array<int, array{int, string}>
      */
-    public function clientsDataProvider()
+    public static function clientsDataProvider(): array
     {
         return [
-            [
-                $this->setupClientV24(9),
-            ],
-            [
-                $this->setupClientV25(2),
-            ],
-            [
-                $this->setupClientV25(3),
-            ],
-            [
-                $this->setupClientV30(6),
-            ],
+            [9, 'V24'],
+            [2, 'V25'],
+            [3, 'V25'],
+            [6, 'V30'],
         ];
+    }
+
+    /**
+     * Setup client from data provider.
+     */
+    private function setupClientFromProvider(int $credentialsId, string $version): EbicsClientInterface
+    {
+        return match ($version) {
+            'V24' => $this->setupClientV24($credentialsId),
+            'V25' => $this->setupClientV25($credentialsId),
+            'V30' => $this->setupClientV30($credentialsId),
+        };
     }
 }

@@ -9,6 +9,16 @@ use EbicsApi\Ebics\Exceptions\PasswordEbicsException;
 /**
  * EBICS keyring representation.
  *
+ * Holds user and bank signatures, passwords, and optional X.509 certificates
+ * required for EBICS protocol communication.
+ *
+ * Signature types:
+ * - **Signature A** (Authentication): Used for user authentication (versions A005, A006).
+ * - **Signature X** (Signing): Used for transaction signing (version X002).
+ * - **Signature E** (Encryption): Used for encrypting data transfer (version E002).
+ *
+ * EBICS versions: 2.4, 2.5, 3.0.
+ *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */

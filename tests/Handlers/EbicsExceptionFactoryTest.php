@@ -40,7 +40,10 @@ class EbicsExceptionFactoryTest extends AbstractEbicsTestCase
 
     }
 
-    public function getExceptions()
+    /**
+     * @return array<int, array{string, string|null, class-string, string|null}>
+     */
+    public static function getExceptions(): array
     {
         return [
             [

@@ -3,7 +3,10 @@
 namespace EbicsApi\Ebics\Models\Crypt;
 
 /**
- * Key pair.
+ * RSA key pair bundle.
+ *
+ * Holds a public key, a private key, and the password used to encrypt
+ * the private key. Used for key generation, storage, and password rotation.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin

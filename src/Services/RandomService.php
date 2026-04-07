@@ -6,7 +6,10 @@ use DateTime;
 use LogicException;
 
 /**
- * Random function.
+ * Random value generation for cryptographic operations.
+ *
+ * Provides hex strings, digit strings, raw random bytes, and unique IDs
+ * with date-time prefixes. Used for nonces, transaction keys, and order IDs.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
@@ -16,11 +19,13 @@ use LogicException;
 final class RandomService
 {
     /**
-     * Generate random string from HEX characters in upper register.
+     * Generate a random uppercase hexadecimal string.
      *
-     * @param int $length Amount of characters.
+     * The first character is never `0` to avoid leading-zero issues.
      *
-     * @return string
+     * @param int $length Number of characters to generate.
+     *
+     * @return string Random hex string (e.g. "3A7F0E1C").
      */
     public function hex(int $length): string
     {
@@ -31,11 +36,13 @@ final class RandomService
     }
 
     /**
-     * Generate random digits.
+     * Generate a random digit string.
      *
-     * @param int $length
+     * The first character is never `0`.
      *
-     * @return string
+     * @param int $length Number of digits to generate.
+     *
+     * @return string Random digit string.
      */
     public function digits(int $length): string
     {
@@ -46,11 +53,14 @@ final class RandomService
     }
 
     /**
-     * Generate random bytes.
+     * Generate cryptographically secure random bytes.
      *
-     * @param int $length
+     * Uses PHP's `random_bytes()` internally.
      *
-     * @return string
+     * @param int $length Number of bytes to generate.
+     *
+     * @return string Raw binary string.
+     * @throws LogicException If length is less than 1.
      */
     public function bytes(int $length): string
     {
@@ -86,11 +96,13 @@ final class RandomService
     }
 
     /**
-     * Generate unique id with current date time prefix.
+     * Generate a unique ID prefixed with the current date-time.
      *
-     * @param string|null $prefix
+     * Format: `YYYYMMHisv` + `uniqid()`, truncated to 35 characters.
      *
-     * @return string
+     * @param string|null $prefix Optional prefix to prepend to the unique ID.
+     *
+     * @return string Unique identifier string.
      */
     public function uniqueIdWithDate(?string $prefix = null): string
     {

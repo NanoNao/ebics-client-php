@@ -8,7 +8,11 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 
 /**
- * Class RSAFactory represents producers for the @see RSA.
+ * RSA factory for creating RSA cryptographic instances.
+ *
+ * Produces `RSAInterface` instances configured as private or public keys.
+ * Decouples the concrete RSA implementation from business logic, allowing
+ * different underlying libraries to be swapped via the class map.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
@@ -32,7 +36,9 @@ final class RSAFactory
     }
 
     /**
-     * @param int $type
+     * Create an RSA instance by key type identifier.
+     *
+     * @param int $type Key type constant (e.g. RSA::PRIVATE_FORMAT_PKCS1).
      * @return RSAInterface
      */
     public function create(int $type): RSAInterface

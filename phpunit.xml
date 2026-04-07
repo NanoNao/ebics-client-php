@@ -4,7 +4,8 @@
          bootstrap="tests/bootstrap.php"
          colors="true"
          beStrictAboutOutputDuringTests="true"
-         cacheResult="false">
+         cacheResult="false"
+         failOnDeprecation="true">
     <source>
         <include>
             <directory>src</directory>

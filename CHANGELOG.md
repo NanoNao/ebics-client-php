@@ -1,5 +1,6 @@
 ## 3.1
 
+* Documentation detailization.
 * Safety improvements.
 
 ## 3.0

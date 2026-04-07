@@ -6,7 +6,12 @@ use EbicsApi\Ebics\Contracts\BufferInterface;
 use RuntimeException;
 
 /**
- * Buffer class.
+ * Buffer wraps a file stream for chunked read/write operations.
+ *
+ * This model provides a stream-based buffer abstraction used throughout
+ * encryption/decryption pipelines. It supports opening files, reading/writing
+ * data in chunks, seeking, and applying stream filters. The buffer tracks
+ * remaining length and automatically closes the stream on destruction.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin

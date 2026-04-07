@@ -16,19 +16,60 @@ use LogicException;
 use RuntimeException;
 
 /**
- * EBICS crypt/decrypt encode/decode hash functions.
+ * CryptService provides cryptographic operations for EBICS protocol implementation.
+ *
+ * This service handles all encryption, decryption, hashing, signing, and key management
+ * operations required by the EBICS (Electronic Banking Internet Communication Standard)
+ * protocol. It supports multiple signature versions (A5, A6) and uses AES-128-CBC
+ * for data encryption.
+ *
+ * Key responsibilities:
+ * - Hash calculation (SHA-256 and other algorithms)
+ * - Order data decryption using transaction keys
+ * - Data encryption/decryption with AES-128-CBC
+ * - RSA-based signing and encryption
+ * - Key pair generation and management
+ * - Public key digest calculation
+ * - Certificate fingerprint generation
+ * - Nonce and transaction key generation
+ * - Order ID generation
+ * - Private key validation and password management
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 final class CryptService
 {
+    /**
+     * Factory for creating RSA crypt instances.
+     *
+     * @var RSAFactory
+     */
     private RSAFactory $rsaFactory;
+
+    /**
+     * Factory for creating AES crypt instances.
+     *
+     * @var AESFactory
+     */
     private AESFactory $aesFactory;
+
+    /**
+     * Service for generating random values.
+     *
+     * @var RandomService
+     */
     private RandomService $randomService;
 
+    /**
+     * CryptService constructor.
+     *
+     * @param RSAFactory $rsaFactory Factory for creating RSA instances
+     * @param AESFactory $aesFactory Factory for creating AES instances
+     * @param RandomService $randomService Service for generating random values
+     */
     public function __construct(RSAFactory $rsaFactory, AESFactory $aesFactory, RandomService $randomService)
     {
         $this->rsaFactory = $rsaFactory;
@@ -37,12 +78,13 @@ final class CryptService
     }
 
     /**
-     * Calculate hash.
+     * Calculate hash of the given text using specified algorithm.
      *
-     * @param string $text
-     * @param string $algorithm
+     * @param string $text The input text to hash
+     * @param string $algorithm The hashing algorithm to use (default: 'sha256')
+     * @param bool $binary Whether to return raw binary data (true) or lowercase hexits (false)
      *
-     * @return string
+     * @return string The calculated hash
      */
     public function hash(string $text, string $algorithm = 'sha256', bool $binary = true): string
     {
@@ -50,15 +92,20 @@ final class CryptService
     }
 
     /**
-     * Decrypt encrypted OrderData.
+     * Decrypt encrypted OrderData using the user's signature E (encryption key).
      *
-     * @param Keyring $keyring
-     * @param Buffer $orderDataEncrypted
-     * @param Buffer $orderDataCompressed
-     * @param string $transactionKey
+     * This method decrypts transaction data that was encrypted by the bank using the client's
+     * public encryption key. It uses RSA decryption with the private key to recover
+     * the transaction key, then uses AES decryption to recover the actual order data.
+     *
+     * @param Keyring $keyring The keyring containing the user's encryption signature
+     * @param Buffer $orderDataEncrypted Buffer to store the decrypted order data
+     * @param Buffer $orderDataCompressed Buffer containing the compressed encrypted data
+     * @param string $transactionKey The encrypted transaction key to decrypt
      *
      * @return void
-     * @throws EbicsException
+     * @throws RuntimeException If signature E is not set in the keyring
+     * @throws EbicsException If decryption fails
      */
     public function decryptOrderDataCompressed(
         Keyring $keyring,
@@ -77,11 +124,15 @@ final class CryptService
     }
 
     /**
-     * Algorithm AES-128-CBC.
+     * Decrypt data using AES-128-CBC algorithm with a given key.
      *
-     * @param string $key
-     * @param Buffer $encrypted
-     * @param Buffer $plaintext
+     * This method performs AES-128-CBC decryption with OPENSSL_RAW_DATA and OPENSSL_ZERO_PADDING
+     * options. It's typically used to decrypt order data after the transaction key has been
+     * recovered.
+     *
+     * @param string $key The decryption key (16 bytes for AES-128)
+     * @param Buffer $encrypted Buffer containing the encrypted data
+     * @param Buffer $plaintext Buffer to store the decrypted plaintext
      *
      * @return void
      */
@@ -97,12 +148,15 @@ final class CryptService
     }
 
     /**
-     * Algorithm AES-128-CBC.
+     * Encrypt data using AES-128-CBC algorithm with a given key.
      *
-     * @param string $key
-     * @param string $data
+     * This method performs AES-128-CBC encryption with OPENSSL_RAW_DATA and OPENSSL_NO_PADDING
+     * options. It's typically used to encrypt order data before sending to the bank.
      *
-     * @return string
+     * @param string $key The encryption key (16 bytes for AES-128)
+     * @param string $data The plaintext data to encrypt
+     *
+     * @return string The encrypted data as binary string
      */
     public function encryptByKey(string $key, string $data): string
     {
@@ -116,12 +170,19 @@ final class CryptService
     }
 
     /**
-     * Encrypt data with Private key.
-     * @param Key $privateKey
-     * @param string $password
-     * @param string $version
-     * @param string $data
-     * @return string
+     * Encrypt/sign data using RSA private key.
+     *
+     * This method signs or encrypts data using the user's private key. The signing method
+     * depends on the signature version:
+     * - A_VERSION6: Uses RSA-PSS with SHA-256 hash and MGF
+     * - A_VERSION5: Uses RSA encryption with SHA-256 digest prefix
+     *
+     * @param Key $privateKey The private key for signing
+     * @param string $password The password to decrypt the private key
+     * @param string $version The signature version (e.g., SignatureInterface::A_VERSION5, A_VERSION6)
+     * @param string $data The data to sign/encrypt
+     *
+     * @return string The signed/encrypted data as binary string
      */
     public function encrypt(
         Key $privateKey,
@@ -151,12 +212,20 @@ final class CryptService
     }
 
     /**
-     * Sign data with Private key.
-     * @param Key $privateKey
-     * @param string $password
-     * @param string $version
-     * @param string $data
-     * @return string
+     * Sign data using RSA private key.
+     *
+     * This method creates a digital signature for the given data using the user's private key.
+     * The signing method depends on the signature version:
+     * - A_VERSION5: Uses EMSA-PKCS1-v1_5 encoding with SHA-256
+     * - A_VERSION6: Uses EMSA-PSS encoding with SHA-256 hash and MGF (with verification)
+     *
+     * @param Key $privateKey The private key for signing
+     * @param string $password The password to decrypt the private key
+     * @param string $version The signature version (e.g., SignatureInterface::A_VERSION5, A_VERSION6)
+     * @param string $data The data to sign
+     *
+     * @return string The digital signature as binary string
+     * @throws LogicException If signature version is not supported or PSS verification fails
      */
     public function sign(
         Key $privateKey,
@@ -187,12 +256,16 @@ final class CryptService
     }
 
     /**
-     * Encrypt transaction key by RSA public key.
+     * Encrypt transaction key using RSA public key.
      *
-     * @param Key $publicKey
-     * @param string $transactionKey
+     * This method encrypts a transaction key (session key) using the bank's public encryption key.
+     * The encrypted transaction key is then sent to the bank, which decrypts it with its private key
+     * to establish a secure communication channel.
      *
-     * @return string
+     * @param Key $publicKey The public key for encryption
+     * @param string $transactionKey The transaction key to encrypt (typically 16 random bytes)
+     *
+     * @return string The encrypted transaction key as binary string
      */
     public function encryptTransactionKey(Key $publicKey, string $transactionKey): string
     {
@@ -200,12 +273,15 @@ final class CryptService
     }
 
     /**
-     * Encrypt by private key.
+     * Encrypt data using RSA private key.
      *
-     * @param RSAInterface $rsa
-     * @param string $data
+     * This internal helper method performs RSA encryption with a private key instance.
      *
-     * @return string
+     * @param RSAInterface $rsa The RSA instance configured with the private key
+     * @param string $data The data to encrypt
+     *
+     * @return string The encrypted data
+     * @throws RuntimeException If encryption fails
      */
     private function encryptByRsa(RSAInterface $rsa, string $data): string
     {
@@ -217,12 +293,15 @@ final class CryptService
     }
 
     /**
-     * Encrypt by public key.
+     * Encrypt data using RSA public key.
      *
-     * @param Key $publicKey
-     * @param string $data
+     * This internal helper method performs RSA encryption with a public key.
      *
-     * @return string
+     * @param Key $publicKey The public key for encryption
+     * @param string $data The data to encrypt
+     *
+     * @return string The encrypted data
+     * @throws RuntimeException If encryption fails
      */
     private function encryptByRsaPublicKey(Key $publicKey, string $data): string
     {
@@ -236,13 +315,16 @@ final class CryptService
     }
 
     /**
-     * Generate public and private keys.
+     * Generate an RSA key pair (public and private keys).
      *
-     * @param string $password
-     * @param string $algorithm
-     * @param int $length
+     * Creates a new RSA key pair with the specified algorithm and key length.
+     * The private key is encrypted with the provided password.
      *
-     * @return KeyPair
+     * @param string $password The password to encrypt the private key
+     * @param string $algorithm The hash algorithm to use (default: 'sha256')
+     * @param int $length The key length in bits (default: 2048, minimum recommended: 2048)
+     *
+     * @return KeyPair The generated key pair containing public key, private key, and password
      */
     public function generateKeyPair(
         string $password,
@@ -257,11 +339,15 @@ final class CryptService
     }
 
     /**
-     * Filter hash of blocked characters.
+     * Filter hash by adding SHA-256 ASN.1 prefix.
      *
-     * @param string $hash
+     * This internal method prepares the hash for RSA signing by adding
+     * the proper ASN.1 prefix for SHA-256 algorithm. This is required
+     * for RSA PKCS#1 v1.5 signature scheme.
      *
-     * @return string
+     * @param string $hash The raw hash value to prefix
+     *
+     * @return string The prefixed hash ready for RSA operation
      */
     private function filter(string $hash): string
     {
@@ -296,13 +382,15 @@ final class CryptService
     }
 
     /**
-     * System.arrayCopy java function interpretation.
+     * Internal helper method that mimics Java's System.arraycopy.
      *
-     * @param array<int, int> $a
-     * @param int $c
-     * @param array<int, int> $b
-     * @param int $d
-     * @param int $length
+     * Copies elements from source array to destination array with specified offsets and length.
+     *
+     * @param array<int, int> $a Source array
+     * @param int $c Starting position in source array
+     * @param array<int, int> $b Destination array (passed by reference)
+     * @param int $d Starting position in destination array
+     * @param int $length Number of elements to copy
      */
     private function systemArrayCopy(
         array $a,
@@ -317,11 +405,13 @@ final class CryptService
     }
 
     /**
-     * Pack array of bytes to one bytes-string.
+     * Pack array of byte values to a binary string.
      *
-     * @param array<int, int> $bytes
+     * Converts an array of integer byte values (0-255) to a binary string.
      *
-     * @return string (bytes)
+     * @param array<int, int> $bytes Array of byte values
+     *
+     * @return string Binary string representation
      */
     private function arrayToBin(
         array $bytes
@@ -330,11 +420,14 @@ final class CryptService
     }
 
     /**
-     * Convert bytes to array.
+     * Convert a binary string to an array of byte values.
      *
-     * @param string $bytes
+     * Each character in the binary string is converted to its ASCII value (0-255).
      *
-     * @return array
+     * @param string $bytes Binary string to convert
+     *
+     * @return array<int, int> Array of byte values
+     * @throws RuntimeException If conversion fails
      */
     public function binToArray(
         string $bytes
@@ -348,12 +441,16 @@ final class CryptService
     }
 
     /**
-     * Calculate Public Digest.
+     * Calculate the digest of a public key (modulus and exponent).
      *
-     * @param SignatureInterface $signature
-     * @param string $algorithm
+     * Extracts the modulus and exponent from the public key, formats them,
+     * and calculates a hash digest. This is used for key identification
+     * and verification purposes.
      *
-     * @return string
+     * @param SignatureInterface $signature The signature containing the public key
+     * @param string $algorithm The hash algorithm to use (default: 'sha256')
+     *
+     * @return string The calculated public key digest as binary data
      */
     public function calculatePublicKeyDigest(
         SignatureInterface $signature,
@@ -370,12 +467,15 @@ final class CryptService
     }
 
     /**
-     * Make key from exponent and modulus.
+     * Create a formatted key string from exponent and modulus.
      *
-     * @param string $exponent
-     * @param string $modulus
+     * Removes leading zeros from both values and combines them with a space separator.
+     * This format is used for key identification and digest calculations.
      *
-     * @return string
+     * @param string $exponent The hex-encoded exponent value
+     * @param string $modulus The hex-encoded modulus value
+     *
+     * @return string The formatted key string (e.g., "010001 C4...")
      */
     public function calculateKey(
         string $exponent,
@@ -389,13 +489,17 @@ final class CryptService
     }
 
     /**
-     * Make certificate fingerprint.
+     * Calculate the fingerprint of an X.509 certificate.
      *
-     * @param string $certContent
-     * @param string $algorithm
-     * @param bool $rawOutput
+     * Generates a hash fingerprint of the certificate content for identification
+     * and verification purposes.
      *
-     * @return string
+     * @param string $certContent The PEM or DER encoded certificate content
+     * @param string $algorithm The hash algorithm to use (default: 'sha256')
+     * @param bool $rawOutput If true, returns raw binary data; if false, returns hex string
+     *
+     * @return string The certificate fingerprint
+     * @throws RuntimeException If the certificate fingerprint cannot be calculated
      */
     public function calculateCertificateFingerprint(
         string $certContent,
@@ -411,9 +515,12 @@ final class CryptService
     }
 
     /**
-     * Generate nonce from 32 HEX digits.
+     * Generate a cryptographic nonce (number used once).
      *
-     * @return string
+     * Creates a random 32-character hexadecimal string used for preventing
+     * replay attacks in EBICS protocol communications.
+     *
+     * @return string A 32-character uppercase hexadecimal string
      */
     public function generateNonce(): string
     {
@@ -421,9 +528,12 @@ final class CryptService
     }
 
     /**
-     * Generate transaction key from 16 pseudo bytes.
+     * Generate a random transaction key.
      *
-     * @return string
+     * Creates 16 bytes of cryptographically secure random data to be used
+     * as a symmetric key for AES-128 encryption of order data.
+     *
+     * @return string A 16-byte random string
      */
     public function generateTransactionKey(): string
     {
@@ -431,14 +541,14 @@ final class CryptService
     }
 
     /**
-     * Transform public key on exponent and modulus.
+     * Extract modulus and exponent from an RSA public key.
      *
-     * @param Key $publicKey
+     * Decomposes an RSA public key into its constituent parts (modulus and exponent)
+     * for use in key exchange or verification operations.
      *
-     * @return array = [
-     *   'e' => '<bytes>',
-     *   'm' => '<bytes>',
-     * ]
+     * @param Key $publicKey The RSA public key to decompose
+     *
+     * @return array{e: string, m: string} Associative array with 'e' (exponent) and 'm' (modulus) as bytes
      */
     public function decomposePublicKey(Key $publicKey): array
     {
@@ -451,9 +561,13 @@ final class CryptService
     }
 
     /**
-     * Generate random order id from A000 to ZZZZ.
+     * Generate a random order ID following EBICS format.
      *
-     * @return string
+     * Creates a 4-character order ID where the first character is a letter (A-Z)
+     * and the remaining 3 characters are alphanumeric (0-9, A-Z).
+     * Format: [A-Z][0-9A-Z]{3} (e.g., "A000", "Z9ZZ", "M123")
+     *
+     * @return string A random 4-character order ID
      */
     public function generateOrderId(): string
     {
@@ -466,12 +580,16 @@ final class CryptService
     }
 
     /**
-     * Check private key is valid.
+     * Validate that a private key can be loaded with the given password.
      *
-     * @param Key $privateKey
-     * @param string $password
+     * Attempts to create an RSA instance from the private key using the provided password.
+     * Returns true if successful, false if the key cannot be loaded (e.g., wrong password
+     * or corrupted key).
      *
-     * @return bool
+     * @param Key $privateKey The private key to validate
+     * @param string $password The password to test
+     *
+     * @return bool True if the key is valid and can be loaded, false otherwise
      */
     public function checkPrivateKey(Key $privateKey, string $password): bool
     {
@@ -485,13 +603,16 @@ final class CryptService
     }
 
     /**
-     * Change password for private key.
+     * Change the password for a private key in a key pair.
      *
-     * @param KeyPair $keyPair
-     * @param string $oldPassword
-     * @param string $newPassword
+     * Re-encrypts the private key with a new password while keeping the public key unchanged.
+     * This is useful for key rotation or password updates without regenerating the key pair.
      *
-     * @return KeyPair
+     * @param KeyPair $keyPair The key pair containing the private key to update
+     * @param string $oldPassword The current password for the private key
+     * @param string $newPassword The new password to encrypt the private key with
+     *
+     * @return KeyPair A new key pair with the re-encrypted private key
      */
     public function changePrivateKeyPassword(KeyPair $keyPair, string $oldPassword, string $newPassword): KeyPair
     {
