@@ -3,6 +3,8 @@
 namespace EbicsApi\Ebics\Handlers\Traits;
 
 use DOMDocument;
+use DOMNameSpaceNode;
+use DOMNode;
 use DOMNodeList;
 use DOMXPath;
 
@@ -44,7 +46,7 @@ trait H00XTrait
      * @param DOMDocument $xml
      * @param string $path
      *
-     * @return DOMNodeList|false
+     * @return DOMNodeList<DOMNameSpaceNode|DOMNode>|false
      */
     public function queryH00XXpath(DOMDocument $xml, string $path)
     {

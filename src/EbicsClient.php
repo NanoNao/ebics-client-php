@@ -785,7 +785,8 @@ final class EbicsClient implements EbicsClientInterface
                 $orderResult->setDataFiles($this->documentFactory->createMultipleXml($files));
                 break;
             case self::FILE_PARSER_FORMAT_ZIP_FILES:
-                $orderResult->setDataFiles($this->zipService->extractFilesFromString($orderResult->getData()));
+                $zipFiles = $this->zipService->extractFilesFromString($orderResult->getData());
+                $orderResult->setDataFiles(array_filter($zipFiles, fn($v) => $v !== false));
                 break;
             default:
                 throw new LogicException('Incorrect format');

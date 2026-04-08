@@ -38,27 +38,44 @@ class X509 implements X509Interface
 
     /**
      * ASN.1 syntax for various extensions
+     * @var array<string, mixed>
      */
     protected array $DirectoryString;
 
+    /** @var array<string, mixed> */
     protected array $PKCS9String;
+    /** @var array<string, mixed> */
     protected array $AttributeValue;
+    /** @var array<string, mixed> */
     protected array $Extensions;
+    /** @var array<string, mixed> */
     protected array $KeyUsage;
+    /** @var array<string, mixed> */
     protected array $ExtKeyUsageSyntax;
+    /** @var array<string, mixed> */
     protected array $BasicConstraints;
+    /** @var array<string, mixed> */
     protected array $KeyIdentifier;
+    /** @var array<string, mixed> */
     protected array $CRLDistributionPoints;
+    /** @var array<string, mixed> */
     protected array $AuthorityKeyIdentifier;
+    /** @var array<string, mixed> */
     protected array $AuthorityInfoAccessSyntax;
+    /** @var array<string, mixed> */
     protected array $CertificatePolicies;
+    /** @var array<string, mixed> */
     protected array $SubjectAltName;
+    /** @var array<string, mixed> */
     protected array $Name;
+    /** @var array<string, mixed> */
     protected array $RelativeDistinguishedName;
+    /** @var array<string, mixed> */
     protected array $InvalidityDate;
 
     /**
      * ASN.1 syntax for X.509 certificates
+     * @var array<string, mixed>
      */
     protected array $Certificate;
 
@@ -75,7 +92,7 @@ class X509 implements X509Interface
     /**
      * The currently loaded certificate
      *
-     * @var array|null
+     * @var array<string, mixed>|null
      */
     protected ?array $currentCert = null;
 
@@ -94,6 +111,10 @@ class X509 implements X509Interface
      */
     protected string $serialNumber;
 
+    /**
+     * Domain names the certificate is valid for.
+     * @var string[]
+     */
     protected array $domains;
 
     /**
@@ -106,6 +127,7 @@ class X509 implements X509Interface
 
     /**
      * Distinguished Name
+     * @var array<string, mixed>|null
      */
     protected ?array $dn;
 
@@ -113,6 +135,7 @@ class X509 implements X509Interface
      * Object identifiers for X.509 certificates
      *
      * @link http://en.wikipedia.org/wiki/Object_identifier
+     * @var array<string, string>
      */
     protected array $oids;
 
@@ -982,7 +1005,7 @@ class X509 implements X509Interface
         $asn1->loadOIDs($this->oids);
         $decoded = $asn1->decodeBER($cert);
 
-        if (!empty($decoded)) {
+        if (!empty($decoded) && is_array($decoded[0])) {
             $x509 = $asn1->asn1map($decoded[0], $this->Certificate);
         }
         if (!isset($x509) || $x509 === false) {
@@ -990,11 +1013,13 @@ class X509 implements X509Interface
             return false;
         }
 
-        $this->signatureSubject = substr(
-            $cert,
-            $decoded[0]['content'][0]['start'],
-            $decoded[0]['content'][0]['length']
-        );
+        if (is_array($decoded[0]) && isset($decoded[0]['content'])) {
+            $this->signatureSubject = substr(
+                $cert,
+                $decoded[0]['content'][0]['start'],
+                $decoded[0]['content'][0]['length']
+            );
+        }
 
         if (is_array($x509) && $this->isSubArrayValid($x509, 'tbsCertificate/extensions')) {
             $this->mapInExtensions($x509, 'tbsCertificate/extensions', $asn1);
@@ -1264,6 +1289,11 @@ class X509 implements X509Interface
         return $hash;
     }
 
+    /**
+     * Format a public key as appropriate.
+     *
+     * @return array<string, mixed>|null
+     */
     final public function formatSubjectPublicKey(): ?array
     {
         if ($this->publicKey instanceof RSAInterface) {
@@ -1285,6 +1315,13 @@ class X509 implements X509Interface
      * @param string $signatureAlgorithm
      *
      * @return array
+    /**
+     * Sign the certificate using a private key.
+     *
+     * @param RSAInterface $key
+     * @param string $signatureAlgorithm
+     *
+     * @return array<string, mixed>
      */
     private function signByKey(RSAInterface $key, string $signatureAlgorithm): array
     {
@@ -1312,6 +1349,12 @@ class X509 implements X509Interface
      * @param string $date in format date('D, d M Y H:i:s O')
      *
      * @return array
+    /**
+     * Format a time field for ASN.1 encoding.
+     *
+     * @param string $date
+     *
+     * @return array{utcTime: string}|array{generalTime: string}
      */
     private function timeField(string $date): array
     {
@@ -1465,7 +1508,7 @@ class X509 implements X509Interface
                 /* [extnValue] contains the DER encoding of an ASN.1 value
                    corresponding to the extension type identified by extnID */
                 $map = $this->getMapping($id);
-                if (!is_bool($map)) {
+                if (!is_bool($map) && is_array($decoded[0])) {
                     $decoder = $id == 'id-ce-nameConstraints' ?
                         [$this, 'decodeNameConstraintIP'] :
                         [$this, 'decodeIP'];
@@ -1504,6 +1547,12 @@ class X509 implements X509Interface
      * @param string $ip
      * @access private
      * @return array
+    /**
+     * Decode a name constraint IP address.
+     *
+     * @param string $ip Base64-encoded IP address and mask
+     *
+     * @return array{0: string|false, 1: string|false}
      */
     public function decodeNameConstraintIP(string $ip): array
     {
@@ -1689,6 +1738,12 @@ class X509 implements X509Interface
      * @param string $extnId
      *
      * @return array|bool
+    /**
+     * Get the ASN.1 mapping for an extension.
+     *
+     * @param string $extnId Extension identifier
+     *
+     * @return array<string, mixed>|bool
      */
     private function getMapping(string $extnId)
     {
@@ -1972,6 +2027,12 @@ class X509 implements X509Interface
      * @param string $domain
      *
      * @return array
+    /**
+     * Format a domain name as a DNS name extension.
+     *
+     * @param string $domain
+     *
+     * @return array{dNSName: string}
      */
     private function dnsName(string $domain): array
     {

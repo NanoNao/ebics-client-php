@@ -183,7 +183,7 @@ interface X509Interface
     /**
      * Format a public key as appropriate.
      *
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function formatSubjectPublicKey(): ?array;
 

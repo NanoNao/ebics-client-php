@@ -2,6 +2,7 @@
 
 namespace EbicsApi\Ebics\Handlers\Traits;
 
+use DOMNameSpaceNode;
 use DOMNode;
 use DOMNodeList;
 use EbicsApi\Ebics\Exceptions\AlgoEbicsException;
@@ -16,6 +17,9 @@ trait C14NTrait
 {
     /**
      * Extract C14N content by path from the XML DOM.
+     *
+     * @param DOMNodeList<DOMNameSpaceNode|DOMNode> $nodes
+     * @param string $algorithm
      *
      * @throws AlgoEbicsException
      */
@@ -34,10 +38,9 @@ trait C14NTrait
         $result = '';
 
         foreach ($nodes as $node) {
-            if (!($node instanceof DOMNode)) {
-                continue;
+            if ($node instanceof DOMNode) {
+                $result .= $node->C14N($exclusive, $withComments);
             }
-            $result .= $node->C14N($exclusive, $withComments);
         }
 
         return trim($result);

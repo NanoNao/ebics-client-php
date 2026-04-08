@@ -9,26 +9,61 @@ use EbicsApi\Ebics\Exceptions\SchemaEbicsException;
 use Exception;
 
 /**
- * SchemaValidator.
+ * XML Schema (XSD) validation service for EBICS protocol messages.
+ *
+ * Validates DOMDocument instances against EBICS XSD schema files to ensure
+ * XML messages conform to the EBICS standard before sending to banks or after
+ * receiving responses. This helps catch protocol compliance errors early.
+ *
+ * The validator reads the `xsi:schemaLocation` attribute from the XML document
+ * to determine which schema file to validate against, then maps it to the
+ * local schema directory.
+ *
+ * Schema files are expected to be in the directory specified by $schemaDir
+ * (default: `doc/schema/`). The validator automatically transforms the
+ * namespace URL from `http://www.ebics.org/` to the local path.
+ *
+ * Note: Validation is silently skipped if:
+ * - No schema directory is configured
+ * - The document is an OrderDataInterface (non-namespaced order data)
+ * - The XML has no namespace or no schemaLocation attribute
+ * - The schema file doesn't exist locally
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 final class SchemaValidator
 {
     private ?string $schemaDir;
 
+    /**
+     * Constructor.
+     *
+     * @param string|null $schemaDir Path to the directory containing EBICS XSD schema files.
+     *                               If null, validation is skipped. Expected path: `doc/schema/`.
+     */
     public function __construct(?string $schemaDir = null)
     {
         $this->schemaDir = $schemaDir;
     }
 
     /**
-     * @param DOMDocument|OrderDataInterface $dom
+     * Validate a DOMDocument against EBICS XSD schema.
+     *
+     * The validation process:
+     * 1. Checks if schema directory is configured (skips if null)
+     * 2. Extracts the `xsi:schemaLocation` attribute from the document root
+     * 3. Maps the schema URL to a local file path
+     * 4. Performs schema validation using `DOMDocument::schemaValidate()`
+     *
+     * @param DOMDocument|OrderDataInterface $dom The XML document to validate.
+     *                                           OrderDataInterface instances are skipped.
+     *
      * @return void
-     * @throws SchemaEbicsException
+     * @throws SchemaEbicsException If schema validation fails, includes the original XML
+     *                              in the error message for debugging purposes
      */
     public function validate($dom): void
     {

@@ -3,6 +3,9 @@
 namespace EbicsApi\Ebics\Handlers;
 
 use DOMDocument;
+use DOMNameSpaceNode;
+use DOMNode;
+use DOMNodeList;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Factories\BufferFactory;
 use EbicsApi\Ebics\Factories\EbicsExceptionFactory;

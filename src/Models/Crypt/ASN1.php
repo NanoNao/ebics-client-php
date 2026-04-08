@@ -71,6 +71,7 @@ final class ASN1 implements ASN1Interface
      * ASN.1 object identifier
      *
      * @link http://en.wikipedia.org/wiki/Object_identifier
+     * @var array<string, string>
      */
     protected array $oids = [];
 
@@ -85,6 +86,7 @@ final class ASN1 implements ASN1Interface
      * Filters
      *
      * If the mapping type is self::TYPE_ANY what do we actually encode it as?
+     * @var array<string, mixed>
      */
     protected array $filters;
 
@@ -93,6 +95,7 @@ final class ASN1 implements ASN1Interface
      *
      * Unambiguous types get the direct mapping (int/real/bool).
      * Others are mapped as a choice, with an extra indexing level.
+     * @var array<int, bool|string>
      */
     protected array $ANYmap = [
         self::TYPE_BOOLEAN => true,
@@ -123,6 +126,7 @@ final class ASN1 implements ASN1Interface
      *
      * Non-convertable types are absent from this table.
      * size == 0 indicates variable length encoding.
+     * @var array<int, int>
      */
     protected array $stringTypeSize = [
         self::TYPE_UTF8_STRING => 0,
@@ -134,6 +138,10 @@ final class ASN1 implements ASN1Interface
         self::TYPE_VISIBLE_STRING => 1,
     ];
 
+    /**
+     * Current location in the ASN.1 document.
+     * @var array<int, string>
+     */
     protected array $location;
 
     public function loadOIDs($oids): void
@@ -160,7 +168,7 @@ final class ASN1 implements ASN1Interface
      * @param int $start Absolute byte offset of the current element in the original input.
      * @param int $encoded_pos Read position within $encoded for the current call.
      *
-     * @return array|false Decoded element array, or false if the data is truncated or invalid.
+     * @return array<string, mixed>|false Decoded element array, or false if the data is truncated or invalid.
      */
     private function decodeBERInternal(string $encoded, int $start = 0, int $encoded_pos = 0): array|false
     {
@@ -509,6 +517,19 @@ final class ASN1 implements ASN1Interface
         return DateTime::createFromFormat($format, $content);
     }
 
+    /**
+     * ASN.1 Map
+     *
+     * Provides an ASN.1 semantic mapping ($mapping) from a parsed BER-encoding to a human readable format.
+     *
+     * "Special" mappings may be applied on a per tag-name basis via $special.
+     *
+     * @param array<string, mixed> $decoded
+     * @param array<string, mixed> $mapping
+     * @param array<string, callable> $special
+     *
+     * @return list<array<int|string, mixed>|string|false|null>|array<int|string, mixed>|string|false|null
+     */
     public function asn1map($decoded, $mapping, $special = [])
     {
         if (isset($mapping['explicit']) && is_array($decoded['content'])) {
@@ -1315,11 +1336,21 @@ final class ASN1 implements ASN1Interface
         return $out;
     }
 
+    /**
+     * Get property ANYmap.
+     *
+     * @return array<int, bool|string>
+     */
     public function getANYmap(): array
     {
         return $this->ANYmap;
     }
 
+    /**
+     * Get property stringTypeSize.
+     *
+     * @return array<int, int>
+     */
     public function getStringTypeSize(): array
     {
         return $this->stringTypeSize;

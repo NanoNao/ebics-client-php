@@ -103,16 +103,19 @@ final class RSA implements RSAInterface
 
     /**
      * Primes for Chinese Remainder Theorem (ie. p and q)
+     * @var array<int, BigIntegerInterface>|null
      */
     protected ?array $primes;
 
     /**
      * Exponents for Chinese Remainder Theorem (ie. dP and dQ)
+     * @var array<int, BigIntegerInterface>|null
      */
     protected ?array $exponents;
 
     /**
      * Coefficients for Chinese Remainder Theorem (ie. qInv)
+     * @var array<int, BigIntegerInterface>|null
      */
     protected ?array $coefficients;
 

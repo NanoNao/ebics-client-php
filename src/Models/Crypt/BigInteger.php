@@ -305,6 +305,13 @@ final class BigInteger implements BigIntegerInterface
         return $this->normalize($x);
     }
 
+    /**
+     * Divides two BigIntegers.
+     *
+     * @param BigIntegerInterface $y
+     *
+     * @return array{0: BigIntegerInterface, 1: BigIntegerInterface}
+     */
     public function divide($y): array
     {
         $quotient = new self();
@@ -492,6 +499,13 @@ final class BigInteger implements BigIntegerInterface
      *     'x' => '<BigIntegerInterface>',
      *     'y' => '<BigIntegerInterface>',
      * ]
+     */
+    /**
+     * Extended GCD calculation.
+     *
+     * @param BigIntegerInterface $n
+     *
+     * @return array{gcd: BigIntegerInterface, x: BigIntegerInterface, y: BigIntegerInterface}
      */
     private function extendedGCD(BigIntegerInterface $n): array
     {

@@ -3,27 +3,36 @@
 namespace EbicsApi\Ebics\Services\X509;
 
 /**
- * X509 extensions options normalizer.
+ * Normalizer for X.509 certificate extension options.
+ *
+ * Provides utility methods to normalize and denormalize X.509 certificate
+ * extension options and Distinguished Names (DN). This ensures consistent
+ * option formatting when creating X.509 certificates via phpseclib.
+ *
+ * The normalizer handles various input formats for extension options:
+ * - Simple string values (converted to default structure)
+ * - Arrays with optional 'critical' and 'replace' flags
+ *
+ * @see \EbicsApi\Ebics\Models\Crypt\X509::setExtension()
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Guillaume Sainthillier, Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 final class X509OptionsNormalizer
 {
     /**
-     * @param mixed|string|array $options = [
-     *  'value' => '<string>',
-     *  'critical' => '<bool>',
-     *  'replace' => '<string>',
-     * ]
+     * Normalize X.509 extension options to a consistent structure.
      *
-     * @return array = [
-     *  'value' => '<string>',
-     *  'critical' => '<bool>',
-     *  'replace' => '<string>',
-     * ]
+     * Accepts flexible input formats and returns a standardized array with:
+     * - 'value': The extension value (required)
+     * - 'critical': Whether the extension is critical (default: false)
+     * - 'replace': Whether to replace existing extensions (default: true)
+     *
+     * @param mixed|string|array $options Extension options in various formats
+     *
+     * @return array{value: mixed, critical: bool, replace: bool} Normalized options array
      *
      * @see \EbicsApi\Ebics\Models\Crypt\X509::setExtension()
      */
@@ -56,9 +65,17 @@ final class X509OptionsNormalizer
     }
 
     /**
-     * @param array{rdnSequence: array<int, array<int, array{type: string, value: array<mixed>}>>} $options
+     * Denormalize an X.509 Distinguished Name (DN) from ASN.1 structure.
      *
-     * @return array<string, mixed>
+     * Converts the RDN sequence from an X.509 certificate's subject or issuer
+     * into a simple key-value array for easier access to DN components
+     * (e.g., CN, O, OU, C).
+     *
+     * @param array{rdnSequence: array<int, array<int, array{type: string, value: array<mixed>}>>} $options
+     *                                       The RDN sequence from X.509 certificate
+     *
+     * @return array<string, mixed> Associative array mapping DN types to their values
+     *                              (e.g., ['id-at-commonName' => 'example.com'])
      */
     public static function denormalizeDN(array $options): array
     {

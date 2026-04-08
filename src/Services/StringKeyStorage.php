@@ -7,7 +7,20 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 
 /**
- * StringKeyStorage.
+ * Key storage implementation using base64-encoded strings.
+ *
+ * Stores cryptographic keys (public keys, private keys) and X.509 certificates
+ * as base64-encoded strings. This is the default storage mechanism used by
+ * the EBICS library for keyring serialization.
+ *
+ * Keys are encoded/decoded using base64 to ensure safe string representation
+ * of binary cryptographic data. The encoding format is compatible with JSON
+ * serialization used by FileKeyringManager and ArrayKeyringManager.
+ *
+ * Key formats:
+ * - Public keys: PKCS#1 format, base64-encoded
+ * - Private keys: PKCS#1 format, base64-encoded (should be password-encrypted before storage)
+ * - Certificates: Raw PEM/DER content, base64-encoded
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin

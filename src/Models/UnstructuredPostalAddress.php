@@ -14,6 +14,7 @@ use EbicsApi\Ebics\Contracts\PostalAddressInterface;
 final class UnstructuredPostalAddress implements PostalAddressInterface
 {
     protected string $country;
+    /** @var string[] */
     protected array $addressLines;
 
     /**

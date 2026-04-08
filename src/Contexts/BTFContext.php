@@ -10,6 +10,7 @@ namespace EbicsApi\Ebics\Contexts;
  */
 abstract class BTFContext extends ServiceContext
 {
+    /** @var array<string, string> */
     private array $parameters = [];
 
     public function setParameter(string $name, string $value): self
@@ -19,6 +20,7 @@ abstract class BTFContext extends ServiceContext
         return $this;
     }
 
+    /** @return array<string, string> */
     public function getParameters(): array
     {
         return $this->parameters;

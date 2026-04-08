@@ -7,12 +7,21 @@ use EbicsApi\Ebics\Models\Pdf;
 use EbicsApi\Ebics\Models\SignatureBankLetter;
 
 /**
- * Bank letter PDF formatter.
+ * Bank letter formatter that generates PDF output.
+ *
+ * Renders the EBICS initialization letter as a PDF document using
+ * the internal Pdf model class. Generates a multi-page document
+ * with separate sections for each signature type (A, E, X).
+ *
+ * The PDF format is suitable for:
+ * - Printing and physical verification
+ * - Archival purposes
+ * - Sending to users for bank comparison
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 final class PdfBankLetterFormatter extends LetterFormatter
 {

@@ -3,21 +3,31 @@
 namespace EbicsApi\Ebics\Services;
 
 /**
- * Read xml files.
+ * XML parsing and manipulation utilities for EBICS protocol.
+ *
+ * Provides helper methods to parse XML content and extract individual
+ * XML document fragments. This is particularly useful when processing
+ * EBICS responses that may contain multiple XML documents embedded
+ * within a single response payload (e.g., order data containing multiple
+ * XML files from the bank).
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 final class XmlService
 {
     /**
-     * Read xml string and extract files content items.
+     * Parse an XML string and extract individual XML document fragments.
      *
-     * @param string $xmlContent
+     * When EBICS responses contain multiple XML documents concatenated together,
+     * this method splits them into separate strings by detecting the `<?xml`
+     * declaration delimiter.
      *
-     * @return string[]
+     * @param string $xmlContent The raw XML string potentially containing multiple XML documents
+     *
+     * @return string[] Array of individual XML document strings, each trimmed
      */
     public function extractFilesFromString(string $xmlContent): array
     {

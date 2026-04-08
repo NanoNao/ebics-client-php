@@ -3,7 +3,9 @@
 namespace EbicsApi\Ebics\Handlers;
 
 use DOMDocument;
+use DOMNameSpaceNode;
 use DOMNode;
+use DOMNodeList;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;

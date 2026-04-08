@@ -13,6 +13,7 @@ use EbicsApi\Ebics\Contracts\OrderContextInterface;
 abstract class FFLContext implements OrderContextInterface
 {
     private string $fileFormat;
+    /** @var array<string, string> */
     private array $parameters = [];
     private ?string $countryCode = null;
 
@@ -35,6 +36,7 @@ abstract class FFLContext implements OrderContextInterface
         return $this;
     }
 
+    /** @return array<string, string> */
     public function getParameters(): array
     {
         return $this->parameters;

@@ -8,13 +8,21 @@ use EbicsApi\Ebics\Models\SignatureBankLetter;
 use LogicException;
 
 /**
- * Bank letter PDF formatter.
- * View pattern.
+ * Abstract base class for bank letter formatters.
+ *
+ * Provides common functionality for formatting EBICS initialization letters
+ * in various output formats (HTML, TXT, PDF). Handles translation support,
+ * signature name resolution, and certificate formatting.
+ *
+ * Concrete implementations:
+ * - `HtmlBankLetterFormatter`: Renders as HTML document
+ * - `TxtBankLetterFormatter`: Renders as plain text
+ * - `PdfBankLetterFormatter`: Renders as PDF document
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 abstract class LetterFormatter implements FormatterInterface
 {

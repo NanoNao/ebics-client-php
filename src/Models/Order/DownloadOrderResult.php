@@ -13,6 +13,7 @@ use EbicsApi\Ebics\Models\XmlDocument;
  */
 final class DownloadOrderResult extends OrderResult
 {
+    /** @var XmlDocument[]|string[] */
     private array $dataFiles;
     private XmlDocument $document;
     private Transaction $transaction;

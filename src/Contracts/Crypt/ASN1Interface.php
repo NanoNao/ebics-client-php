@@ -30,7 +30,7 @@ interface ASN1Interface
      *
      * @param string $encoded Bytes.
      *
-     * @return array
+     * @return array<int, array<string, mixed>|false>
      */
     public function decodeBER(string $encoded);
 
@@ -45,7 +45,7 @@ interface ASN1Interface
      * @param array<string, mixed> $mapping
      * @param array<string, callable> $special
      *
-     * @return array|string|false|null
+     * @return list<array<int|string, mixed>|string|false|null>|array<int|string, mixed>|string|false|null
      */
     public function asn1map(array $decoded, array $mapping, array $special = []);
 
@@ -91,14 +91,14 @@ interface ASN1Interface
     /**
      * Get property ANYmap.
      *
-     * @return array
+     * @return array<int, bool|string>
      */
     public function getANYmap();
 
     /**
      * Get property stringTypeSize.
      *
-     * @return array
+     * @return array<int, int>
      */
     public function getStringTypeSize();
 }

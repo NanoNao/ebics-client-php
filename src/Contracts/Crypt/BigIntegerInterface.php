@@ -147,7 +147,7 @@ interface BigIntegerInterface
      *
      * @param BigIntegerInterface $y
      *
-     * @return array
+     * @return array{0: BigIntegerInterface, 1: BigIntegerInterface}
      * @internal This function is based off of
      *    {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf#page=9 HAC 14.20}.
      */

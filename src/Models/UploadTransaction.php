@@ -16,6 +16,7 @@ final class UploadTransaction extends Transaction implements UploadTransactionIn
 
     private string $key;
     private int $numSegments;
+    /** @var TransferSegment[] */
     private array $segments;
     /**
      * @var string[]
@@ -52,6 +53,7 @@ final class UploadTransaction extends Transaction implements UploadTransactionIn
         $this->segments[] = $segment;
     }
 
+    /** @return TransferSegment[] */
     public function getSegments(): array
     {
         return $this->segments;

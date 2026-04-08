@@ -7,12 +7,16 @@ use EbicsApi\Ebics\Models\SignatureBankLetter;
 use RuntimeException;
 
 /**
- * Bank letter TXT formatter.
+ * Bank letter formatter that generates plain text output.
+ *
+ * Renders the EBICS initialization letter as plain text with simple
+ * formatting. Suitable for console output, email bodies, or simple
+ * text file generation.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 final class TxtBankLetterFormatter extends LetterFormatter
 {

@@ -8,7 +8,22 @@ use EbicsApi\Ebics\Models\Http\Response;
 use LogicException;
 
 /**
- * Class FakerHttpClient.
+ * Fake HTTP client that returns fixture-based responses for testing.
+ *
+ * This client simulates bank server responses using pre-defined XML fixture
+ * files stored in a fixtures directory. Instead of making real HTTP calls,
+ * it parses the EBICS request to determine the order type (e.g., INI, HIA, FDL)
+ * and returns the corresponding fixture file as the response.
+ *
+ * This is essential for unit testing EBICS client code without requiring
+ * actual bank server access, enabling fast and reliable test execution.
+ *
+ * Fixture file naming conventions:
+ * - Standard orders: `{order_type}.xml` (e.g., `ini.xml`, `hia.xml`)
+ * - Extended orders (FUL, FDL, BTU, BTD): `{order_type}.{file_format}.xml`
+ *   (e.g., `ful.camt.053.xml`, `fdl.swift.mt940.xml`)
+ * - Transaction phases: `receipt.xml`, `transfer.xml`
+ * - HEV requests: `hev.xml`
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
@@ -16,17 +31,25 @@ use LogicException;
 final class FakerHttpClient implements HttpClientInterface
 {
     /**
+     * Directory containing XML fixture files for responses.
+     *
      * @var string
      */
     private $fixturesDir;
 
     /**
+     * Order types that use extended fixture naming (order_type.file_format.xml).
+     *
      * @var array<int, string>
      */
     private $extendedOrderTypes;
 
     /**
-     * @param array<int, string>|null $extendedOrderTypes
+     * Constructor.
+     *
+     * @param string $fixturesDir Path to directory containing XML fixture files
+     * @param array<int, string>|null $extendedOrderTypes Order types using extended naming.
+     *                                                     Default: ['FUL', 'FDL', 'BTU', 'BTD']
      */
     public function __construct(string $fixturesDir, ?array $extendedOrderTypes = null)
     {
@@ -35,6 +58,18 @@ final class FakerHttpClient implements HttpClientInterface
         $this->extendedOrderTypes = $extendedOrderTypes ?? ['FUL', 'FDL', 'BTU', 'BTD'];
     }
 
+    /**
+     * Return a fixture-based response based on the request content.
+     *
+     * Parses the XML request to determine the order type or transaction phase,
+     * then loads and returns the corresponding fixture file.
+     *
+     * @param string $url Ignored (not used for fixture lookup)
+     * @param Request $request The EBICS XML request to parse for fixture matching
+     *
+     * @return Response The fixture response, or empty Response if no fixture matches
+     * @throws LogicException If a matched fixture file doesn't exist or transaction phase is unsupported
+     */
     public function post(string $url, Request $request): Response
     {
         $requestContent = $request->getContent();
@@ -107,14 +142,17 @@ final class FakerHttpClient implements HttpClientInterface
     }
 
     /**
-     * Fake Order type responses.
+     * Determine the fixture file name based on order type and options.
      *
-     * @param string $orderType
-     * @param array<string, string|null>|null $options = [
-     *     'file_format' => '<string>',
-     * ]
+     * For extended order types (FUL, FDL, BTU, BTD), the naming includes
+     * the file format: `{order_type}.{file_format}.xml`.
+     * For standard orders, the naming is simply: `{order_type}.xml`.
      *
-     * @return string
+     * @param string $orderType The EBICS order type (e.g., 'INI', 'HIA', 'FUL')
+     * @param array<string, string|null>|null $options Additional options for fixture lookup:
+     *                                                 ['file_format' => '<string>']
+     *
+     * @return string The fixture file name (lowercase, e.g., 'ini.xml', 'ful.camt.053.xml')
      */
     protected function fixtureFileName(string $orderType, ?array $options = null): string
     {
@@ -128,11 +166,14 @@ final class FakerHttpClient implements HttpClientInterface
     }
 
     /**
-     * Fake transaction phase responses.
+     * Return a fixture response for a specific transaction phase.
      *
-     * @param string $transactionPhase
+     * Supported phases: 'Receipt', 'Transfer'
      *
-     * @return Response
+     * @param string $transactionPhase The transaction phase name (case-sensitive)
+     *
+     * @return Response The fixture response for the transaction phase
+     * @throws LogicException If the transaction phase is not supported
      */
     private function fixtureTransactionPhase(string $transactionPhase): Response
     {

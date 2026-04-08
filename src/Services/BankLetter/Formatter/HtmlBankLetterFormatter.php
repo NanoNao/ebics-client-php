@@ -6,13 +6,21 @@ use EbicsApi\Ebics\Models\BankLetter;
 use EbicsApi\Ebics\Models\SignatureBankLetter;
 
 /**
- * Bank letter HTML formatter.
- * View pattern.
+ * Bank letter formatter that generates HTML output.
+ *
+ * Renders the EBICS initialization letter as an HTML document with
+ * structured tables and styled sections for each signature (A, E, X).
+ * Includes support for custom CSS styles via setStyle().
+ *
+ * The HTML output is designed for:
+ * - Viewing in web browsers
+ * - Printing to PDF via browser print functionality
+ * - Embedding in web applications
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  *
- * @internal
+ * @internal This class is for internal use and may change without notice.
  */
 final class HtmlBankLetterFormatter extends LetterFormatter
 {

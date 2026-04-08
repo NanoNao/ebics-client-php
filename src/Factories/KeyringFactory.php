@@ -97,7 +97,7 @@ final class KeyringFactory
     /**
      * @param Keyring $keyring
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function buildDataFromKeyring(Keyring $keyring): array
     {

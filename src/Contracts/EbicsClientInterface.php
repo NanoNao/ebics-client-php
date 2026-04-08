@@ -64,10 +64,13 @@ interface EbicsClientInterface
      *
      * The certificate is used in the INI/HIA/H3K initialization processes.
      *
-     * @return array Certificate data array containing:
-     *   - 'certificate': The X.509 certificate in PEM format
-     *   - 'private_key': The corresponding private key
-     *   - 'public_key': The corresponding public key
+     * @return array{
+     *     publickey: mixed,
+     *     publickey_type: int,
+     *     privatekey: mixed,
+     *     privatekey_type: int,
+     *     certificate: string|null
+     * } Certificate data array
      */
     public function generateIssuerCertificate(): array;
 
