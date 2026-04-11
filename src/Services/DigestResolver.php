@@ -2,6 +2,7 @@
 
 namespace EbicsApi\Ebics\Services;
 
+use EbicsApi\Ebics\Contracts\DigestResolverInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 
 /**
@@ -22,7 +23,7 @@ use EbicsApi\Ebics\Contracts\SignatureInterface;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class DigestResolver
+abstract class DigestResolver implements DigestResolverInterface
 {
     protected CryptService $cryptService;
 
@@ -31,32 +32,7 @@ abstract class DigestResolver
         $this->cryptService = $cryptService;
     }
 
-    /**
-     * Calculate the digest for signing EBICS orders.
-     *
-     * This digest is used when creating digital signatures for order data
-     * using signature A (authentication). The calculation method varies
-     * by EBICS version.
-     *
-     * @param SignatureInterface $signature The signature containing the public key
-     * @param string $algorithm Hash algorithm to use (default: 'sha256')
-     *
-     * @return string The calculated digest as hex string
-     */
     abstract public function signDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string;
 
-    /**
-     * Calculate the digest for the EBICS initialization/confirmation letter.
-     *
-     * This digest is displayed to the user for manual verification during
-     * the key initialization process (INI/HIA orders). The user compares
-     * this hash with the one provided by the bank to verify the authenticity
-     * of the public keys exchanged.
-     *
-     * @param SignatureInterface $signature The signature to calculate the digest for
-     * @param string $algorithm Hash algorithm to use (default: 'sha256')
-     *
-     * @return string The calculated digest as hex string
-     */
     abstract public function confirmDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string;
 }

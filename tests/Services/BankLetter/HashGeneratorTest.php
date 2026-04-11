@@ -34,7 +34,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
     public function testGenerateCertificateHashV2()
     {
         $digestResolver = new DigestResolverV2(
-            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
@@ -72,7 +72,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
     public function testGenerateCertificateHashV3()
     {
         $digestResolver = new DigestResolverV3(
-            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
@@ -110,7 +110,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
     public function testGeneratePublicKeyHash()
     {
         $digestResolver = new DigestResolverV2(
-            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);

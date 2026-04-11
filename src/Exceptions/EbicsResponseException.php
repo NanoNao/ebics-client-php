@@ -36,33 +36,21 @@ abstract class EbicsResponseException extends EbicsException implements EbicsRes
         $this->meaning = $meaning;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getRequest(): ?Request
     {
         return $this->request;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getResponse(): ?Response
     {
         return $this->response;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getMeaning(): ?string
     {
         return $this->meaning;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getResponseCode(): string
     {
         return $this->responseCode;

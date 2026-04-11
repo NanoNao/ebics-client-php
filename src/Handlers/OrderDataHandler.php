@@ -6,6 +6,7 @@ use DateTimeInterface;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
+use EbicsApi\Ebics\Contracts\OrderDataHandlerInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\CertificateEbicsException;
 use EbicsApi\Ebics\Factories\CertificateX509Factory;
@@ -25,7 +26,7 @@ use EbicsApi\Ebics\Services\CryptService;
  *
  * @internal
  */
-abstract class OrderDataHandler
+abstract class OrderDataHandler implements OrderDataHandlerInterface
 {
     use H00XTrait;
 

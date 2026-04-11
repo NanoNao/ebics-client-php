@@ -6,6 +6,7 @@ use DOMDocument;
 use DOMNameSpaceNode;
 use DOMNode;
 use DOMNodeList;
+use EbicsApi\Ebics\Contracts\AuthSignatureHandlerInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
@@ -21,7 +22,7 @@ use EbicsApi\Ebics\Services\DOMHelper;
  *
  * @internal
  */
-abstract class AuthSignatureHandler
+abstract class AuthSignatureHandler implements AuthSignatureHandlerInterface
 {
     use C14NTrait;
     use H00XTrait;
@@ -35,16 +36,6 @@ abstract class AuthSignatureHandler
         $this->cryptService = $cryptService;
     }
 
-    /**
-     * Add body and children elements to request.
-     * Sign all elements with attribute authenticate=true.
-     * Add Authenticate signature after Header section.
-     *
-     * @param DOMDocument $dom
-     * @param DOMNode|null $xmlRequestHeader
-     *
-     * @throws EbicsException
-     */
     public function handle(DOMDocument $dom, ?DOMNode $xmlRequestHeader = null): void
     {
         $canonicalizationPath = '//AuthSignature/*';

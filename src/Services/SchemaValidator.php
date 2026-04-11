@@ -5,6 +5,7 @@ namespace EbicsApi\Ebics\Services;
 use DOMDocument;
 use DOMXPath;
 use EbicsApi\Ebics\Contracts\OrderDataInterface;
+use EbicsApi\Ebics\Contracts\SchemaValidatorInterface;
 use EbicsApi\Ebics\Exceptions\SchemaEbicsException;
 use Exception;
 
@@ -34,7 +35,7 @@ use Exception;
  *
  * @internal This class is for internal use and may change without notice.
  */
-final class SchemaValidator
+final class SchemaValidator implements SchemaValidatorInterface
 {
     private ?string $schemaDir;
 
@@ -49,22 +50,6 @@ final class SchemaValidator
         $this->schemaDir = $schemaDir;
     }
 
-    /**
-     * Validate a DOMDocument against EBICS XSD schema.
-     *
-     * The validation process:
-     * 1. Checks if schema directory is configured (skips if null)
-     * 2. Extracts the `xsi:schemaLocation` attribute from the document root
-     * 3. Maps the schema URL to a local file path
-     * 4. Performs schema validation using `DOMDocument::schemaValidate()`
-     *
-     * @param DOMDocument|OrderDataInterface $dom The XML document to validate.
-     *                                           OrderDataInterface instances are skipped.
-     *
-     * @return void
-     * @throws SchemaEbicsException If schema validation fails, includes the original XML
-     *                              in the error message for debugging purposes
-     */
     public function validate($dom): void
     {
         if ($this->schemaDir === null) {

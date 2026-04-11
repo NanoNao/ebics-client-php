@@ -3,9 +3,7 @@
 namespace EbicsApi\Ebics\Handlers;
 
 use DOMDocument;
-use DOMNameSpaceNode;
-use DOMNode;
-use DOMNodeList;
+use EbicsApi\Ebics\Contracts\ResponseHandlerInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Factories\BufferFactory;
 use EbicsApi\Ebics\Factories\EbicsExceptionFactory;
@@ -27,7 +25,7 @@ use EbicsApi\Ebics\Services\ZipService;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-abstract class ResponseHandler
+abstract class ResponseHandler implements ResponseHandlerInterface
 {
     use H00XTrait;
 
@@ -48,37 +46,16 @@ abstract class ResponseHandler
         $this->bufferFactory = $bufferFactory;
     }
 
-    /**
-     * Extract H00X > KeyManagementResponse > header > mutable > ReturnCode value from the DOM XML.
-     *
-     * @param DOMDocument $xml
-     *
-     * @return string
-     */
     public function retrieveH00XReturnCode(DOMDocument $xml): string
     {
         return DOMHelper::safeItemValue($this->queryH00XXpath($xml, '//header/mutable/ReturnCode'));
     }
 
-    /**
-     * Extract H00X > KeyManagementResponse > body > ReturnCode value from the DOM XML.
-     *
-     * @param DOMDocument $xml
-     *
-     * @return string
-     */
     public function retrieveH00XBodyReturnCode(DOMDocument $xml): string
     {
         return DOMHelper::safeItemValue($this->queryH00XXpath($xml, '//body/ReturnCode'));
     }
 
-    /**
-     * Extract H00X > KeyManagementResponse > header > mutable > ReportText value from the DOM XML.
-     *
-     * @param DOMDocument $xml
-     *
-     * @return string
-     */
     public function retrieveH00XReportText(DOMDocument $xml): string
     {
         return DOMHelper::safeItemValue($this->queryH00XXpath($xml, '//header/mutable/ReportText'));
@@ -126,14 +103,6 @@ abstract class ResponseHandler
         return DOMHelper::safeItemValueOrNull($this->queryH00XXpath($xml, '//body/DataTransfer/OrderData'));
     }
 
-    /**
-     * Extract H00X > ReturnCode value from both header and body.
-     * Sometimes (FrenchBank) header code is 00000 whereas body return isn't...
-     *
-     * @param DOMDocument $xml
-     *
-     * @return string
-     */
     public function retrieveH00XBodyOrHeaderReturnCode(DOMDocument $xml): string
     {
         $headerReturnCode = $this->retrieveH00XReturnCode($xml);
@@ -146,13 +115,6 @@ abstract class ResponseHandler
         return $bodyReturnCode;
     }
 
-    /**
-     * Extract H000 > SystemReturnCode > ReturnCode value from the DOM XML.
-     *
-     * @param DOMDocument $xml
-     *
-     * @return string
-     */
     public function retrieveH000ReturnCode(DOMDocument $xml): string
     {
         $xpath = $this->prepareH000XPath($xml);
@@ -161,13 +123,6 @@ abstract class ResponseHandler
         return DOMHelper::safeItemValue($returnCode);
     }
 
-    /**
-     * Extract H000 > SystemReturnCode > ReportText value from the DOM XML.
-     *
-     * @param DOMDocument $xml
-     *
-     * @return string
-     */
     public function retrieveH000ReportText(DOMDocument $xml): string
     {
         $xpath = $this->prepareH000XPath($xml);
@@ -176,11 +131,6 @@ abstract class ResponseHandler
         return DOMHelper::safeItemValue($reportText);
     }
 
-    /**
-     * Extract InitializationSegment from the DOM XML.
-     *
-     * @throws EbicsException
-     */
     public function extractInitializationSegment(Response $response, Keyring $keyring): InitializationSegment
     {
         $transactionKeyEncoded = $this->retrieveH00XTransactionKey($response);
@@ -210,9 +160,6 @@ abstract class ResponseHandler
         return $segment;
     }
 
-    /**
-     * Extract DownloadSegment from the DOM XML.
-     */
     public function extractDownloadSegment(Response $response): DownloadSegment
     {
         $transactionId = $this->retrieveH00XTransactionId($response);
@@ -234,9 +181,6 @@ abstract class ResponseHandler
         return $segment;
     }
 
-    /**
-     * Extract DownloadSegment from the DOM XML.
-     */
     abstract public function extractUploadSegment(Request $request, Response $response): UploadSegment;
 
     public function checkResponseReturnCode(Request $request, Response $response): void

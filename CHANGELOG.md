@@ -1,7 +1,6 @@
 ## 3.1
 
-* Documentation detailization.
-* Safety improvements.
+* Safety & Stability & Documentation improvements.
 
 ## 3.0
 

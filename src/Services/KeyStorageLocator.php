@@ -42,17 +42,6 @@ final class KeyStorageLocator implements KeyStorageLocatorInterface
         ];
     }
 
-    /**
-     * Find the appropriate storage implementation for a given key value.
-     *
-     * Determines the storage based on the type of the value (class name for objects,
-     * PHP type name for primitives). The type is used as a lookup key in the
-     * locateMap to find the matching KeyStorageInterface.
-     *
-     * @param mixed $value The value to find storage for (used to determine type)
-     *
-     * @return KeyStorageInterface The storage implementation for the value type
-     */
     public function locate($value): KeyStorageInterface
     {
         $type = is_object($value) ? get_class($value) : gettype($value);
@@ -60,13 +49,6 @@ final class KeyStorageLocator implements KeyStorageLocatorInterface
         return $this->locateMap[$type];
     }
 
-    /**
-     * Get a storage implementation by its registered key.
-     *
-     * @param string $key The registered type identifier (e.g., KeyStorageLocatorInterface::LOCATE_STRING)
-     *
-     * @return KeyStorageInterface The storage implementation
-     */
     public function get(string $key): KeyStorageInterface
     {
         return $this->locateMap[$key];

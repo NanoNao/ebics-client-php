@@ -39,9 +39,6 @@ final class UnstructuredPostalAddress implements PostalAddressInterface
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function toDomElement(\DOMDocument $doc): DOMElement
     {
         $xmlPstlAdr = $doc->createElement('PstlAdr');

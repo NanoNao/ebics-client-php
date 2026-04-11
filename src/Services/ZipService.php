@@ -2,6 +2,7 @@
 
 namespace EbicsApi\Ebics\Services;
 
+use EbicsApi\Ebics\Contracts\ZipServiceInterface;
 use EbicsApi\Ebics\Models\Buffer;
 use RuntimeException;
 use ZipArchive;
@@ -23,7 +24,7 @@ use ZipArchive;
  *
  * @internal This class is for internal use and may change without notice.
  */
-final class ZipService
+final class ZipService implements ZipServiceInterface
 {
     /**
      * Create a temporary file in the system temp directory.
@@ -40,19 +41,6 @@ final class ZipService
         return $path;
     }
 
-    /**
-     * Extract all files from a ZIP-compressed string.
-     *
-     * Creates a temporary file, writes the ZIP content to it, extracts all files
-     * using ZipArchive, then cleans up the temporary file.
-     *
-     * @param string $zippedContent Raw ZIP file content as binary string
-     *
-     * @return array<0|string, string|false> Associative array mapping file names to their content.
-     *                                       Keys are file names from the ZIP archive,
-     *                                       values are the file contents (or false on read error).
-     * @throws RuntimeException If the ZIP archive cannot be opened
-     */
     public function extractFilesFromString(string $zippedContent): array
     {
         // save content into temp file
@@ -78,18 +66,6 @@ final class ZipService
         return $fileContentItems;
     }
 
-    /**
-     * Decompress gzip-compressed data from a Buffer to another Buffer.
-     *
-     * Uses PHP's zlib.inflate filter to decompress data in streaming mode,
-     * which is memory-efficient for large data sets. Skips the first 2 bytes
-     * of the gzip header before inflation.
-     *
-     * @param Buffer $compressed Buffer containing the gzip-compressed data
-     * @param Buffer $uncompressed Buffer to write the decompressed data to
-     *
-     * @return void
-     */
     public function uncompress(Buffer $compressed, Buffer $uncompressed): void
     {
         // Skip metadata.
@@ -104,18 +80,6 @@ final class ZipService
         $uncompressed->rewind();
     }
 
-    /**
-     * Compress data using gzip compression.
-     *
-     * Uses PHP's gzcompress() function (zlib format, not gzip format)
-     * to compress the input data. This is used before sending order
-     * data to EBICS banks that expect compressed payloads.
-     *
-     * @param string $uncompressed The raw data to compress
-     *
-     * @return string The gzip-compressed data as binary string
-     * @throws RuntimeException If compression fails
-     */
     public function compress(string $uncompressed): string
     {
         if (!($compressed = gzcompress($uncompressed))) {

@@ -42,9 +42,6 @@ final class StructuredPostalAddress implements PostalAddressInterface
         $this->buildingNo = $buildingNo;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function toDomElement(\DOMDocument $doc): DOMElement
     {
         $xmlPstlAdr = $doc->createElement('PstlAdr');

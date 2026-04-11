@@ -2,6 +2,7 @@
 
 namespace EbicsApi\Ebics\Handlers;
 
+use EbicsApi\Ebics\Contracts\UserSignatureHandlerInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\XPathTrait;
@@ -19,7 +20,7 @@ use EbicsApi\Ebics\Services\SchemaValidator;
  *
  * @internal
  */
-abstract class UserSignatureHandler
+abstract class UserSignatureHandler implements UserSignatureHandlerInterface
 {
     use C14NTrait;
     use XPathTrait;
@@ -37,15 +38,6 @@ abstract class UserSignatureHandler
         $this->validator = $validator;
     }
 
-    /**
-     * Add body and children elements to request.
-     * Build signature value before added PartnerID and UserID.
-     *
-     * @param UserSignature $xml
-     * @param string $digest
-     *
-     * @throws EbicsException
-     */
     public function handle(UserSignature $xml, string $digest): void
     {
         $this->handleXml($xml, $digest);
