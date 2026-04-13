@@ -13,10 +13,10 @@ use EbicsApi\Ebics\Models\Crypt\Key;
  */
 final class Signature implements SignatureInterface
 {
-    private string $type;
-    private Key $publicKey;
-    private ?Key $privateKey;
-    private ?string $certificateContent;
+    private readonly string $type;
+    private readonly Key $publicKey;
+    private readonly ?Key $privateKey;
+    private ?string $certificateContent = null;
 
     /**
      * @param string $type
@@ -51,7 +51,7 @@ final class Signature implements SignatureInterface
      */
     public function getPrivateKey(): ?Key
     {
-        return $this->privateKey ?? null;
+        return $this->privateKey;
     }
 
     /**
@@ -67,6 +67,6 @@ final class Signature implements SignatureInterface
      */
     public function getCertificateContent(): ?string
     {
-        return $this->certificateContent ?? null;
+        return $this->certificateContent;
     }
 }

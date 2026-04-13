@@ -4,6 +4,7 @@ namespace EbicsApi\Ebics\Tests;
 
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
 use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
+use EbicsApi\Ebics\Contracts\LoggerInterface;
 use EbicsApi\Ebics\EbicsClient;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\Crypt\X509Factory;
@@ -13,6 +14,7 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\CustomerCreditTransfer;
 use EbicsApi\Ebics\Models\CustomerDirectDebit;
+use EbicsApi\Ebics\Models\EbicsClientOptions;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
@@ -39,32 +41,36 @@ abstract class AbstractEbicsTestCase extends TestCase
     protected function setupClientV24(
         int $credentialsId,
         bool $fake = false,
-        bool $debug = false
+        bool $debug = false,
+        ?LoggerInterface $logger = null
     ): EbicsClientInterface {
-        return $this->setupClient(Keyring::VERSION_24, $credentialsId, $fake, $debug);
+        return $this->setupClient(Keyring::VERSION_24, $credentialsId, $fake, $debug, $logger);
     }
 
     protected function setupClientV25(
         int $credentialsId,
         bool $fake = false,
-        bool $debug = false
+        bool $debug = false,
+        ?LoggerInterface $logger = null
     ): EbicsClientInterface {
-        return $this->setupClient(Keyring::VERSION_25, $credentialsId, $fake, $debug);
+        return $this->setupClient(Keyring::VERSION_25, $credentialsId, $fake, $debug, $logger);
     }
 
     protected function setupClientV30(
         int $credentialsId,
         bool $fake = false,
-        bool $debug = false
+        bool $debug = false,
+        ?LoggerInterface $logger = null
     ): EbicsClientInterface {
-        return $this->setupClient(Keyring::VERSION_30, $credentialsId, $fake, $debug);
+        return $this->setupClient(Keyring::VERSION_30, $credentialsId, $fake, $debug, $logger);
     }
 
     private function setupClient(
         string $version,
         int $credentialsId,
         bool $fake = false,
-        bool $debug = false
+        bool $debug = false,
+        ?LoggerInterface $logger = null
     ): EbicsClientInterface {
         $credentials = $this->credentialsDataProvider($credentialsId);
 
@@ -83,15 +89,19 @@ abstract class AbstractEbicsTestCase extends TestCase
             $keyring->setPassword($credentials['password']);
         }
 
-        $options = [];
+        $options = new EbicsClientOptions();
         if (true === $fake) {
-            $options['http_client'] = new FakerHttpClient($this->fixtures);
+            $options->setHttpClient(new FakerHttpClient($this->fixtures));
         }
         if (true === $debug) {
-            $options['http_client'] = new DebuggerHttpClient();
+            $options->setHttpClient(new DebuggerHttpClient());
         }
 
-        $options['schema_dir'] = $this->schema;
+        $options->setSchemaDir($this->schema);
+
+        if (null !== $logger) {
+            $options->setLogger($logger);
+        }
 
         $ebicsClient = new EbicsClient($bank, $user, $keyring, $options);
 

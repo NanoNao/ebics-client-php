@@ -10,9 +10,7 @@ use EbicsApi\Ebics\Builders\Request\RootBuilder;
 use EbicsApi\Ebics\Builders\Request\StaticBuilder;
 use EbicsApi\Ebics\Contexts\RequestContext;
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
-use EbicsApi\Ebics\Exceptions\MethodNotImplemented;
 use EbicsApi\Ebics\Models\Http\Request;
-use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\Order\DownloadOrder;
 
 /**

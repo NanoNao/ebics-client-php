@@ -24,6 +24,11 @@ abstract class Order implements OrderInterface
 
     protected UserSignatureHandler $userSignatureHandler;
 
+    public function getOrderType(): string
+    {
+        return substr(static::class, strrpos(static::class, '\\') + 1);
+    }
+
     public function useRequestFactory(RequestFactory $requestFactory): void
     {
         $this->requestFactory = $requestFactory;

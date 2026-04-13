@@ -32,36 +32,17 @@ use EbicsApi\Ebics\Services\ZipService;
  */
 abstract class RequestFactory
 {
-    protected Bank $bank;
-    protected User $user;
-    protected Keyring $keyring;
-    protected RequestBuilder $requestBuilder;
-    protected OrderDataHandler $orderDataHandler;
-    protected DigestResolver $digestResolver;
-    protected UserSignatureHandler $userSignatureHandler;
-    protected CryptService $cryptService;
-    protected ZipService $zipService;
-
     public function __construct(
-        Bank $bank,
-        User $user,
-        Keyring $keyring,
-        UserSignatureHandler $userSignatureHandler,
-        OrderDataHandler $orderDataHandler,
-        DigestResolver $digestResolver,
-        RequestBuilder $requestBuilder,
-        CryptService $cryptService,
-        ZipService $zipService
+        protected readonly Bank $bank,
+        protected readonly User $user,
+        protected readonly Keyring $keyring,
+        protected readonly UserSignatureHandler $userSignatureHandler,
+        protected readonly OrderDataHandler $orderDataHandler,
+        protected readonly DigestResolver $digestResolver,
+        protected readonly RequestBuilder $requestBuilder,
+        protected readonly CryptService $cryptService,
+        protected readonly ZipService $zipService
     ) {
-        $this->bank = $bank;
-        $this->user = $user;
-        $this->keyring = $keyring;
-        $this->userSignatureHandler = $userSignatureHandler;
-        $this->orderDataHandler = $orderDataHandler;
-        $this->digestResolver = $digestResolver;
-        $this->requestBuilder = $requestBuilder;
-        $this->cryptService = $cryptService;
-        $this->zipService = $zipService;
     }
 
     abstract public function createRequestBuilderInstance(): RequestBuilder;

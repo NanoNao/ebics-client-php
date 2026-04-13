@@ -5,7 +5,6 @@ namespace EbicsApi\Ebics\Services;
 use EbicsApi\Ebics\Contracts\Crypt\RSAInterface;
 use EbicsApi\Ebics\Contracts\CryptServiceInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
-use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Models\Buffer;
@@ -44,38 +43,17 @@ use RuntimeException;
 final class CryptService implements CryptServiceInterface
 {
     /**
-     * Factory for creating RSA crypt instances.
-     *
-     * @var RSAFactory
-     */
-    private RSAFactory $rsaFactory;
-
-    /**
-     * Factory for creating AES crypt instances.
-     *
-     * @var AESFactory
-     */
-    private AESFactory $aesFactory;
-
-    /**
-     * Service for generating random values.
-     *
-     * @var RandomService
-     */
-    private RandomService $randomService;
-
-    /**
      * CryptService constructor.
      *
      * @param RSAFactory $rsaFactory Factory for creating RSA instances
      * @param AESFactory $aesFactory Factory for creating AES instances
      * @param RandomService $randomService Service for generating random values
      */
-    public function __construct(RSAFactory $rsaFactory, AESFactory $aesFactory, RandomService $randomService)
-    {
-        $this->rsaFactory = $rsaFactory;
-        $this->aesFactory = $aesFactory;
-        $this->randomService = $randomService;
+    public function __construct(
+        private readonly RSAFactory $rsaFactory,
+        private readonly AESFactory $aesFactory,
+        private readonly RandomService $randomService
+    ) {
     }
 
     public function hash(string $text, string $algorithm = 'sha256', bool $binary = true): string

@@ -13,17 +13,11 @@ namespace EbicsApi\Ebics\Models\Crypt;
  */
 final class KeyPair
 {
-    private Key $publicKey;
-
-    private Key $privateKey;
-
-    private string $password;
-
-    public function __construct(Key $publicKey, Key $privateKey, string $password)
-    {
-        $this->publicKey = $publicKey;
-        $this->privateKey = $privateKey;
-        $this->password = $password;
+    public function __construct(
+        private readonly Key $publicKey,
+        private readonly Key $privateKey,
+        private readonly string $password
+    ) {
     }
 
     public function getPublicKey(): Key

@@ -31,18 +31,11 @@ use LogicException;
 final class FakerHttpClient implements HttpClientInterface
 {
     /**
-     * Directory containing XML fixture files for responses.
-     *
-     * @var string
-     */
-    private $fixturesDir;
-
-    /**
      * Order types that use extended fixture naming (order_type.file_format.xml).
      *
      * @var array<int, string>
      */
-    private $extendedOrderTypes;
+    private array $extendedOrderTypes;
 
     /**
      * Constructor.
@@ -51,10 +44,10 @@ final class FakerHttpClient implements HttpClientInterface
      * @param array<int, string>|null $extendedOrderTypes Order types using extended naming.
      *                                                     Default: ['FUL', 'FDL', 'BTU', 'BTD']
      */
-    public function __construct(string $fixturesDir, ?array $extendedOrderTypes = null)
-    {
-        $this->fixturesDir = $fixturesDir;
-
+    public function __construct(
+        private readonly string $fixturesDir,
+        ?array $extendedOrderTypes = null
+    ) {
         $this->extendedOrderTypes = $extendedOrderTypes ?? ['FUL', 'FDL', 'BTU', 'BTD'];
     }
 

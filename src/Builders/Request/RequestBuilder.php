@@ -15,15 +15,13 @@ use EbicsApi\Ebics\Services\SchemaValidator;
  */
 final class RequestBuilder
 {
-    private AuthSignatureHandler $authSignatureHandler;
     private ?Request $instance;
     private RootBuilder $rootBuilder;
-    private SchemaValidator $validator;
 
-    public function __construct(AuthSignatureHandler $authSignatureHandler, SchemaValidator $validator)
-    {
-        $this->authSignatureHandler = $authSignatureHandler;
-        $this->validator = $validator;
+    public function __construct(
+        private readonly AuthSignatureHandler $authSignatureHandler,
+        private readonly SchemaValidator $validator
+    ) {
     }
 
     public function createInstance(Closure $callback): RequestBuilder

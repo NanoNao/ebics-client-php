@@ -14,26 +14,18 @@ namespace EbicsApi\Ebics\Models\Crypt;
 final class Key
 {
     /**
-     * @var mixed|string
-     */
-    private $key;
-
-    private int $type;
-
-    /**
      * @param mixed|string $key
-     * @param int $type
      */
-    public function __construct($key, int $type)
-    {
-        $this->key = $key;
-        $this->type = $type;
+    public function __construct(
+        private readonly mixed $key,
+        private readonly int $type
+    ) {
     }
 
     /**
      * @return mixed|string
      */
-    public function getKey()
+    public function getKey(): mixed
     {
         return $this->key;
     }

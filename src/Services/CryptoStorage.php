@@ -26,20 +26,12 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 final class CryptoStorage
 {
     /**
-     * Locator that maps key types to storage implementations.
-     *
-     * @var KeyStorageLocatorInterface
-     */
-    private KeyStorageLocatorInterface $keyStorageLocator;
-
-    /**
      * Constructor.
      *
      * @param KeyStorageLocatorInterface $keyStorageLocator The locator for finding storage implementations
      */
-    public function __construct(KeyStorageLocatorInterface $keyStorageLocator)
+    public function __construct(private readonly KeyStorageLocatorInterface $keyStorageLocator)
     {
-        $this->keyStorageLocator = $keyStorageLocator;
     }
 
     /**

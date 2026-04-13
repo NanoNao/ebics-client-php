@@ -13,11 +13,8 @@ use DOMElement;
  */
 abstract class XmlBuilder
 {
-    protected DOMDocument $dom;
-
-    public function __construct(DOMDocument $dom)
+    public function __construct(protected readonly DOMDocument $dom)
     {
-        $this->dom = $dom;
     }
 
     /**

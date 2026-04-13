@@ -6,12 +6,26 @@ use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\Http\Response;
 
 /**
- * HTTP Client interface.
+ * HTTP Client interface for EBICS communication.
  *
- * Defines the contract for HTTP communication with EBICS bank servers.
- * This interface abstracts the transport layer, allowing different HTTP
- * client implementations (cURL, Guzzle, Symfony HttpClient, mock clients
- * for testing) to be swapped in without changing the core EBICS logic.
+ * This interface is conceptually inspired by PSR-18 (HTTP Client),
+ * which defines a standard contract for sending HTTP requests and receiving
+ * responses. However, this library intentionally does NOT implement PSR-18
+ * directly, as PSR-18 requires PSR-7 (HTTP Message) interfaces for Request
+ * and Response objects.
+ *
+ * Instead, HttpClientInterface uses the library's own Request/Response models
+ * (EbicsApi\Ebics\Models\Http\Request and Response), keeping the codebase
+ * fully self-contained with zero external dependencies.
+ *
+ * Key differences from PSR-18:
+ * - Uses custom Request/Response models instead of PSR-7 MessageInterface
+ * - Provides a convenience post() method instead of generic sendRequest()
+ * - Accepts a URL string directly instead of extracting URI from a Request object
+ *
+ * For projects that need PSR-18 compatibility, the library provides
+ * PsrHttpClient (src/Services/PsrHttpClient.php) which adapts any
+ * PSR-18 client to this interface.
  *
  * EBICS Protocol Context:
  * EBICS communication occurs over HTTPS POST requests. The client sends
@@ -24,6 +38,9 @@ use EbicsApi\Ebics\Models\Http\Response;
  *
  * For testing, fake implementations (e.g., FakerHttpClient) can return
  * fixture data instead of making real network calls.
+ *
+ * @see https://www.php-fig.org/psr/psr-18/ PSR-18: HTTP Client
+ * @see https://www.php-fig.org/psr/psr-7/ PSR-7: HTTP Message Interfaces
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin

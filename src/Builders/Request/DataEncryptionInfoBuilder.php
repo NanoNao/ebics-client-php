@@ -17,7 +17,7 @@ use EbicsApi\Ebics\Services\CryptService;
 final class DataEncryptionInfoBuilder extends XmlBuilder
 {
     private DOMElement $instance;
-    private CryptService $cryptService;
+    private readonly CryptService $cryptService;
 
     public function __construct(CryptService $cryptService, DOMDocument $dom)
     {

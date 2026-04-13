@@ -16,8 +16,8 @@ use EbicsApi\Ebics\Services\ZipService;
  */
 abstract class BodyBuilder extends XmlBuilder
 {
-    protected ZipService $zipService;
-    protected CryptService $cryptService;
+    protected readonly ZipService $zipService;
+    protected readonly CryptService $cryptService;
     protected DOMElement $instance;
 
     public function __construct(ZipService $zipService, CryptService $cryptService, DOMDocument $dom)

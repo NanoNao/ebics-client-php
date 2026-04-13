@@ -25,10 +25,6 @@ use Psr\Http\Message\StreamFactoryInterface;
  */
 final class PsrHttpClient extends HttpClient
 {
-    private ClientInterface $client;
-    private RequestFactoryInterface $requestFactory;
-    private StreamFactoryInterface $streamFactory;
-
     /**
      * Constructor.
      *
@@ -37,13 +33,10 @@ final class PsrHttpClient extends HttpClient
      * @param StreamFactoryInterface $streamFactory PSR-17 stream factory
      */
     public function __construct(
-        ClientInterface $client,
-        RequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory
+        private readonly ClientInterface $client,
+        private readonly RequestFactoryInterface $requestFactory,
+        private readonly StreamFactoryInterface $streamFactory
     ) {
-        $this->client = $client;
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
     }
 
     /**

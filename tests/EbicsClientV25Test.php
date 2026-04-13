@@ -21,6 +21,7 @@ use EbicsApi\Ebics\Orders\HTD;
 use EbicsApi\Ebics\Orders\INI;
 use EbicsApi\Ebics\Orders\PTK;
 use EbicsApi\Ebics\Orders\SPR;
+use EbicsApi\Ebics\Services\ArrayLogger;
 use Silarhi\Cfonb\CfonbParser;
 
 /**
@@ -118,8 +119,14 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
      */
     public function testHEV(int $credentialsId, array $codes): void
     {
-        $client = $this->setupClientV25($credentialsId, $codes['HEV']['fake']);
+        $logger = new ArrayLogger();
+        $client = $this->setupClientV25($credentialsId, $codes['HEV']['fake'], false, $logger);
         $hev = $client->executeStandardOrder(new HEV())->getResponse();
+
+        $infoRecords = $logger->recordsByLevel('info');
+        self::assertCount(2, $infoRecords);
+        self::assertEquals('start_standard_order', $infoRecords[0]['message']);
+        self::assertEquals('HEV', $infoRecords[0]['context']['order_type']);
 
         $responseHandler = $client->getResponseHandler();
         $code = $responseHandler->retrieveH000ReturnCode($hev);
@@ -140,7 +147,8 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
      */
     public function testINI(int $credentialsId, array $codes): void
     {
-        $client = $this->setupClientV25($credentialsId, $codes['INI']['fake']);
+        $logger = new ArrayLogger();
+        $client = $this->setupClientV25($credentialsId, $codes['INI']['fake'], false, $logger);
 
         // Check that keyring is empty and or wait on success or wait on exception.
         $userExists = $client->getKeyring()->getUserSignatureA();
@@ -150,6 +158,11 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
         }
         $ini = $client->executeStandardOrder(new INI())->getResponse();
         if (!$userExists) {
+            $infoRecords = $logger->recordsByLevel('info');
+            self::assertGreaterThanOrEqual(2, count($infoRecords));
+            self::assertEquals('start_standard_order', $infoRecords[0]['message']);
+            self::assertEquals('INI', $infoRecords[0]['context']['order_type']);
+
             $responseHandler = $client->getResponseHandler();
             $this->saveKeyring($credentialsId, $client->getKeyring());
             $code = $responseHandler->retrieveH00XReturnCode($ini);
@@ -204,11 +217,18 @@ class EbicsClientV25Test extends AbstractEbicsTestCase
      */
     public function testHPB(int $credentialsId, array $codes): void
     {
-        $client = $this->setupClientV25($credentialsId, $codes['HPB']['fake']);
+        $logger = new ArrayLogger();
+        $client = $this->setupClientV25($credentialsId, $codes['HPB']['fake'], false, $logger);
 
         $this->assertExceptionCode($codes['HPB']['code']);
 
         $hpb = $client->executeInitializationOrder(new HPB());
+
+        $infoRecords = $logger->recordsByLevel('info');
+        self::assertGreaterThanOrEqual(2, count($infoRecords));
+        self::assertEquals('start_initialization_order', $infoRecords[0]['message']);
+        self::assertEquals('HPB', $infoRecords[0]['context']['order_type']);
+        self::assertEquals('complete_initialization_order', end($infoRecords)['message']);
 
         $responseHandler = $client->getResponseHandler();
         $code = $responseHandler->retrieveH00XReturnCode(

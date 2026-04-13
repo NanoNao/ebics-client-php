@@ -30,8 +30,8 @@ abstract class RootBuilder extends XmlBuilder
         self::EBICS_HEV => false,
     ];
 
-    protected ZipService $zipService;
-    protected CryptService $cryptService;
+    protected readonly ZipService $zipService;
+    protected readonly CryptService $cryptService;
     protected DOMElement $instance;
 
     public function __construct(

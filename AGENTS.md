@@ -143,3 +143,16 @@ Pass `$fake = true` or `$debug = true` to `setupClient*()` to use `FakerHttpClie
 ## Notable Implementation Details
 
 - Classes marked `@internal` may change without notice.
+
+## Zero-Dependency Policy
+
+**The library must have zero external production dependencies.** This is a core design principle. Only PHP extensions are allowed in `require`.
+
+- `composer.json` `require` section may only contain `php ^8.5` and `ext-*` entries.
+- When a PSR interface is needed (e.g. PSR-3 Logger), copy it into `src/Contracts/`.
+- PSR-18 HTTP client: the library uses its own `HttpClientInterface` in `src/Contracts/` (not PSR-18).
+- PSR-3 Logger: `LoggerInterface` is defined in `src/Contracts/LoggerInterface.php`.
+
+## Logging
+
+The `EbicsClient` uses `LoggerInterface` (PSR-3 compatible) for logging transaction steps, HTTP requests, errors, and other important events.

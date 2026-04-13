@@ -18,8 +18,8 @@ use EbicsApi\Ebics\Services\ZipService;
 abstract class DataTransferBuilder extends XmlBuilder
 {
     protected DOMElement $instance;
-    protected ZipService $zipService;
-    protected CryptService $cryptService;
+    protected readonly ZipService $zipService;
+    protected readonly CryptService $cryptService;
 
     public function __construct(ZipService $zipService, CryptService $cryptService, DOMDocument $dom)
     {

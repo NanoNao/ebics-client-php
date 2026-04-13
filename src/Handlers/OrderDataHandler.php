@@ -30,24 +30,13 @@ abstract class OrderDataHandler implements OrderDataHandlerInterface
 {
     use H00XTrait;
 
-    private User $user;
-    protected CryptService $cryptService;
-    protected SignatureFactory $signatureFactory;
-    private CertificateX509Factory $certificateX509Factory;
-    protected BigIntegerFactory $bigIntegerFactory;
-
     public function __construct(
-        User $user,
-        CryptService $cryptService,
-        SignatureFactory $signatureFactory,
-        CertificateX509Factory $certificateX509Factory,
-        BigIntegerFactory $bigIntegerFactory
+        private readonly User $user,
+        protected readonly CryptService $cryptService,
+        protected readonly SignatureFactory $signatureFactory,
+        private readonly CertificateX509Factory $certificateX509Factory,
+        protected readonly BigIntegerFactory $bigIntegerFactory
     ) {
-        $this->user = $user;
-        $this->cryptService = $cryptService;
-        $this->signatureFactory = $signatureFactory;
-        $this->certificateX509Factory = $certificateX509Factory;
-        $this->bigIntegerFactory = $bigIntegerFactory;
     }
 
     abstract public function handleSignaturePubKey(

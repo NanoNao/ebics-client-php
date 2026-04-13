@@ -4,7 +4,6 @@ namespace EbicsApi\Ebics\Services;
 
 use DOMDocument;
 use DOMXPath;
-use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Contracts\SchemaValidatorInterface;
 use EbicsApi\Ebics\Exceptions\SchemaEbicsException;
 use Exception;
@@ -37,17 +36,14 @@ use Exception;
  */
 final class SchemaValidator implements SchemaValidatorInterface
 {
-    private ?string $schemaDir;
-
     /**
      * Constructor.
      *
      * @param string|null $schemaDir Path to the directory containing EBICS XSD schema files.
      *                               If null, validation is skipped. Expected path: `doc/schema/`.
      */
-    public function __construct(?string $schemaDir = null)
+    public function __construct(private readonly ?string $schemaDir = null)
     {
-        $this->schemaDir = $schemaDir;
     }
 
     public function validate($dom): void

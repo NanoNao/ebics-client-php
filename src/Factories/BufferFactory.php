@@ -14,11 +14,8 @@ use EbicsApi\Ebics\Models\Buffer;
  */
 final class BufferFactory
 {
-    private string $filename;
-
-    public function __construct(string $filename)
+    public function __construct(private readonly string $filename)
     {
-        $this->filename = $filename;
     }
 
     public function create(string $mode = 'w+'): Buffer

@@ -20,7 +20,7 @@ abstract class StaticBuilder extends XmlBuilder
     const SECURITY_MEDIUM_0200 = '0200';
 
     protected DOMElement $instance;
-    protected CryptService $cryptService;
+    protected readonly CryptService $cryptService;
 
     public function __construct(CryptService $cryptService, DOMDocument $dom)
     {

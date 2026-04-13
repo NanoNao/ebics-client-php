@@ -3,11 +3,8 @@
 namespace EbicsApi\Ebics\Handlers;
 
 use DOMDocument;
-use DOMNameSpaceNode;
 use DOMNode;
-use DOMNodeList;
 use EbicsApi\Ebics\Contracts\AuthSignatureHandlerInterface;
-use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Keyring;
@@ -27,13 +24,10 @@ abstract class AuthSignatureHandler implements AuthSignatureHandlerInterface
     use C14NTrait;
     use H00XTrait;
 
-    private Keyring $keyring;
-    private CryptService $cryptService;
-
-    public function __construct(Keyring $keyring, CryptService $cryptService)
-    {
-        $this->keyring = $keyring;
-        $this->cryptService = $cryptService;
+    public function __construct(
+        private readonly Keyring $keyring,
+        private readonly CryptService $cryptService
+    ) {
     }
 
     public function handle(DOMDocument $dom, ?DOMNode $xmlRequestHeader = null): void

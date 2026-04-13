@@ -21,11 +21,8 @@ use RuntimeException;
  */
 final class SignatureFactory
 {
-    private RSAFactory $rsaFactory;
-
-    public function __construct(RSAFactory $rsaFactory)
+    public function __construct(private readonly RSAFactory $rsaFactory)
     {
-        $this->rsaFactory = $rsaFactory;
     }
 
     /**

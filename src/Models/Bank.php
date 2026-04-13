@@ -19,12 +19,12 @@ final class Bank
     /**
      * The HostID of the bank.
      */
-    private string $hostId;
+    private readonly string $hostId;
 
     /**
      * The URL of the EBICS server.
      */
-    private string $url;
+    private readonly string $url;
 
     /**
      * The country code from supported list.

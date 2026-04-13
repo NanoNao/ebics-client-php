@@ -81,7 +81,7 @@ final class RequestContext
     private SignatureDataInterface $signatureData;
     private string $dataDigest;
     private string $signatureVersion;
-    private string $product;
+    private readonly string $product;
     private string $language;
     private ?OrderContextInterface $orderContext = null;
 

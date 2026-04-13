@@ -4,7 +4,6 @@ namespace EbicsApi\Ebics\Handlers;
 
 use DOMDocument;
 use EbicsApi\Ebics\Contracts\ResponseHandlerInterface;
-use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Factories\BufferFactory;
 use EbicsApi\Ebics\Factories\EbicsExceptionFactory;
 use EbicsApi\Ebics\Factories\SegmentFactory;
@@ -29,21 +28,12 @@ abstract class ResponseHandler implements ResponseHandlerInterface
 {
     use H00XTrait;
 
-    protected SegmentFactory $segmentFactory;
-    protected CryptService $cryptService;
-    protected ZipService $zipService;
-    protected BufferFactory $bufferFactory;
-
     public function __construct(
-        SegmentFactory $segmentFactory,
-        CryptService $cryptService,
-        ZipService $zipService,
-        BufferFactory $bufferFactory
+        protected readonly SegmentFactory $segmentFactory,
+        protected readonly CryptService $cryptService,
+        protected readonly ZipService $zipService,
+        protected readonly BufferFactory $bufferFactory
     ) {
-        $this->segmentFactory = $segmentFactory;
-        $this->cryptService = $cryptService;
-        $this->zipService = $zipService;
-        $this->bufferFactory = $bufferFactory;
     }
 
     public function retrieveH00XReturnCode(DOMDocument $xml): string

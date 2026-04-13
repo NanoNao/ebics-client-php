@@ -15,7 +15,7 @@ use EbicsApi\Ebics\Services\CryptService;
  */
 abstract class HeaderBuilder extends XmlBuilder
 {
-    protected CryptService $cryptService;
+    protected readonly CryptService $cryptService;
     protected DOMElement $instance;
 
     public function __construct(CryptService $cryptService, DOMDocument $dom)

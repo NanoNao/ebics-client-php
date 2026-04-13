@@ -3,7 +3,6 @@
 namespace EbicsApi\Ebics\Handlers;
 
 use EbicsApi\Ebics\Contracts\UserSignatureHandlerInterface;
-use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\XPathTrait;
 use EbicsApi\Ebics\Models\Keyring;
@@ -25,17 +24,12 @@ abstract class UserSignatureHandler implements UserSignatureHandlerInterface
     use C14NTrait;
     use XPathTrait;
 
-    protected User $user;
-    protected Keyring $keyring;
-    protected CryptService $cryptService;
-    protected SchemaValidator $validator;
-
-    public function __construct(User $user, Keyring $keyring, CryptService $cryptService, SchemaValidator $validator)
-    {
-        $this->user = $user;
-        $this->keyring = $keyring;
-        $this->cryptService = $cryptService;
-        $this->validator = $validator;
+    public function __construct(
+        protected readonly User $user,
+        protected readonly Keyring $keyring,
+        protected readonly CryptService $cryptService,
+        protected readonly SchemaValidator $validator
+    ) {
     }
 
     public function handle(UserSignature $xml, string $digest): void

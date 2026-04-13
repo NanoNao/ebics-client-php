@@ -25,11 +25,8 @@ use EbicsApi\Ebics\Contracts\SignatureInterface;
  */
 abstract class DigestResolver implements DigestResolverInterface
 {
-    protected CryptService $cryptService;
-
-    public function __construct(CryptService $cryptService)
+    public function __construct(protected readonly CryptService $cryptService)
     {
-        $this->cryptService = $cryptService;
     }
 
     abstract public function signDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string;

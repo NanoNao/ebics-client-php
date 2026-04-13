@@ -16,14 +16,14 @@ final class SignatureBankLetter
     const TYPE_X = 'X';
     const TYPE_E = 'E';
 
-    private string $type;
-    private string $version;
-    private string $exponent;
-    private string $modulus;
-    private string $keyHash;
-    private int $modulusSize;
+    private readonly string $type;
+    private readonly string $version;
+    private readonly string $exponent;
+    private readonly string $modulus;
+    private readonly string $keyHash;
+    private readonly int $modulusSize;
     private ?string $certificateContent = null;
-    private ?DateTime $certificateCreatedAt;
+    private ?DateTime $certificateCreatedAt = null;
 
     public function __construct(
         string $type,
@@ -102,7 +102,7 @@ final class SignatureBankLetter
      */
     public function getCertificateContent(): ?string
     {
-        return $this->certificateContent ?? null;
+        return $this->certificateContent;
     }
 
     /**
@@ -118,7 +118,7 @@ final class SignatureBankLetter
      */
     public function getCertificateCreatedAt(): ?DateTime
     {
-        return $this->certificateCreatedAt ?? null;
+        return $this->certificateCreatedAt;
     }
 
     /**

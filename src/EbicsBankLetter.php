@@ -32,9 +32,9 @@ use LogicException;
  */
 final class EbicsBankLetter
 {
-    private BankLetterService $bankLetterService;
-    private BankLetterFactory $bankLetterFactory;
-    private CryptService $cryptService;
+    private readonly BankLetterService $bankLetterService;
+    private readonly BankLetterFactory $bankLetterFactory;
+    private readonly CryptService $cryptService;
 
     /**
      * @param array<string, mixed> $options

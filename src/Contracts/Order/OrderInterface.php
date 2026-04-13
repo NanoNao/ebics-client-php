@@ -35,6 +35,16 @@ use EbicsApi\Ebics\Models\Http\Request;
 interface OrderInterface
 {
     /**
+     * Get the machine-readable order type name.
+     *
+     * Returns the order class short name (e.g. "HEV", "INI", "FDL", "FUL").
+     * Used for logging and diagnostic purposes.
+     *
+     * @return string Order type name
+     */
+    public function getOrderType(): string;
+
+    /**
      * Prepare the request context with order-specific parameters.
      *
      * EBICS Protocol Context:

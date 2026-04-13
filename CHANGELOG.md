@@ -1,5 +1,6 @@
 ## 3.1
 
+* Added Logger.
 * Safety & Stability & Documentation improvements.
 
 ## 3.0

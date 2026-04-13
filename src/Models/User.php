@@ -11,25 +11,15 @@ namespace EbicsApi\Ebics\Models;
 final class User
 {
     /**
-     * The assigned PartnerID (Kunden-ID).
-     */
-    private string $partnerId;
-
-    /**
-     * The assigned UserID (Teilnehmer-ID).
-     */
-    private string $userId;
-
-    /**
      * Constructor.
      *
      * @param string $partnerId
      * @param string $userId
      */
-    public function __construct(string $partnerId, string $userId)
-    {
-        $this->partnerId = $partnerId;
-        $this->userId = $userId;
+    public function __construct(
+        private readonly string $partnerId,
+        private readonly string $userId
+    ) {
     }
 
     /**

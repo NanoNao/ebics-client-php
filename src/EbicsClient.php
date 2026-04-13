@@ -3,7 +3,9 @@
 namespace EbicsApi\Ebics;
 
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
+use EbicsApi\Ebics\Contracts\EbicsClientOptionsInterface;
 use EbicsApi\Ebics\Contracts\HttpClientInterface;
+use EbicsApi\Ebics\Contracts\LoggerInterface;
 use EbicsApi\Ebics\Contracts\Order\DownloadOrderInterface;
 use EbicsApi\Ebics\Contracts\Order\InitializationOrderInterface;
 use EbicsApi\Ebics\Contracts\Order\StandardOrderInterface;
@@ -12,7 +14,6 @@ use EbicsApi\Ebics\Contracts\OrderDataInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Exceptions\EbicsResponseException;
-use EbicsApi\Ebics\Exceptions\IncorrectResponseEbicsException;
 use EbicsApi\Ebics\Exceptions\PasswordEbicsException;
 use EbicsApi\Ebics\Factories\BufferFactory;
 use EbicsApi\Ebics\Factories\CertificateX509Factory;
@@ -37,6 +38,7 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\DownloadSegment;
 use EbicsApi\Ebics\Models\DownloadTransaction;
+use EbicsApi\Ebics\Models\EbicsClientOptions;
 use EbicsApi\Ebics\Models\EmptyOrderData;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\Http\Response;
@@ -50,6 +52,7 @@ use EbicsApi\Ebics\Models\Order\UploadOrderResult;
 use EbicsApi\Ebics\Models\UploadTransaction;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\ContentX509Generator;
+use EbicsApi\Ebics\Services\ArrayLogger;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\CurlHttpClient;
 use EbicsApi\Ebics\Services\RandomService;
@@ -66,25 +69,26 @@ use LogicException;
  */
 final class EbicsClient implements EbicsClientInterface
 {
-    private Bank $bank;
-    private User $user;
-    private Keyring $keyring;
-    private OrderDataHandler $orderDataHandler;
-    private UserSignatureHandler $userSignatureHandler;
-    private ResponseHandler $responseHandler;
-    private RequestFactory $requestFactory;
-    private CryptService $cryptService;
-    private ZipService $zipService;
-    private XmlService $xmlService;
-    private DocumentFactory $documentFactory;
-    private OrderResultFactory $orderResultFactory;
-    private SignatureFactory $signatureFactory;
-    private HttpClientInterface $httpClient;
-    private TransactionFactory $transactionFactory;
-    private SegmentFactory $segmentFactory;
-    private BufferFactory $bufferFactory;
-    private RSAFactory $rsaFactory;
-    private SchemaValidator $schemaValidator;
+    private readonly Bank $bank;
+    private readonly User $user;
+    private readonly Keyring $keyring;
+    private readonly OrderDataHandler $orderDataHandler;
+    private readonly UserSignatureHandler $userSignatureHandler;
+    private readonly ResponseHandler $responseHandler;
+    private readonly RequestFactory $requestFactory;
+    private readonly CryptService $cryptService;
+    private readonly ZipService $zipService;
+    private readonly XmlService $xmlService;
+    private readonly DocumentFactory $documentFactory;
+    private readonly OrderResultFactory $orderResultFactory;
+    private readonly SignatureFactory $signatureFactory;
+    private readonly HttpClientInterface $httpClient;
+    private readonly TransactionFactory $transactionFactory;
+    private readonly SegmentFactory $segmentFactory;
+    private readonly BufferFactory $bufferFactory;
+    private readonly RSAFactory $rsaFactory;
+    private readonly SchemaValidator $schemaValidator;
+    private readonly LoggerInterface $logger;
 
     /**
      * Constructor.
@@ -92,9 +96,9 @@ final class EbicsClient implements EbicsClientInterface
      * @param Bank $bank
      * @param User $user
      * @param Keyring $keyring
-     * @param array<string, mixed> $options
+     * @param EbicsClientOptionsInterface|null $options
      */
-    public function __construct(Bank $bank, User $user, Keyring $keyring, array $options = [])
+    public function __construct(Bank $bank, User $user, Keyring $keyring, ?EbicsClientOptionsInterface $options = null)
     {
         $this->bank = $bank;
         $this->user = $user;
@@ -110,13 +114,17 @@ final class EbicsClient implements EbicsClientInterface
             throw new LogicException(sprintf('Version "%s" is not implemented', $keyring->getVersion()));
         }
 
-        $this->rsaFactory = new RSAFactory($options['rsa_class_map'] ?? null);
+        if (null === $options) {
+            $options = new EbicsClientOptions();
+        }
+
+        $this->rsaFactory = new RSAFactory($options->getRsaClassMap());
 
         $this->segmentFactory = new SegmentFactory();
         $this->cryptService = new CryptService($this->rsaFactory, new AESFactory(), new RandomService());
         $this->zipService = new ZipService();
         $this->signatureFactory = new SignatureFactory($this->rsaFactory);
-        $this->bufferFactory = new BufferFactory($options['buffer_filename'] ?? 'php://memory');
+        $this->bufferFactory = new BufferFactory($options->getBufferFilename());
 
         $this->orderDataHandler = $ebicsFactory->createOrderDataHandler(
             $user,
@@ -127,7 +135,7 @@ final class EbicsClient implements EbicsClientInterface
             new BigIntegerFactory()
         );
 
-        $this->schemaValidator = new SchemaValidator($options['schema_dir'] ?? null);
+        $this->schemaValidator = new SchemaValidator($options->getSchemaDir());
 
         $this->userSignatureHandler = $ebicsFactory->createUserSignatureHandler(
             $user,
@@ -159,7 +167,8 @@ final class EbicsClient implements EbicsClientInterface
         $this->documentFactory = new DocumentFactory();
         $this->orderResultFactory = new OrderResultFactory();
         $this->transactionFactory = new TransactionFactory();
-        $this->httpClient = $options['http_client'] ?? new CurlHttpClient();
+        $this->httpClient = $options->getHttpClient() ?? new CurlHttpClient();
+        $this->logger = $options->getLogger() ?? new ArrayLogger();
     }
 
     /**
@@ -180,11 +189,25 @@ final class EbicsClient implements EbicsClientInterface
         $order->useOrderDataHandler($this->orderDataHandler);
         $order->useUserSignatureHandler($this->userSignatureHandler);
         $order->prepareContext();
+
+        $orderType = $order->getOrderType();
+        $this->logger->info('start_initialization_order', [
+            'order_type' => $orderType,
+            'host_id' => $this->bank->getHostId(),
+            'partner_id' => $this->user->getPartnerId(),
+            'user_id' => $this->user->getUserId(),
+        ]);
+
         $transaction = $this->initializeTransaction(
             function () use ($order) {
                 return $order->createRequest();
             }
         );
+
+        $this->logger->info('complete_initialization_order', [
+            'order_type' => $orderType,
+        ]);
+
         $result = $this->createInitializationOrderResult($transaction);
         $order->afterExecute($result);
 
@@ -210,9 +233,23 @@ final class EbicsClient implements EbicsClientInterface
         $order->useOrderDataHandler($this->orderDataHandler);
         $order->useUserSignatureHandler($this->userSignatureHandler);
         $order->prepareContext();
+
+        $orderType = $order->getOrderType();
+        $this->logger->info('start_standard_order', [
+            'order_type' => $orderType,
+            'host_id' => $this->bank->getHostId(),
+            'partner_id' => $this->user->getPartnerId(),
+            'user_id' => $this->user->getUserId(),
+        ]);
+
         $request = $order->createRequest();
         $response = $this->httpClient->post($this->bank->getUrl(), $request);
         $this->responseHandler->checkResponseReturnCode($request, $response);
+
+        $this->logger->info('complete_standard_order', [
+            'order_type' => $orderType,
+        ]);
+
         $result = $this->createStandardOrderResult($response);
         $order->afterExecute($result);
 
@@ -238,12 +275,28 @@ final class EbicsClient implements EbicsClientInterface
         $order->useOrderDataHandler($this->orderDataHandler);
         $order->useUserSignatureHandler($this->userSignatureHandler);
         $order->prepareContext();
+
+        $orderType = $order->getOrderType();
+        $this->logger->info('start_download_order', [
+            'order_type' => $orderType,
+            'host_id' => $this->bank->getHostId(),
+            'partner_id' => $this->user->getPartnerId(),
+            'user_id' => $this->user->getUserId(),
+        ]);
+
         $transaction = $this->downloadTransaction(
             function () use ($order) {
                 return $order->createRequest();
             },
             $order->getContext()->getAckClosure()
         );
+
+        $this->logger->info('complete_download_order', [
+            'order_type' => $orderType,
+            'transaction_id' => $transaction->getId(),
+            'num_segments' => $transaction->getNumSegments(),
+        ]);
+
         $result = $this->createDownloadOrderResult($transaction, $order->getParserFormat());
         $order->afterExecute($result);
 
@@ -269,6 +322,15 @@ final class EbicsClient implements EbicsClientInterface
         $order->useOrderDataHandler($this->orderDataHandler);
         $order->useUserSignatureHandler($this->userSignatureHandler);
         $order->prepareContext();
+
+        $orderType = $order->getOrderType();
+        $this->logger->info('start_upload_order', [
+            'order_type' => $orderType,
+            'host_id' => $this->bank->getHostId(),
+            'partner_id' => $this->user->getPartnerId(),
+            'user_id' => $this->user->getUserId(),
+        ]);
+
         $transaction = $this->uploadTransaction(
             function (UploadTransaction $transaction) use ($order) {
                 $order->setTransaction($transaction);
@@ -291,6 +353,13 @@ final class EbicsClient implements EbicsClientInterface
                 return $order->createRequest();
             }
         );
+
+        $this->logger->info('complete_upload_order', [
+            'order_type' => $orderType,
+            'transaction_id' => $transaction->getInitialization()->getTransactionId(),
+            'num_segments' => $transaction->getNumSegments(),
+        ]);
+
         $result = $this->createUploadOrderResult($transaction, $order->getOrderData());
         $order->afterExecute($result);
 
@@ -305,6 +374,13 @@ final class EbicsClient implements EbicsClientInterface
      */
     public function createUserSignatures(?array $options = null): void
     {
+        $this->logger->info('create_user_signatures', [
+            'signature_a_version' => $options['a_version'] ?? SignatureInterface::A_VERSION6,
+            'host_id' => $this->bank->getHostId(),
+            'partner_id' => $this->user->getPartnerId(),
+            'user_id' => $this->user->getUserId(),
+        ]);
+
         $signatureA = $this->createUserSignature(SignatureInterface::TYPE_A, $options['a_details'] ?? null);
         $this->keyring->setUserSignatureAVersion($options['a_version'] ?? SignatureInterface::A_VERSION6);
         $this->keyring->setUserSignatureA($signatureA);
@@ -314,6 +390,12 @@ final class EbicsClient implements EbicsClientInterface
 
         $signatureX = $this->createUserSignature(SignatureInterface::TYPE_X, $options['x_details'] ?? null);
         $this->keyring->setUserSignatureX($signatureX);
+
+        $this->logger->info('user_signatures_created', [
+            'host_id' => $this->bank->getHostId(),
+            'partner_id' => $this->user->getPartnerId(),
+            'user_id' => $this->user->getUserId(),
+        ]);
     }
 
     /**
@@ -368,12 +450,21 @@ final class EbicsClient implements EbicsClientInterface
      */
     private function transferReceipt(DownloadTransaction $transaction, bool $acknowledged): void
     {
+        $this->logger->debug('send_transfer_receipt', [
+            'transaction_id' => $transaction->getId(),
+            'acknowledged' => $acknowledged,
+        ]);
+
         $request = $this->requestFactory->createTransferReceipt($transaction->getId(), $acknowledged);
         $response = $this->httpClient->post($this->bank->getUrl(), $request);
 
         $this->checkH00XReturnCode($request, $response);
 
         $transaction->setReceipt($response);
+
+        $this->logger->debug('transfer_receipt_sent', [
+            'transaction_id' => $transaction->getId(),
+        ]);
     }
 
     /**
@@ -404,7 +495,15 @@ final class EbicsClient implements EbicsClientInterface
      */
     private function transferTransfer(UploadTransaction $uploadTransaction): void
     {
+        $segmentCount = 0;
         foreach ($uploadTransaction->getSegments() as $segment) {
+            $segmentCount++;
+            $this->logger->debug('upload_transfer_segment', [
+                'transaction_id' => $segment->getTransactionId(),
+                'segment_number' => $segment->getSegmentNumber(),
+                'is_last_segment' => $segment->getIsLastSegment(),
+            ]);
+
             $request = $this->requestFactory->createTransferUpload(
                 $segment->getTransactionId(),
                 $segment->getTransactionKey(),
@@ -417,6 +516,11 @@ final class EbicsClient implements EbicsClientInterface
 
             $segment->setResponse($response);
         }
+
+        $this->logger->info('transfer_segments_uploaded', [
+            'transaction_id' => $uploadTransaction->getInitialization()->getTransactionId(),
+            'segment_count' => $segmentCount,
+        ]);
     }
 
     /**
@@ -465,6 +569,13 @@ final class EbicsClient implements EbicsClientInterface
         }
 
         $reportText = $this->responseHandler->retrieveH00XReportText($response);
+
+        $this->logger->error('ebics_response_error', [
+            'error_code' => $errorCode,
+            'report_text' => $reportText,
+            'url' => $this->bank->getUrl(),
+        ]);
+
         EbicsExceptionFactory::buildExceptionFromCode($errorCode, $reportText, $request, $response);
     }
 
@@ -494,12 +605,16 @@ final class EbicsClient implements EbicsClientInterface
      */
     private function initializeTransaction(callable $requestClosure): InitializationTransaction
     {
+        $this->logger->debug('create_initialization_transaction');
+
         $transaction = $this->transactionFactory->createInitializationTransaction();
 
         $request = call_user_func($requestClosure);
 
         $segment = $this->retrieveInitializationSegment($request);
         $transaction->setInitializationSegment($segment);
+
+        $this->logger->info('initialization_transaction_completed');
 
         return $transaction;
     }
@@ -528,9 +643,17 @@ final class EbicsClient implements EbicsClientInterface
      */
     private function retrieveInitializationSegment(Request $request): InitializationSegment
     {
+        $this->logger->debug('send_initialization_request', [
+            'url' => $this->bank->getUrl(),
+        ]);
+
         $response = $this->httpClient->post($this->bank->getUrl(), $request);
 
         $this->checkH00XReturnCode($request, $response);
+
+        $this->logger->debug('initialization_segment_received', [
+            'url' => $this->bank->getUrl(),
+        ]);
 
         return $this->responseHandler->extractInitializationSegment($response, $this->keyring);
     }
@@ -575,6 +698,10 @@ final class EbicsClient implements EbicsClientInterface
      */
     private function downloadTransaction(callable $requestClosure, ?callable $ackClosure = null): DownloadTransaction
     {
+        $this->logger->debug('init_download_transaction', [
+            'url' => $this->bank->getUrl(),
+        ]);
+
         $transaction = $this->transactionFactory->createDownloadTransaction();
 
         $segmentNumber = null;
@@ -606,6 +733,11 @@ final class EbicsClient implements EbicsClientInterface
             $lastSegment = $segment;
         }
 
+        $this->logger->info('download_segments_retrieved', [
+            'transaction_id' => $lastSegment->getTransactionId(),
+            'num_segments' => $lastSegment->getNumSegments(),
+        ]);
+
         $orderDataEncoded = $this->bufferFactory->create();
         foreach ($transaction->getSegments() as $segment) {
             $orderDataEncoded->write($segment->getOrderData());
@@ -635,6 +767,10 @@ final class EbicsClient implements EbicsClientInterface
 
         $transaction->setOrderData($orderData->readContent());
         unset($orderData);
+
+        $this->logger->debug('download_data_decrypted', [
+            'transaction_id' => $lastSegment->getTransactionId(),
+        ]);
 
         if (null !== $ackClosure) {
             $acknowledged = call_user_func_array($ackClosure, [$transaction]);
@@ -670,6 +806,10 @@ final class EbicsClient implements EbicsClientInterface
      */
     private function retrieveDownloadSegment(Request $request): DownloadSegment
     {
+        $this->logger->debug('download_segment', [
+            'url' => $this->bank->getUrl(),
+        ]);
+
         $response = $this->httpClient->post($this->bank->getUrl(), $request);
 
         $this->checkH00XReturnCode($request, $response);
@@ -715,6 +855,10 @@ final class EbicsClient implements EbicsClientInterface
      */
     private function uploadTransaction(callable $requestClosure): UploadTransaction
     {
+        $this->logger->debug('init_upload_transaction', [
+            'url' => $this->bank->getUrl(),
+        ]);
+
         $transaction = $this->transactionFactory->createUploadTransaction();
         $transaction->setKey($this->cryptService->generateTransactionKey());
 
@@ -725,6 +869,11 @@ final class EbicsClient implements EbicsClientInterface
 
         $uploadSegment = $this->responseHandler->extractUploadSegment($request, $response);
         $transaction->setInitialization($uploadSegment);
+
+        $this->logger->info('upload_transaction_initialized', [
+            'transaction_id' => $transaction->getInitialization()->getTransactionId(),
+            'num_segments' => $transaction->getNumSegments(),
+        ]);
 
         if ($transaction->getNumSegments() > 0) {
             foreach ($transaction->getOrderData() as $orderDataChunkId => $orderDataChunk) {
@@ -892,6 +1041,16 @@ final class EbicsClient implements EbicsClientInterface
     public function getResponseHandler(): ResponseHandler
     {
         return $this->responseHandler;
+    }
+
+    /**
+     * Get the PSR-3 logger instance.
+     *
+     * @return LoggerInterface The logger instance
+     */
+    public function getLogger(): LoggerInterface
+    {
+        return $this->logger;
     }
 
     /**

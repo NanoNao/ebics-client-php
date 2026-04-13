@@ -14,14 +14,10 @@ use EbicsApi\Ebics\Services\CryptoStorage;
  */
 final class KeyringFactory
 {
-    private SignatureFactory $signatureFactory;
-
-    private CryptoStorage $cryptoStorage;
-
-    public function __construct(SignatureFactory $signatureFactory, CryptoStorage $cryptoStorage)
-    {
-        $this->signatureFactory = $signatureFactory;
-        $this->cryptoStorage = $cryptoStorage;
+    public function __construct(
+        private readonly SignatureFactory $signatureFactory,
+        private readonly CryptoStorage $cryptoStorage
+    ) {
     }
 
     /**

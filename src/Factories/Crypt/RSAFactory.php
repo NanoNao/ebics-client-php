@@ -22,7 +22,7 @@ final class RSAFactory
     /**
      * @var array<int, class-string<RSAInterface>>
      */
-    private array $classMap;
+    private readonly array $classMap;
 
     /**
      * @param array<int, class-string<RSAInterface>> $classMap

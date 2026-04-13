@@ -31,10 +31,6 @@ use EbicsApi\Ebics\Models\SignatureBankLetter;
  */
 final class BankLetterService
 {
-    private CryptService $cryptService;
-    private SignatureBankLetterFactory $signatureBankLetterFactory;
-    private CertificateX509Factory $certificateX509Factory;
-
     /**
      * Constructor.
      *
@@ -43,13 +39,10 @@ final class BankLetterService
      * @param CertificateX509Factory $certificateX509Factory Factory for creating X.509 certificates
      */
     public function __construct(
-        CryptService $cryptService,
-        SignatureBankLetterFactory $signatureBankLetterFactory,
-        CertificateX509Factory $certificateX509Factory
+        private readonly CryptService $cryptService,
+        private readonly SignatureBankLetterFactory $signatureBankLetterFactory,
+        private readonly CertificateX509Factory $certificateX509Factory
     ) {
-        $this->cryptService = $cryptService;
-        $this->signatureBankLetterFactory = $signatureBankLetterFactory;
-        $this->certificateX509Factory = $certificateX509Factory;
     }
 
     /**
