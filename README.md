@@ -83,7 +83,7 @@ try {
     $client->executeStandardOrder(new \EbicsApi\Ebics\Orders\INI());
     /* @var \EbicsApi\Ebics\Services\FileKeyringManager $keyringManager */
     /* @var \EbicsApi\Ebics\Models\Keyring $keyring */
-    $keyringManager->saveKeyring($keyring, $keyringRealPath);
+    $keyringManager->saveKeyring($keyring, $keyringPath);
 } catch (EbicsResponseExceptionInterface $exception) {
     echo sprintf(
         "INI request failed. EBICS Error code : %s\nMessage : %s\nMeaning : %s",
@@ -95,7 +95,7 @@ try {
 
 try {
     $client->executeStandardOrder(new \EbicsApi\Ebics\Orders\HIA());
-    $keyringManager->saveKeyring($keyring, $keyringRealPath);
+    $keyringManager->saveKeyring($keyring, $keyringPath);
 } catch (EbicsResponseExceptionInterface $exception) {
     echo sprintf(
         "HIA request failed. EBICS Error code : %s\nMessage : %s\nMeaning : %s",
@@ -131,7 +131,7 @@ try {
     $client->executeInitializationOrder(new \EbicsApi\Ebics\Orders\HPB());
     /* @var \EbicsApi\Ebics\Services\FileKeyringManager $keyringManager */
     /* @var \EbicsApi\Ebics\Models\Keyring $keyring */
-    $keyringManager->saveKeyring($keyring, $keyringRealPath);
+    $keyringManager->saveKeyring($keyring, $keyringPath);
 } catch (EbicsResponseExceptionInterface $exception) {
     echo sprintf(
         "HPB request failed. EBICS Error code : %s\nMessage : %s\nMeaning : %s",
