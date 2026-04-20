@@ -40,4 +40,11 @@ interface EbicsClientOptionsInterface
      * Get the filename for buffer-based operations.
      */
     public function getBufferFilename(): string;
+
+    /**
+     * Get cURL options for CurlHttpClient.
+     *
+     * @return array<int, mixed> CURLOPT_* constants as keys
+     */
+    public function getCurlOptions(): array;
 }

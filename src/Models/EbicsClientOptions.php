@@ -25,6 +25,11 @@ final class EbicsClientOptions implements EbicsClientOptionsInterface
     public ?string $schemaDir = null;
     public string $bufferFilename = 'php://memory';
 
+    /**
+     * @var array<int, mixed> cURL options (CURLOPT_* constants as keys)
+     */
+    public array $curlOptions = [];
+
     public function getHttpClient(): ?HttpClientInterface
     {
         return $this->httpClient;
@@ -84,6 +89,24 @@ final class EbicsClientOptions implements EbicsClientOptionsInterface
     public function setBufferFilename(string $bufferFilename): self
     {
         $this->bufferFilename = $bufferFilename;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, mixed> CURLOPT_* constants as keys
+     */
+    public function getCurlOptions(): array
+    {
+        return $this->curlOptions;
+    }
+
+    /**
+     * @param array<int, mixed> $curlOptions CURLOPT_* constants as keys
+     */
+    public function setCurlOptions(array $curlOptions): self
+    {
+        $this->curlOptions = $curlOptions;
 
         return $this;
     }

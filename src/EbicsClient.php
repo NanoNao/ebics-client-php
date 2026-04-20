@@ -167,7 +167,9 @@ final class EbicsClient implements EbicsClientInterface
         $this->documentFactory = new DocumentFactory();
         $this->orderResultFactory = new OrderResultFactory();
         $this->transactionFactory = new TransactionFactory();
-        $this->httpClient = $options->getHttpClient() ?? new CurlHttpClient();
+        $this->httpClient = $options->getHttpClient() ?? new CurlHttpClient(
+            $options->getCurlOptions()
+        );
         $this->logger = $options->getLogger() ?? new ArrayLogger();
     }
 

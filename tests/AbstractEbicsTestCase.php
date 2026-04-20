@@ -103,6 +103,11 @@ abstract class AbstractEbicsTestCase extends TestCase
             $options->setLogger($logger);
         }
 
+        $options->setCurlOptions([
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+
         $ebicsClient = new EbicsClient($bank, $user, $keyring, $options);
 
         if ($credentials['hostIsCertified']) {
