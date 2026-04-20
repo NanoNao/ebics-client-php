@@ -34,7 +34,7 @@ interface EbicsClientOptionsInterface
     /**
      * Get the directory containing EBICS XSD schema files.
      */
-    public function getSchemaDir(): string;
+    public function getSchemaDir(): ?string;
 
     /**
      * Get the filename for buffer-based operations.

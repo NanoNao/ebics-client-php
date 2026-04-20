@@ -69,12 +69,12 @@ final class EbicsClientOptions implements EbicsClientOptionsInterface
         return $this;
     }
 
-    public function getSchemaDir(): string
+    public function getSchemaDir(): ?string
     {
         return $this->schemaDir;
     }
 
-    public function setSchemaDir(string $schemaDir): self
+    public function setSchemaDir(?string $schemaDir): self
     {
         $this->schemaDir = $schemaDir;
 
