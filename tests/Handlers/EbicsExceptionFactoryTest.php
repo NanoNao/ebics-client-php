@@ -8,26 +8,25 @@ use EbicsApi\Ebics\Exceptions\IncorrectResponseEbicsException;
 use EbicsApi\Ebics\Exceptions\InternalErrorException;
 use EbicsApi\Ebics\Factories\EbicsExceptionFactory;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Class EbicsExceptionFactoryTest.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Guillaume Sainthillier
- *
- * @group ebics-exception-factory
  */
+#[Group('ebics-exception-factory')]
 class EbicsExceptionFactoryTest extends AbstractEbicsTestCase
 {
-    /**
-     * @dataProvider getExceptions
-     */
+    #[DataProvider('getExceptions')]
     public function testExceptions(
         string $errorCode,
         ?string $errorText,
         string $expectedExceptionClass,
         ?string $meaning
-    ) {
+    ): void {
         try {
             EbicsExceptionFactory::buildExceptionFromCode($errorCode, $errorText);
         } catch (EbicsResponseException $exception) {

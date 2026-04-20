@@ -1,9 +1,6 @@
 # IntellijIdea files
 .idea
 
-# QWEN files
-.qwen
-
 # Composer
 composer.lock
 vendor

@@ -21,21 +21,36 @@ class PsrHttpClientTest extends TestCase
     {
         $responseContent = "<?xml version='1.0' encoding='utf-8'?><ResponseTest/>";
 
-        $streamFactory = $this->createMock(StreamFactoryInterface::class);
         $stream = $this->createMock(StreamInterface::class);
-        $stream->method('getContents')->willReturn($responseContent);
+        $streamFactory = $this->createMock(StreamFactoryInterface::class);
+        $streamFactory->expects($this->atLeast(1))
+            ->method('createStream')
+            ->willReturn($stream);
+        $stream->expects($this->atLeast(1))
+            ->method('getContents')
+            ->willReturn($responseContent);
 
         $response = $this->createMock(ResponseInterface::class);
-        $response->method('getBody')->willReturn($stream);
+        $response->expects($this->atLeast(1))
+            ->method('getBody')
+            ->willReturn($stream);
 
         $request = $this->createMock(RequestInterface::class);
 
-        $request->method('withHeader')->willReturn($request);
-        $request->method('withBody')->willReturn($request);
-        $request->method('getHeaders')->willReturn(['Content-Type' => ['text/xml; charset=UTF-8']]);
+        $request->expects($this->atLeast(1))
+            ->method('withHeader')
+            ->willReturn($request);
+        $request->expects($this->atLeast(1))
+            ->method('withBody')
+            ->willReturn($request);
+        $request->expects($this->atLeast(1))
+            ->method('getHeaders')
+            ->willReturn(['Content-Type' => ['text/xml; charset=UTF-8']]);
 
         $requestFactory = $this->createMock(RequestFactoryInterface::class);
-        $requestFactory->method('createRequest')->willReturn($request);
+        $requestFactory->expects($this->atLeast(1))
+            ->method('createRequest')
+            ->willReturn($request);
 
         $client = new PsrHttpClient(
             $psrClient = new class($response) implements ClientInterface {

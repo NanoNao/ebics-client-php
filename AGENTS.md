@@ -90,6 +90,8 @@ Xdebug is pre-installed and enabled (port 9003).
 
 ## Running Commands
 
+**CRITICAL: Agents MUST use Docker for all project-related commands (tests, linting, analysis, composer). The local environment does not have PHP installed.**
+
 All commands execute **inside Docker**:
 
 ```bash

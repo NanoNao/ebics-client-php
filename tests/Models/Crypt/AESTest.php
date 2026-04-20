@@ -86,12 +86,21 @@ class AESTest extends AbstractEbicsTestCase
         $ciphertext = $aes->encrypt($plaintext);
 
         $ciphertextBuffer = $this->createMock(BufferInterface::class);
-        $ciphertextBuffer->method('eof')
-            ->will($this->onConsecutiveCalls(false, true));
-        $ciphertextBuffer->method('read')
+        $eofCallCount = 0;
+        $ciphertextBuffer->expects($this->atLeast(1))
+            ->method('eof')
+            ->willReturnCallback(function () use (&$eofCallCount) {
+                return $eofCallCount++ > 0;
+            });
+        $ciphertextBuffer->expects($this->atLeast(1))
+            ->method('read')
             ->willReturn($ciphertext);
-        $ciphertextBuffer->method('length')
-            ->will($this->onConsecutiveCalls(strlen($ciphertext), 0, 0));
+        $lengthCallCount = 0;
+        $ciphertextBuffer->expects($this->atLeast(1))
+            ->method('length')
+            ->willReturnCallback(function () use ($ciphertext, &$lengthCallCount) {
+                return $lengthCallCount++ === 0 ? strlen($ciphertext) : 0;
+            });
 
         $plaintextBuffer = $this->createMock(BufferInterface::class);
         $plaintextBuffer->expects($this->once())

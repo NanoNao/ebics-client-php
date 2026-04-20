@@ -23,22 +23,21 @@ use EbicsApi\Ebics\Orders\INI;
 use EbicsApi\Ebics\Orders\PTK;
 use EbicsApi\Ebics\Orders\SPR;
 use EbicsApi\Ebics\Services\ArrayLogger;
+use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Class EbicsClientTest.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
- *
- * @group ebics-client
  */
+#[Group('ebics-client')]
 class EbicsClientV30Test extends AbstractEbicsTestCase
 {
-    /**
-     * @dataProvider serversDataProvider
-     *
-     * @group check-keyring
-     */
+    #[DataProvider('serversDataProvider')]
+    #[Group('check-keyring')]
     public function testCheckKeyring(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId);
@@ -51,11 +50,8 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
         $this->assertFalse($client->checkKeyring());
     }
 
-    /**
-     * @dataProvider serversDataProvider
-     *
-     * @group change-keyring-password
-     */
+    #[DataProvider('serversDataProvider')]
+    #[Group('change-keyring-password')]
     public function testChangeKeyringPassword(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId);
@@ -75,16 +71,13 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group INI-CUSTOM
-     * @group INI-V30-CUSTOM
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('INI-CUSTOM')]
+    #[Group('INI-V30-CUSTOM')]
+    #[CoversNothing]
     public function testINIWithCustomCrt(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['INI']['fake']);
@@ -131,17 +124,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HEV
-     * @group V3
-     * @group HEV-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HEV')]
+    #[Group('V3')]
+    #[Group('HEV-V3')]
+    #[CoversNothing]
     public function testHEV(int $credentialsId, array $codes): void
     {
         $logger = new ArrayLogger();
@@ -161,16 +151,13 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group INI
-     * @group INI-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('INI')]
+    #[Group('INI-V3')]
+    #[CoversNothing]
     public function testINI(int $credentialsId, array $codes): void
     {
         $logger = new ArrayLogger();
@@ -213,16 +200,13 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HIA
-     * @group HIA-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HIA')]
+    #[Group('HIA-V3')]
+    #[CoversNothing]
     public function testHIA(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['HIA']['fake']);
@@ -244,17 +228,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group H3K
-     * @group V3
-     * @group H3K-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('H3K')]
+    #[Group('V3')]
+    #[Group('H3K-V3')]
+    #[CoversNothing]
     public function testH3K(int $credentialsId, array $codes): void
     {
         if (false === isset($codes['H3K'])) {
@@ -282,17 +263,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     /**
      * Run first INI & HIA and Activate account in the bank panel.
      *
-     * @dataProvider serversDataProvider
-     *
-     * @group HPB
-     * @group V3
-     * @group HPB-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HPB')]
+    #[Group('V3')]
+    #[Group('HPB-V3')]
+    #[CoversNothing]
     public function testHPB(int $credentialsId, array $codes): void
     {
         $logger = new ArrayLogger();
@@ -320,16 +298,13 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group SPR
-     * @group SPR-V30
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('SPR')]
+    #[Group('SPR-V30')]
+    #[CoversNothing]
     public function testSPR(int $credentialsId, array $codes): void
     {
         $this->markTestSkipped('Avoid keyring suspension.');
@@ -350,17 +325,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HKD
-     * @group HKD-V3
-     * @group V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HKD')]
+    #[Group('HKD-V3')]
+    #[Group('V3')]
+    #[CoversNothing]
     public function testHKD(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['HKD']['fake']);
@@ -380,17 +352,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HPD
-     * @group V3
-     * @group HPD-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HPD')]
+    #[Group('V3')]
+    #[Group('HPD-V3')]
+    #[CoversNothing]
     public function testHPD(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['HPD']['fake']);
@@ -410,17 +379,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HAA
-     * @group V3
-     * @group HAA-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HAA')]
+    #[Group('V3')]
+    #[Group('HAA-V3')]
+    #[CoversNothing]
     public function testHAA(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['HAA']['fake']);
@@ -440,17 +406,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group PTK
-     * @group V3
-     * @group PTK-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('PTK')]
+    #[Group('V3')]
+    #[Group('PTK-V3')]
+    #[CoversNothing]
     public function testPTK(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['PTK']['fake']);
@@ -470,17 +433,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HAC
-     * @group V3
-     * @group HAC-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HAC')]
+    #[Group('V3')]
+    #[Group('HAC-V3')]
+    #[CoversNothing]
     public function testHAC(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['HAC']['fake']);
@@ -500,17 +460,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group BTD
-     * @group V3
-     * @group BTD-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('BTD')]
+    #[Group('V3')]
+    #[Group('BTD-V3')]
+    #[CoversNothing]
     public function testBTD(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['BTD']['fake']);
@@ -536,17 +493,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group BTU
-     * @group V3
-     * @group BTU-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('BTU')]
+    #[Group('V3')]
+    #[Group('BTU-V3')]
+    #[CoversNothing]
     public function testBTU(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['BTU']['fake']);
@@ -582,17 +536,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group BTU
-     * @group V3
-     * @group BTU-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('BTU')]
+    #[Group('V3')]
+    #[Group('BTU-V3')]
+    #[CoversNothing]
     public function testBTUv2(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['BTU']['fake']);
@@ -628,17 +579,14 @@ class EbicsClientV30Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group CSV
-     * @group V3
-     * @group CSV-V3
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('CSV')]
+    #[Group('V3')]
+    #[Group('CSV-V3')]
+    #[CoversNothing]
     public function testCSV(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV30($credentialsId, $codes['CSV']['fake']);

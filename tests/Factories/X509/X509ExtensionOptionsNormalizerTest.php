@@ -4,6 +4,7 @@ namespace EbicsApi\Ebics\Tests\Factories\X509;
 
 use EbicsApi\Ebics\Services\X509\X509OptionsNormalizer;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Legacy X509 certificate generator @see X509GeneratorInterface.
@@ -14,12 +15,11 @@ use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 class X509ExtensionOptionsNormalizerTest extends AbstractEbicsTestCase
 {
     /**
-     * @dataProvider getOptions
-     *
      * @param mixed $value
      * @param mixed $expected
      */
-    public function testOptions($value, $expected): void
+    #[DataProvider('getOptions')]
+    public function testOptions(mixed $value, mixed $expected): void
     {
         $actualValue = X509OptionsNormalizer::normalizeExtensions($value);
 

@@ -4,27 +4,26 @@ namespace EbicsApi\Ebics\Tests;
 
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
 use EbicsApi\Ebics\EbicsBankLetter;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Class EbicsBankLetterTest.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
- *
- * @group ebics-bank-letter
  */
+#[Group('ebics-bank-letter')]
 class EbicsBankLetterTest extends AbstractEbicsTestCase
 {
     /**
      * Prepare bank letter in txt format.
      *
-     * @dataProvider clientsDataProvider
-     *
-     * @group prepare-bank-letter-txt
-     *
      * @param int $credentialsId
      * @param string $version
      */
+    #[DataProvider('clientsDataProvider')]
+    #[Group('prepare-bank-letter-txt')]
     public function testPrepareBankLetterTxt(int $credentialsId, string $version)
     {
         $client = $this->setupClientFromProvider($credentialsId, $version);
@@ -44,13 +43,11 @@ class EbicsBankLetterTest extends AbstractEbicsTestCase
     /**
      * Prepare bank letter in html format.
      *
-     * @dataProvider clientsDataProvider
-     *
-     * @group prepare-bank-letter-html
-     *
      * @param int $credentialsId
      * @param string $version
      */
+    #[DataProvider('clientsDataProvider')]
+    #[Group('prepare-bank-letter-html')]
     public function testPrepareBankLetterHtml(int $credentialsId, string $version)
     {
         $client = $this->setupClientFromProvider($credentialsId, $version);
@@ -70,13 +67,11 @@ class EbicsBankLetterTest extends AbstractEbicsTestCase
     /**
      * Prepare bank letter in pdf format.
      *
-     * @dataProvider clientsDataProvider
-     *
-     * @group prepare-bank-letter-pdf
-     *
      * @param int $credentialsId
      * @param string $version
      */
+    #[DataProvider('clientsDataProvider')]
+    #[Group('prepare-bank-letter-pdf')]
     public function testPrepareBankLetterPdf(int $credentialsId, string $version)
     {
         $client = $this->setupClientFromProvider($credentialsId, $version);

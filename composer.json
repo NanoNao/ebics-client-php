@@ -35,8 +35,8 @@
     "require-dev": {
         "ebics-api/cfonb-php": "^1.0",
         "ebics-api/mt942-php": "^1.0",
-        "phpstan/phpstan": "~2.1.42",
-        "phpunit/phpunit": "~10.5.63",
+        "phpstan/phpstan": "~2.1.50",
+        "phpunit/phpunit": "~13.1.7",
         "psr/http-client": "^1.0",
         "psr/http-factory": "^1.1",
         "setasign/fpdf": "^1.8",

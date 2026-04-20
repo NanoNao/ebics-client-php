@@ -15,6 +15,8 @@ use EbicsApi\Ebics\Orders\HIA;
 use EbicsApi\Ebics\Orders\HPB;
 use EbicsApi\Ebics\Orders\INI;
 use EbicsApi\Ebics\Services\ArrayLogger;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Silarhi\Cfonb\CfonbParser;
 
 /**
@@ -22,22 +24,17 @@ use Silarhi\Cfonb\CfonbParser;
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
- *
- * @group ebics-client
  */
+#[Group('ebics-client')]
 class EbicsClientV24Test extends AbstractEbicsTestCase
 {
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HEV
-     * @group HEV-V24
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HEV')]
+    #[Group('HEV-V24')]
     public function testHEV(int $credentialsId, array $codes): void
     {
         $logger = new ArrayLogger();
@@ -58,16 +55,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HEV
-     * @group HEV-V24
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HEV')]
+    #[Group('HEV-V24')]
     public function testHEVDebug(int $credentialsId, array $codes): void
     {
         $client = $this->setupClientV24($credentialsId, $codes['HEV']['fake'], true);
@@ -77,16 +70,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group INI
-     * @group INI-V24
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('INI')]
+    #[Group('INI-V24')]
     public function testINI(int $credentialsId, array $codes): void
     {
         $logger = new ArrayLogger();
@@ -115,16 +104,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group HIA
-     * @group HIA-V24
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HIA')]
+    #[Group('HIA-V24')]
     public function testHIA(int $credentialsId, array $codes): void
     {
         $logger = new ArrayLogger();
@@ -155,16 +140,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
     /**
      * Run first HIA and Activate account in bank panel.
      *
-     * @dataProvider serversDataProvider
-     *
-     * @group HPB
-     * @group HPB-V24
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('HPB')]
+    #[Group('HPB-V24')]
     public function testHPB(int $credentialsId, array $codes): void
     {
         $logger = new ArrayLogger();
@@ -195,16 +176,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group FDL
-     * @group FDL-V24
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('FDL')]
+    #[Group('FDL-V24')]
     public function testFDL(int $credentialsId, array $codes): void
     {
         foreach ($codes['FDL'] as $fileFormat => $code) {
@@ -262,16 +239,12 @@ class EbicsClientV24Test extends AbstractEbicsTestCase
     }
 
     /**
-     * @dataProvider serversDataProvider
-     *
-     * @group FUL
-     * @group FUL-V24
-     *
      * @param int $credentialsId
      * @param array $codes
-     *
-     * @covers
      */
+    #[DataProvider('serversDataProvider')]
+    #[Group('FUL')]
+    #[Group('FUL-V24')]
     public function testFUL(int $credentialsId, array $codes)
     {
         $documentFactory = new DocumentFactory();
