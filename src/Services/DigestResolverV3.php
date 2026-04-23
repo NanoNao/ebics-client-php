@@ -24,7 +24,7 @@ final class DigestResolverV3 extends DigestResolver
     public function signDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string
     {
         return $this->cryptService->calculateCertificateFingerprint(
-            $signature->getCertificateContent(),
+            $signature->getCertificateContent() ?? '',
             $algorithm
         );
     }
@@ -33,7 +33,7 @@ final class DigestResolverV3 extends DigestResolver
     {
         return bin2hex(
             $this->cryptService->calculateCertificateFingerprint(
-                $signature->getCertificateContent(),
+                $signature->getCertificateContent() ?? '',
                 $algorithm
             )
         );

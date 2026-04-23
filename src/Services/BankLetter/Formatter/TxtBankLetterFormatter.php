@@ -58,7 +58,7 @@ final class TxtBankLetterFormatter extends LetterFormatter
     {
         return sprintf(
             "{$this->translations['certificate']}:\n%s",
-            $this->formatCertificateContent($certificateBankLetter->getCertificateContent())
+            $this->formatCertificateContent($certificateBankLetter->getCertificateContent() ?? '')
         );
     }
 

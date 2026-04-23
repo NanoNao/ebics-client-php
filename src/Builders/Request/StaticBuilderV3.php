@@ -17,7 +17,9 @@ final class StaticBuilderV3 extends StaticBuilder
         $orderDetailsBuilder = new OrderDetailsBuilderV3($this->dom);
         $this->instance->appendChild($orderDetailsBuilder->createInstance()->getInstance());
 
-        call_user_func($callable, $orderDetailsBuilder);
+        if ($callable !== null) {
+            $callable($orderDetailsBuilder);
+        }
 
         return $this;
     }

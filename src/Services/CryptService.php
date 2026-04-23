@@ -70,8 +70,11 @@ final class CryptService implements CryptServiceInterface
         if (!($signatureE = $keyring->getUserSignatureE())) {
             throw new RuntimeException('Signature E is not set.');
         }
-
-        $rsa = $this->rsaFactory->createPrivate($signatureE->getPrivateKey(), $keyring->getPassword());
+        $privateKey = $signatureE->getPrivateKey();
+        if ($privateKey === null) {
+            throw new RuntimeException('Signature E private key is not set.');
+        }
+        $rsa = $this->rsaFactory->createPrivate($privateKey, $keyring->getPassword());
         $transactionKeyDecrypted = $rsa->decrypt($transactionKey);
 
         $this->decryptByKey($transactionKeyDecrypted, $orderDataEncrypted, $orderDataCompressed);

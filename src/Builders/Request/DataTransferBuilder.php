@@ -63,7 +63,9 @@ abstract class DataTransferBuilder extends XmlBuilder
         $dataEncryptionInfoBuilder = new DataEncryptionInfoBuilder($this->cryptService, $this->dom);
         $this->instance->appendChild($dataEncryptionInfoBuilder->createInstance()->getInstance());
 
-        call_user_func($callable, $dataEncryptionInfoBuilder);
+        if ($callable !== null) {
+            $callable($dataEncryptionInfoBuilder);
+        }
 
         return $this;
     }

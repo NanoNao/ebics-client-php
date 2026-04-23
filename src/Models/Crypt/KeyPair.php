@@ -11,7 +11,7 @@ namespace EbicsApi\Ebics\Models\Crypt;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-final class KeyPair
+readonly final class KeyPair
 {
     public function __construct(
         private readonly Key $publicKey,

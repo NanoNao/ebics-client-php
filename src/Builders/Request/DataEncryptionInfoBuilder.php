@@ -72,8 +72,12 @@ final class DataEncryptionInfoBuilder extends XmlBuilder
 
     public function addTransactionKey(string $transactionKey, Keyring $keyring): DataEncryptionInfoBuilder
     {
+        $bankSignatureE = $keyring->getBankSignatureE();
+        if ($bankSignatureE === null) {
+            throw new SignatureEbicsException('Bank Certificate E is empty.');
+        }
         $transactionKeyEncrypted = $this->cryptService->encryptTransactionKey(
-            $keyring->getBankSignatureE()->getPublicKey(),
+            $bankSignatureE->getPublicKey(),
             $transactionKey
         );
         $transactionKeyNodeValue = base64_encode($transactionKeyEncrypted);

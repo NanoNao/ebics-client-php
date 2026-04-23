@@ -87,7 +87,9 @@ final class DOMHelper
     {
         $domNode = self::safeItem($domNodeList);
 
-        return $domNode->nodeValue;
+        $value = $domNode->nodeValue;
+
+        return $value ?? '';
     }
 
     /**
@@ -114,6 +116,8 @@ final class DOMHelper
             return null;
         }
 
-        return $domNode->nodeValue;
+        $value = $domNode->nodeValue;
+
+        return $value ?? '';
     }
 }

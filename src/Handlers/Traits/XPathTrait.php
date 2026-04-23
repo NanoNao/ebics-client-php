@@ -65,10 +65,14 @@ trait XPathTrait
     protected function insertAfter(DOMNode $newNode, DOMNode $afterNode): void
     {
         $nextSibling = $afterNode->nextSibling;
+        $parentNode = $afterNode->parentNode;
+        if ($parentNode === null) {
+            return;
+        }
         if ($newNode !== $nextSibling) {
-            $afterNode->parentNode->insertBefore($newNode, $nextSibling);
+            $parentNode->insertBefore($newNode, $nextSibling);
         } else {
-            $afterNode->parentNode->appendChild($newNode);
+            $parentNode->appendChild($newNode);
         }
     }
 }

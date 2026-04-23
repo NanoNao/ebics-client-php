@@ -16,6 +16,7 @@ use EbicsApi\Ebics\Services\SchemaValidator;
 final class RequestBuilder
 {
     private ?Request $instance;
+
     private RootBuilder $rootBuilder;
 
     public function __construct(
@@ -28,58 +29,76 @@ final class RequestBuilder
     {
         $this->instance = new Request();
 
-        $this->rootBuilder = call_user_func($callback, $this->instance);
+        $this->rootBuilder = $callback($this->instance);
 
         return $this;
     }
 
     public function addContainerUnsecured(Closure $callback): RequestBuilder
     {
+        if ($this->instance === null) {
+            throw new \RuntimeException('Request instance not created.');
+        }
         $this->instance->appendChild($this->rootBuilder->createUnsecured()->getInstance());
 
-        call_user_func($callback, $this->rootBuilder);
+        $callback($this->rootBuilder);
 
         return $this;
     }
 
     public function addContainerSecuredNoPubKeyDigests(Closure $callback): RequestBuilder
     {
+        if ($this->instance === null) {
+            throw new \RuntimeException('Request instance not created.');
+        }
         $this->instance->appendChild($this->rootBuilder->createSecuredNoPubKeyDigests()->getInstance());
 
-        call_user_func($callback, $this->rootBuilder);
+        $callback($this->rootBuilder);
 
         return $this;
     }
 
     public function addContainerSecured(Closure $callback): RequestBuilder
     {
+        if ($this->instance === null) {
+            throw new \RuntimeException('Request instance not created.');
+        }
         $this->instance->appendChild($this->rootBuilder->createSecured()->getInstance());
 
-        call_user_func($callback, $this->rootBuilder);
+        $callback($this->rootBuilder);
 
         return $this;
     }
 
     public function addContainerUnsigned(Closure $callback): RequestBuilder
     {
+        if ($this->instance === null) {
+            throw new \RuntimeException('Request instance not created.');
+        }
         $this->instance->appendChild($this->rootBuilder->createUnsigned()->getInstance());
 
-        call_user_func($callback, $this->rootBuilder);
+        $callback($this->rootBuilder);
 
         return $this;
     }
 
     public function addContainerHEV(Closure $callback): RequestBuilder
     {
+        if ($this->instance === null) {
+            throw new \RuntimeException('Request instance not created.');
+        }
         $this->instance->appendChild($this->rootBuilder->createHEV()->getInstance());
 
-        call_user_func($callback, $this->rootBuilder);
+        $callback($this->rootBuilder);
 
         return $this;
     }
 
     public function popInstance(): Request
     {
+        if ($this->instance === null) {
+            throw new \RuntimeException('Request instance not created.');
+        }
         if ($this->rootBuilder->isSecured($this->instance->documentElement->tagName)) {
             $this->authSignatureHandler->handle($this->instance);
         }

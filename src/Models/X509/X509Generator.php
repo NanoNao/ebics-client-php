@@ -132,9 +132,17 @@ abstract class X509Generator implements X509GeneratorInterface
         ], false);
         $options = $context->getCertificateOptions();
 
+        $issuerPrivateKey = $context->getIssuerPrivateKey();
+        $issuerPublicKey = $context->getIssuerPublicKey();
+        if ($issuerPrivateKey === null) {
+            throw new \RuntimeException('Issuer private key is not set.');
+        }
+        if ($issuerPublicKey === null) {
+            throw new \RuntimeException('Issuer public key is not set.');
+        }
         $x509 = $this->x509Factory->create();
-        $x509->setPrivateKey($context->getIssuerPrivateKey());
-        $x509->setPublicKey($context->getIssuerPublicKey());
+        $x509->setPrivateKey($issuerPrivateKey);
+        $x509->setPublicKey($issuerPublicKey);
 
         $x509->setDN($options['issuer']['DN']);
         $x509->setKeyIdentifier($x509->computeKeyIdentifier($context->getIssuerPublicKey()));

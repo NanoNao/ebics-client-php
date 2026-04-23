@@ -25,8 +25,9 @@ abstract class XmlBuilder
         array $attributes = [],
         ?string $namespace = null
     ): DOMElement {
+        $namespaceUri = $this->dom->documentElement?->namespaceURI;
         $element = $this->dom->createElementNS(
-            $namespace ?? $this->dom->documentElement->namespaceURI,
+            $namespace ?? $namespaceUri,
             $qualifiedName
         );
 

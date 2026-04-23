@@ -157,7 +157,7 @@ EOF;
         if ($certificateBankLetter->isCertified()) {
             return <<<EOF
     <h4>{$this->translations['certificate']}</h4>
-    <pre>{$this->formatCertificateContent($certificateBankLetter->getCertificateContent())}</pre>
+    <pre>{$this->formatCertificateContent($certificateBankLetter->getCertificateContent() ?? '')}</pre>
 EOF;
         }
 

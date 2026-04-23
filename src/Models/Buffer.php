@@ -18,10 +18,7 @@ use RuntimeException;
  */
 final class Buffer implements BufferInterface
 {
-    /**
-     * @var resource
-     */
-    private $stream;
+    private mixed $stream = null;
 
     private int $length = 0;
 
@@ -50,8 +47,9 @@ final class Buffer implements BufferInterface
 
     public function close(): void
     {
-        if (is_resource($this->stream)) {
+        if (null !== $this->stream) {
             fclose($this->stream);
+            $this->stream = null;
         }
     }
 

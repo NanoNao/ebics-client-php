@@ -105,7 +105,7 @@ final class PdfBankLetterFormatter extends LetterFormatter
         if ($signatureBankLetter->isCertified()) {
             $pdf->h($this->translations['certificate'], 9, 255, 140);
 
-            $certificateContent = $this->formatCertificateContent($signatureBankLetter->getCertificateContent());
+            $certificateContent = $this->formatCertificateContent($signatureBankLetter->getCertificateContent() ?? '');
             foreach (str_split($certificateContent, 64) as $line) {
                 $pdf->pre($line);
             }

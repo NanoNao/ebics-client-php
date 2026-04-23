@@ -19,7 +19,7 @@ final class X509Context
     private DateTimeInterface $startDate;
     private DateTimeInterface $endDate;
     private RSAInterface $subjectPublicKey;
-    private RSAInterface $issuerPublicKey;
+    private ?RSAInterface $issuerPublicKey = null;
     private ?RSAInterface $issuerPrivateKey = null;
     /** @var array<string, mixed> */
     private array $certificateOptions = [];
@@ -76,7 +76,7 @@ final class X509Context
         $this->issuerPublicKey = $issuerPublicKey;
     }
 
-    public function getIssuerPublicKey(): RSAInterface
+    public function getIssuerPublicKey(): ?RSAInterface
     {
         return $this->issuerPublicKey;
     }

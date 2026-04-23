@@ -150,7 +150,8 @@ final class FakerHttpClient implements HttpClientInterface
     protected function fixtureFileName(string $orderType, ?array $options = null): string
     {
         if (in_array($orderType, $this->extendedOrderTypes)) {
-            $fileName = sprintf(strtolower($orderType) . '.%s.xml', strtolower($options['file_format']));
+            $fileFormat = $options['file_format'] ?? '';
+            $fileName = sprintf(strtolower($orderType) . '.%s.xml', strtolower($fileFormat));
         } else {
             $fileName = strtolower($orderType) . '.xml';
         }
