@@ -19,6 +19,15 @@ Get your <a href="https://sites.google.com/view/ebics-api-client" target="_blank
 Explore the <a href="https://tinyurl.com/safe-ebics" target="_blank">DEMO</a> to see if it meets your needs.
 Ideal for fintechs, ERPs, payment processors, and enterprises needing a robust EBICS integration.
 
+### (Premium) Dummy EBICS Server
+
+| Key            | Value                               |
+|----------------|-------------------------------------|
+| **URL**        | https://localhost/ebics-server-stub |
+| **Host ID**    | EBICSSTUB                           |
+| **Partner ID** | P07                                 |
+| **User ID**    | U07                                 |
+
 ## License
 
 ebics-api/ebics-client-php is licensed under the MIT License, see the LICENSE file for details
