@@ -11,22 +11,52 @@ PHP library to communicate with a bank through <a href="https://en.wikipedia.org
 PHP EBICS Client - https://ebics-api.github.io/ebics-client-php/  
 Supported EBICS versions: 2.4, 2.5, 3.0; Encryption versions: E002, X002, A005, A006; Switching EBICS T/TS
 
+---
+
 # 💥 (Premium) EBICS API Client
 
 <a href="https://youtu.be/S14Qkt5m0NI" target="_blank"><img src="./doc/ebics_api_client.gif" width="300"></a>
 
-Get your <a href="https://sites.google.com/view/ebics-api-client" target="_blank">EBICS API Client</a> standalone microservice for the easiest EBICS integration.
-Explore the <a href="https://tinyurl.com/safe-ebics" target="_blank">DEMO</a> to see if it meets your needs.
-Ideal for fintechs, ERPs, payment processors, and enterprises needing a robust EBICS integration.
+<a href="https://sites.google.com/view/ebics-api-client" target="_blank">EBICS API Client</a> is a standalone microservice that wraps this library into a ready-to-deploy banking integration solution.
+Ideal for fintechs, ERPs, payment processors, and enterprises needing a robust EBICS integration without building and maintaining the client layer yourself.
 
-### (Premium) Dummy EBICS Server
+### Premium Features
 
-| Key            | Value                               |
-|----------------|-------------------------------------|
-| **URL**        | https://localhost/ebics-server-stub |
-| **Host ID**    | EBICSSTUB                           |
-| **Partner ID** | P07                                 |
-| **User ID**    | U07                                 |
+- **🚀 Instant deployment** — Docker-based microservice, deploy in minutes.
+- **🔌 REST API** — Complete EBICS operations via simple HTTP calls. No PHP expertise needed.
+- **🧪 Dummy EBICS Server** — Develop and test your integration locally without a real bank.
+
+  | Key | Value |
+  |-----|-------|
+  | **URL** | `https://localhost/ebics-server-stub` |
+  | **Host ID** | `EBICSSTUB` |
+  | **Partner ID** | `P07` |
+  | **User ID** | `U07` |
+
+- **🤖 MCP Server for AI Agents** — Connect AI coding assistants directly to your EBICS server.
+
+  ```json
+  {
+    "mcpServers": {
+      "ebics-server": {
+        "type": "remote",
+        "url": "http://localhost/mcp",
+        "headers": {
+          "Authorization": "Key YOUR_API_KEY_HERE"
+        }
+      }
+    }
+  }
+  ```
+
+- **📊 Admin dashboard** — Monitor transactions, manage keys, view logs.
+- **🛡️ Priority support** — Direct access to the development team.
+
+**👉 [Try the DEMO](https://tinyurl.com/safe-ebics) · [Learn more](https://sites.google.com/view/ebics-api-client) · [Watch the video](https://youtu.be/S14Qkt5m0NI)**
+
+*Already using the open-source library and need more? The Premium microservice is the natural next step — no rewrite, same protocol support, zero configuration debt.*
+
+---
 
 ## License
 

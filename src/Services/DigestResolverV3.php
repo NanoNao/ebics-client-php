@@ -3,6 +3,7 @@
 namespace EbicsApi\Ebics\Services;
 
 use EbicsApi\Ebics\Contracts\SignatureInterface;
+use EbicsApi\Ebics\Exceptions\CertificateEbicsException;
 
 /**
  * Digest resolver for EBICS protocol version 3.0.
@@ -23,17 +24,33 @@ final class DigestResolverV3 extends DigestResolver
 {
     public function signDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string
     {
+        $certificateContent = $signature->getCertificateContent();
+
+        if ($certificateContent === null || $certificateContent === '') {
+            throw new CertificateEbicsException(
+                'Certificate is mandatory for EBICS 3.0.'
+            );
+        }
+
         return $this->cryptService->calculateCertificateFingerprint(
-            $signature->getCertificateContent() ?? '',
+            $certificateContent,
             $algorithm
         );
     }
 
     public function confirmDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string
     {
+        $certificateContent = $signature->getCertificateContent();
+
+        if ($certificateContent === null || $certificateContent === '') {
+            throw new CertificateEbicsException(
+                'Certificate is mandatory for EBICS 3.0.'
+            );
+        }
+
         return bin2hex(
             $this->cryptService->calculateCertificateFingerprint(
-                $signature->getCertificateContent() ?? '',
+                $certificateContent,
                 $algorithm
             )
         );
