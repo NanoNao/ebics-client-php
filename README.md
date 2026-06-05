@@ -26,12 +26,12 @@ Ideal for fintechs, ERPs, payment processors, and enterprises needing a robust E
 - **🔌 REST API** — Complete EBICS operations via simple HTTP calls. No PHP expertise needed.
 - **🧪 Dummy EBICS Server** — Develop and test your integration locally without a real bank.
 
-  | Key | Value |
-  |-----|-------|
-  | **URL** | `https://localhost/ebics-server-stub` |
-  | **Host ID** | `EBICSSTUB` |
-  | **Partner ID** | `P07` |
-  | **User ID** | `U07` |
+  | Key            | Value                                 |
+  |----------------|---------------------------------------|
+  | **URL**        | `https://localhost/ebics-server-stub` |
+  | **Host ID**    | `EBICSSTUB`                           |
+  | **Partner ID** | `P07`                                 |
+  | **User ID**    | `U07`                                 |
 
 - **🤖 MCP Server for AI Agents** — Connect AI coding assistants directly to your EBICS server.
 
