@@ -11,14 +11,14 @@ namespace EbicsApi\Ebics\Models\Crypt;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-readonly final class Key
+final readonly class Key
 {
     /**
      * @param mixed|string $key
      */
     public function __construct(
-        private readonly mixed $key,
-        private readonly int $type
+        private mixed $key,
+        private int $type
     ) {
     }
 

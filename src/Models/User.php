@@ -8,7 +8,7 @@ namespace EbicsApi\Ebics\Models;
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
-readonly final class User
+final readonly class User
 {
     /**
      * Constructor.
@@ -17,8 +17,8 @@ readonly final class User
      * @param string $userId
      */
     public function __construct(
-        private readonly string $partnerId,
-        private readonly string $userId
+        private string $partnerId,
+        private string $userId
     ) {
     }
 
