@@ -5,6 +5,7 @@ namespace EbicsApi\Ebics\Models\Crypt;
 use EbicsApi\Ebics\Contracts\Crypt\BigIntegerInterface;
 use EbicsApi\Ebics\Contracts\Crypt\HashInterface;
 use EbicsApi\Ebics\Contracts\Crypt\RSAInterface;
+use EbicsApi\Ebics\Exceptions\DecryptionException;
 use LogicException;
 
 /**
@@ -869,13 +870,13 @@ final class RSA implements RSAInterface
     public function decrypt($ciphertext): string
     {
         if ($this->k <= 0) {
-            throw new LogicException('K can not be less than 0.');
+            throw new DecryptionException('K can not be less than 0.');
         }
 
         /** @var list<string> */
         $ciphertext = str_split($ciphertext, $this->k);
         if (empty($ciphertext)) {
-            throw new LogicException('Ciphertext was not split.');
+            throw new DecryptionException('Ciphertext was not split.');
         }
         $ciphertext[count($ciphertext) - 1] = str_pad(
             $ciphertext[count($ciphertext) - 1],
@@ -1319,7 +1320,7 @@ final class RSA implements RSAInterface
         // Length checking
 
         if (strlen($c) != $this->k) { // or if k < 11
-            throw new LogicException('Decryption error');
+            throw new DecryptionException('Decryption error');
         }
 
         // RSA decryption
@@ -1332,14 +1333,14 @@ final class RSA implements RSAInterface
         // EME-PKCS1-v1_5 decoding
 
         if (ord($em[0]) != 0 || ord($em[1]) > 2) {
-            throw new LogicException('Decryption error');
+            throw new DecryptionException('Decryption error');
         }
 
         $ps = substr($em, 2, strpos($em, chr(0), 2) - 2);
         $m = substr($em, strlen($ps) + 3);
 
         if (strlen($ps) < 8) {
-            throw new LogicException('Decryption error');
+            throw new DecryptionException('Decryption error');
         }
 
         // Output M
@@ -1359,7 +1360,7 @@ final class RSA implements RSAInterface
     private function rsadp(BigIntegerInterface $c): BigIntegerInterface
     {
         if ($c->compare($this->zero) < 0 || $c->compare($this->modulus) > 0) {
-            throw new LogicException('Ciphertext representative out of range');
+            throw new DecryptionException('Ciphertext representative out of range');
         }
 
         return $this->exponentiate($c);
