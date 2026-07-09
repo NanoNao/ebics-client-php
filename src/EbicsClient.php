@@ -748,11 +748,11 @@ final class EbicsClient implements EbicsClientInterface
         $orderDataEncoded->rewind();
 
         $orderDataDecoded = $this->bufferFactory->create();
-        while (!$orderDataEncoded->eof()) {
-            $orderDataDecoded->write(base64_decode($orderDataEncoded->read()));
-        }
-        $orderDataDecoded->rewind();
+
+        $base64Content = $orderDataEncoded->readContent();
+        $orderDataDecoded->write(base64_decode($base64Content));
         unset($orderDataEncoded);
+        $orderDataDecoded->rewind();
 
         $orderDataCompressed = $this->bufferFactory->create();
         $this->cryptService->decryptOrderDataCompressed(
