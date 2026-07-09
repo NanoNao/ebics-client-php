@@ -338,30 +338,42 @@ final class CryptService implements CryptServiceInterface
         string $algorithm = 'sha256',
         bool $rawOutput = true
     ): string {
-        $normalizedCert = $this->normalizeCertificatePem($certContent);
-        $fingerprint = openssl_x509_fingerprint($normalizedCert, $algorithm, $rawOutput);
+        $fingerprint = openssl_x509_fingerprint(
+            $this->normalizeCertificateContent($certContent),
+            $algorithm,
+            $rawOutput
+        );
         if (false === $fingerprint) {
             throw new RuntimeException('Can not calculate fingerprint for certificate.');
         }
 
         return $fingerprint;
     }
+
     /**
-     * Helper to normalize PEM formatting before fingerprinting.
-     * @param string $certContent
-     * @return string
+     * Normalize certificate content before fingerprinting.
      */
-    private function normalizeCertificatePem(string $certContent): string
+    private function normalizeCertificateContent(string $certContent): string
     {
-        $certContent = trim($certContent);
-        $certContent = str_replace("\r\n", "\n", $certContent);
-        $certContent = str_replace("\r", "\n", $certContent);
+        if ($this->isPemCertificate($certContent)) {
+            $normalizedCert = preg_replace('/\R+/', "\n", trim($certContent));
+            if ($normalizedCert === null) {
+                throw new RuntimeException('Can not normalize certificate.');
+            }
 
-        $lines = explode("\n", $certContent);
-        $lines = array_filter($lines, fn (string $line): bool => trim($line) !== '');
-        $certContent = implode("\n", $lines) . "\n";
+            return $normalizedCert;
+        }
 
-        return $certContent;
+        return sprintf(
+            "-----BEGIN CERTIFICATE-----\n%s-----END CERTIFICATE-----\n",
+            chunk_split(base64_encode($certContent), 64, "\n")
+        );
+    }
+
+    private function isPemCertificate(string $certContent): bool
+    {
+        return str_contains($certContent, '-----BEGIN CERTIFICATE-----')
+            && str_contains($certContent, '-----END CERTIFICATE-----');
     }
 
     public function generateNonce(): string

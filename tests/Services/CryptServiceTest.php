@@ -8,13 +8,11 @@ use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Models\Buffer;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
-use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 use LogicException;
-use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
@@ -73,7 +71,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
     public function testHashWithDifferentAlgorithms(): void
     {
         $text = 'test data';
-        
+
         $sha1Hash = $this->cryptService->hash($text, 'sha1');
         self::assertEquals(20, strlen($sha1Hash)); // SHA-1 binary
 
@@ -186,7 +184,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
     {
         $exponent = '00010001';
         $modulus = '00C4B1D2E3F4';
-        
+
         $key = $this->cryptService->calculateKey($exponent, $modulus);
 
         self::assertEquals('10001 C4B1D2E3F4', $key);
@@ -199,7 +197,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
     {
         $exponent = '000001';
         $modulus = '0000ABCD';
-        
+
         $key = $this->cryptService->calculateKey($exponent, $modulus);
 
         self::assertEquals('1 ABCD', $key);
@@ -212,7 +210,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
     {
         $exponent = '1234';
         $modulus = 'ABCD';
-        
+
         $key = $this->cryptService->calculateKey($exponent, $modulus);
 
         self::assertEquals('1234 ABCD', $key);
@@ -239,7 +237,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
 
         $decryptedBuffer = new Buffer($tempFile . '_decrypted');
         $decryptedBuffer->open('w+');
-        
+
         // Reset encrypted buffer position
         $encryptedBuffer->rewind();
         $this->cryptService->decryptByKey($key, $encryptedBuffer, $decryptedBuffer);
@@ -263,7 +261,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
     {
         $password = 'testpassword';
         $keyPair = $this->cryptService->generateKeyPair($password);
-        
+
         $components = $this->cryptService->decomposePublicKey($keyPair->getPublicKey());
 
         self::assertIsArray($components);
@@ -308,9 +306,9 @@ class CryptServiceTest extends AbstractEbicsTestCase
     {
         $oldPassword = 'oldpassword';
         $newPassword = 'newpassword';
-        
+
         $keyPair = $this->cryptService->generateKeyPair($oldPassword);
-        
+
         // Change password
         $newKeyPair = $this->cryptService->changePrivateKeyPassword(
             $keyPair,
@@ -319,10 +317,10 @@ class CryptServiceTest extends AbstractEbicsTestCase
         );
 
         self::assertInstanceOf(KeyPair::class, $newKeyPair);
-        
+
         // Old password should fail
         self::assertFalse($this->cryptService->checkPrivateKey($newKeyPair->getPrivateKey(), $oldPassword));
-        
+
         // New password should work
         self::assertTrue($this->cryptService->checkPrivateKey($newKeyPair->getPrivateKey(), $newPassword));
     }
@@ -461,22 +459,22 @@ class CryptServiceTest extends AbstractEbicsTestCase
             "organizationName" => "Test",
             "commonName" => "test.example.com"
         ];
-        
+
         $privkey = openssl_pkey_new();
         if ($privkey === false) {
             self::markTestSkipped('Cannot generate test certificate');
         }
-        
+
         $csr = openssl_csr_new($dn, $privkey);
         if ($csr === false) {
             self::markTestSkipped('Cannot generate test certificate');
         }
-        
+
         $cert = openssl_csr_sign($csr, null, $privkey, 365);
         if ($cert === false) {
             self::markTestSkipped('Cannot generate test certificate');
         }
-        
+
         openssl_x509_export($cert, $certContent);
 
         $fingerprint = $this->cryptService->calculateCertificateFingerprint(
@@ -571,7 +569,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
     }
 
     /**
-     * Provide various PEM transformation functions to test normalization.
+     * Provide PEM transformation functions to test normalization.
      */
     public static function malformedCertificateFormatsProvider(): array
     {
@@ -596,7 +594,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
      */
     #[DataProvider('malformedCertificateFormatsProvider')]
     #[Group('crypt-services')]
-    #[CoversNothing]
     public function testCalculateCertificateFingerprintNormalizesPem(callable $transform): void
     {
         $certContent = $this->generateTestCertificate();
@@ -626,5 +623,51 @@ class CryptServiceTest extends AbstractEbicsTestCase
         );
 
         self::assertEquals($expectedFingerprint, $actualFingerprint);
+    }
+
+    /**
+     * Test that calculateCertificateFingerprint keeps DER input unchanged.
+     */
+    public function testCalculateCertificateFingerprintSupportsDerInput(): void
+    {
+        $certContent = $this->generateTestCertificate();
+
+        if ($certContent === null) {
+            self::markTestSkipped('Cannot generate test certificate');
+        }
+
+        $derContent = $this->convertPemToDer($certContent);
+        self::assertNotEmpty($derContent);
+
+        $expectedFingerprint = hash('sha256', $derContent);
+        $actualFingerprint = $this->cryptService->calculateCertificateFingerprint(
+            $derContent,
+            'sha256',
+            false
+        );
+
+        self::assertSame($expectedFingerprint, $actualFingerprint);
+    }
+
+    /**
+     * Convert PEM certificate content to raw DER bytes.
+     */
+    private function convertPemToDer(string $certContent): string
+    {
+        $normalizedCert = preg_replace(
+            '/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\R/',
+            '',
+            $certContent
+        );
+        if ($normalizedCert === null) {
+            self::fail('Cannot normalize PEM certificate.');
+        }
+
+        $derContent = base64_decode($normalizedCert, true);
+        if ($derContent === false) {
+            self::fail('Cannot decode PEM certificate.');
+        }
+
+        return $derContent;
     }
 }
