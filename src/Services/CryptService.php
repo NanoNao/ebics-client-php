@@ -338,12 +338,30 @@ final class CryptService implements CryptServiceInterface
         string $algorithm = 'sha256',
         bool $rawOutput = true
     ): string {
-        $fingerprint = openssl_x509_fingerprint($certContent, $algorithm, $rawOutput);
+        $normalizedCert = $this->normalizeCertificatePem($certContent);
+        $fingerprint = openssl_x509_fingerprint($normalizedCert, $algorithm, $rawOutput);
         if (false === $fingerprint) {
             throw new RuntimeException('Can not calculate fingerprint for certificate.');
         }
 
         return $fingerprint;
+    }
+    /**
+     * Helper to normalize PEM formatting before fingerprinting.
+     * @param string $certContent
+     * @return string
+     */
+    private function normalizeCertificatePem(string $certContent): string
+    {
+        $certContent = trim($certContent);
+        $certContent = str_replace("\r\n", "\n", $certContent);
+        $certContent = str_replace("\r", "\n", $certContent);
+
+        $lines = explode("\n", $certContent);
+        $lines = array_filter($lines, fn (string $line): bool => trim($line) !== '');
+        $certContent = implode("\n", $lines) . "\n";
+
+        return $certContent;
     }
 
     public function generateNonce(): string
