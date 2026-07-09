@@ -14,6 +14,9 @@ use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
 
 /**
@@ -519,7 +522,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
     {
         $keyring = new Keyring(Keyring::VERSION_25);
         $keyring->setPassword('testpassword');
-        
+
         $orderDataEncrypted = new Buffer(tempnam(sys_get_temp_dir(), 'ebics_test_'));
         $orderDataCompressed = new Buffer(tempnam(sys_get_temp_dir(), 'ebics_test_'));
 
@@ -532,5 +535,96 @@ class CryptServiceTest extends AbstractEbicsTestCase
             $orderDataCompressed,
             'encrypted_transaction_key'
         );
+    }
+
+    /**
+     * Generate a self-signed test certificate in PEM format.
+     */
+    private function generateTestCertificate(): ?string
+    {
+        $dn = [
+            "countryName" => "US",
+            "stateOrProvinceName" => "Test",
+            "localityName" => "Test",
+            "organizationName" => "Test",
+            "commonName" => "test.example.com"
+        ];
+
+        $privkey = openssl_pkey_new();
+        if ($privkey === false) {
+            return null;
+        }
+
+        $csr = openssl_csr_new($dn, $privkey);
+        if ($csr === false) {
+            return null;
+        }
+
+        $cert = openssl_csr_sign($csr, null, $privkey, 365);
+        if ($cert === false) {
+            return null;
+        }
+
+        openssl_x509_export($cert, $certContent);
+
+        return $certContent;
+    }
+
+    /**
+     * Provide various PEM transformation functions to test normalization.
+     */
+    public static function malformedCertificateFormatsProvider(): array
+    {
+        return [
+            'crlf_line_endings' => [
+                static fn (string $pem): string => str_replace("\n", "\r\n", $pem),
+            ],
+            'cr_line_endings' => [
+                static fn (string $pem): string => str_replace("\n", "\r", $pem),
+            ],
+            'empty_lines_between' => [
+                static fn (string $pem): string => str_replace("\n", "\n\n", $pem),
+            ],
+            'leading_trailing_whitespace' => [
+                static fn (string $pem): string => "   \n  " . $pem . "  \n   ",
+            ],
+        ];
+    }
+
+    /**
+     * Test that calculateCertificateFingerprint normalizes PEM before fingerprinting.
+     */
+    #[DataProvider('malformedCertificateFormatsProvider')]
+    #[Group('crypt-services')]
+    #[CoversNothing]
+    public function testCalculateCertificateFingerprintNormalizesPem(callable $transform): void
+    {
+        $certContent = $this->generateTestCertificate();
+
+        if ($certContent === null) {
+            self::markTestSkipped('Cannot generate test certificate');
+        }
+
+        $malformedCert = $transform($certContent);
+
+        self::assertNotEquals(
+            $certContent,
+            $malformedCert,
+            'The transformation should produce a malformed certificate'
+        );
+
+        $expectedFingerprint = $this->cryptService->calculateCertificateFingerprint(
+            $certContent,
+            'sha256',
+            false
+        );
+
+        $actualFingerprint = $this->cryptService->calculateCertificateFingerprint(
+            $malformedCert,
+            'sha256',
+            false
+        );
+
+        self::assertEquals($expectedFingerprint, $actualFingerprint);
     }
 }
