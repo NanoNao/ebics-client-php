@@ -3,8 +3,10 @@
 namespace EbicsApi\Ebics\Tests\Models\Crypt;
 
 use EbicsApi\Ebics\Contracts\BufferInterface;
+use EbicsApi\Ebics\Factories\BufferFactory;
 use EbicsApi\Ebics\Models\Crypt\AES;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Class AESTest.
@@ -14,6 +16,22 @@ use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
  */
 class AESTest extends AbstractEbicsTestCase
 {
+    private string $aesFilename;
+
+    protected function setUp(): void
+    {
+        $this->aesFilename = tempnam(sys_get_temp_dir(), 'ebics_aes_test');
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ([$this->aesFilename, $this->aesFilename . '_cipher', $this->aesFilename . '_plain'] as $filename) {
+            if ($filename !== '' && file_exists($filename)) {
+                unlink($filename);
+            }
+        }
+    }
+
     public function testEncryptionAndDecryption(): void
     {
         $aes = new AES();
@@ -108,5 +126,56 @@ class AESTest extends AbstractEbicsTestCase
             ->with($this->equalTo($plaintext));
 
         $aes->decryptBuffer($ciphertextBuffer, $plaintextBuffer);
+    }
+
+    #[DataProvider('decryptBufferProvider')]
+    public function testDecryptBufferWithVariousSizes(int $plaintextLength): void
+    {
+        $key = '1234567890123456';
+        $iv = '1234567890123456';
+        $plaintext = random_bytes($plaintextLength);
+
+        $encryptAes = new AES();
+        $encryptAes->setKey($key);
+        $encryptAes->setIV($iv);
+        $ciphertext = $encryptAes->encrypt($plaintext);
+
+        $cipherFactory = new BufferFactory($this->aesFilename . '_cipher');
+        $ciphertextBuffer = $cipherFactory->createFromContent($ciphertext);
+
+        $decryptAes = new AES();
+        $decryptAes->setKey($key);
+        $decryptAes->setIV($iv);
+
+        $plainFactory = new BufferFactory($this->aesFilename . '_plain');
+        $plaintextBuffer = $plainFactory->create();
+        $decryptAes->decryptBuffer($ciphertextBuffer, $plaintextBuffer);
+
+        self::assertEquals($plaintext, $plaintextBuffer->readContent());
+
+        $ciphertextBuffer->close();
+        $plaintextBuffer->close();
+    }
+
+    public static function decryptBufferProvider(): array
+    {
+        return [
+            '1 byte' => [1],
+            '16 bytes' => [16],
+            '17 bytes' => [17],
+            '31 bytes' => [31],
+            '32 bytes' => [32],
+            '33 bytes' => [33],
+            '100 bytes' => [100],
+            '1000 bytes' => [1000],
+            '1008 bytes (ciphertext = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1008],
+            '1009 bytes (ciphertext = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1009],
+            '1023 bytes (ciphertext = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1023],
+            '1024 bytes' => [1024],
+            '1025 bytes' => [1025],
+            '2000 bytes' => [2000],
+            '5000 bytes' => [5000],
+            '10000 bytes' => [10000],
+        ];
     }
 }

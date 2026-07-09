@@ -234,6 +234,10 @@ final class AES implements AESInterface
         while (!$ciphertext->eof()) {
             $chunk = $ciphertext->read();
 
+            if ($chunk === '') {
+                break;
+            }
+
             if ($ciphertext->length() === 0 && isset($strpadRight)) {
                 $chunk .= $strpadRight;
             }

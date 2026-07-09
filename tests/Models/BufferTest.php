@@ -2,7 +2,9 @@
 
 namespace EbicsApi\Ebics\Tests\Models;
 
+use EbicsApi\Ebics\Factories\BufferFactory;
 use EbicsApi\Ebics\Models\Buffer;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -95,5 +97,67 @@ class BufferTest extends TestCase
 
         $content = file_get_contents($this->filename);
         $this->assertEquals(base64_encode('Hello'), trim($content));
+    }
+
+    #[DataProvider('chunkedBase64EncodeProvider')]
+    public function testChunkedBase64Encode(int $originalSize): void
+    {
+        $originalContent = random_bytes($originalSize);
+
+        $rawFilename = $this->filename . '_raw';
+        $encodedFilename = $this->filename . '_encoded';
+        $decodedFilename = $this->filename . '_decoded';
+
+        try {
+            $rawFactory = new BufferFactory($rawFilename);
+            $dataRaw = $rawFactory->createFromContent($originalContent);
+
+            $encodedFactory = new BufferFactory($encodedFilename);
+            $encodedData = $encodedFactory->create();
+
+            while (!$dataRaw->eof()) {
+                $chunk = $dataRaw->read(8151);
+                $encodedData->write(base64_encode($chunk));
+            }
+
+            $encodedData->rewind();
+
+            $decodedFactory = new BufferFactory($decodedFilename);
+            $decodedData = $decodedFactory->create();
+
+            while (!$encodedData->eof()) {
+                $decodedData->write(base64_decode($encodedData->read()));
+            }
+
+            $decodedData->rewind();
+
+            $decodedContent = $decodedData->readContent();
+
+            self::assertEquals($originalContent, $decodedContent);
+
+            $dataRaw->close();
+            $encodedData->close();
+            $decodedData->close();
+        } finally {
+            foreach ([$rawFilename, $encodedFilename, $decodedFilename] as $filename) {
+                if (file_exists($filename)) {
+                    @unlink($filename);
+                }
+            }
+        }
+    }
+
+    public static function chunkedBase64EncodeProvider(): array
+    {
+        return [
+            'original 1 byte' => [1],
+            'original 1023 bytes' => [1023],
+            'original 1024 bytes' => [1024],
+            'original 1025 bytes' => [1025],
+            'original 6000 bytes' => [6000],
+            'original 6111 bytes' => [6111],
+            'original 6114 bytes' => [6114],
+            'original 6750 bytes' => [6750],
+        ];
     }
 }
