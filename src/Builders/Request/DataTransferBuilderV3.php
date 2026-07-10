@@ -17,7 +17,7 @@ final class DataTransferBuilderV3 extends DataTransferBuilder
         ]);
 
         if (null !== $digest) {
-            $xmlDataDigest->nodeValue = base64_encode($digest);
+            $xmlDataDigest->nodeValue = $this->base64Service->encode($digest);
         }
 
         return $this;

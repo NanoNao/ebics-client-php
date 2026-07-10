@@ -6,6 +6,7 @@ use Closure;
 use DOMDocument;
 use DOMElement;
 use EbicsApi\Ebics\Contracts\SignatureDataInterface;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\ZipService;
 
@@ -20,11 +21,17 @@ abstract class DataTransferBuilder extends XmlBuilder
     protected DOMElement $instance;
     protected readonly ZipService $zipService;
     protected readonly CryptService $cryptService;
+    protected readonly Base64Service $base64Service;
 
-    public function __construct(ZipService $zipService, CryptService $cryptService, DOMDocument $dom)
-    {
+    public function __construct(
+        ZipService $zipService,
+        CryptService $cryptService,
+        Base64Service $base64Service,
+        DOMDocument $dom
+    ) {
         $this->zipService = $zipService;
         $this->cryptService = $cryptService;
+        $this->base64Service = $base64Service;
         parent::__construct($dom);
     }
 
@@ -47,9 +54,9 @@ abstract class DataTransferBuilder extends XmlBuilder
                     $transactionKey,
                     $orderDataCompressed
                 );
-                $orderDataNodeValue = base64_encode($orderDataCompressedEncrypted);
+                $orderDataNodeValue = $this->base64Service->encode($orderDataCompressedEncrypted);
             } else {
-                $orderDataNodeValue = base64_encode($orderDataCompressed);
+                $orderDataNodeValue = $this->base64Service->encode($orderDataCompressed);
             }
 
             $xmlOrderData->nodeValue = $orderDataNodeValue;
@@ -60,7 +67,11 @@ abstract class DataTransferBuilder extends XmlBuilder
 
     public function addDataEncryptionInfo(?Closure $callable = null): DataTransferBuilder
     {
-        $dataEncryptionInfoBuilder = new DataEncryptionInfoBuilder($this->cryptService, $this->dom);
+        $dataEncryptionInfoBuilder = new DataEncryptionInfoBuilder(
+            $this->cryptService,
+            $this->base64Service,
+            $this->dom
+        );
         $this->instance->appendChild($dataEncryptionInfoBuilder->createInstance()->getInstance());
 
         if ($callable !== null) {
@@ -77,7 +88,7 @@ abstract class DataTransferBuilder extends XmlBuilder
             $transactionKey,
             $userSignatureCompressed
         );
-        $signatureDataNodeValue = base64_encode($userSignatureCompressedEncrypted);
+        $signatureDataNodeValue = $this->base64Service->encode($userSignatureCompressedEncrypted);
 
         $this->appendElementTo('SignatureData', $signatureDataNodeValue, $this->instance, [
             'authenticate' => 'true',

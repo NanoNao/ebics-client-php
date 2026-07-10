@@ -11,6 +11,7 @@ use EbicsApi\Ebics\Handlers\UserSignatureHandler;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolver;
 use EbicsApi\Ebics\Services\SchemaValidator;
@@ -33,15 +34,18 @@ abstract class EbicsFactory
         DigestResolver $digestResolver,
         RequestBuilder $requestBuilder,
         CryptService $cryptService,
-        ZipService $zipService
+        ZipService $zipService,
+        Base64Service $base64Service
     ): RequestFactory;
 
     abstract public function createAuthSignatureHandler(
+        Base64Service $base64Service,
         Keyring $keyring,
         CryptService $cryptService
     ): AuthSignatureHandler;
 
     abstract public function createUserSignatureHandler(
+        Base64Service $base64Service,
         User $user,
         Keyring $keyring,
         CryptService $cryptService,
@@ -49,6 +53,7 @@ abstract class EbicsFactory
     ): UserSignatureHandler;
 
     abstract public function createOrderDataHandler(
+        Base64Service $base64Service,
         User $user,
         Keyring $keyring,
         CryptService $cryptService,
@@ -61,6 +66,7 @@ abstract class EbicsFactory
         SegmentFactory $segmentFactory,
         CryptService $cryptService,
         ZipService $zipService,
+        Base64Service $base64Service,
         BufferFactory $bufferFactory
     ): ResponseHandler;
 
@@ -69,8 +75,12 @@ abstract class EbicsFactory
     public function createRequestBuilder(
         Keyring $keyring,
         CryptService $cryptService,
+        Base64Service $base64Service,
         SchemaValidator $schemaValidator
     ): RequestBuilder {
-        return new RequestBuilder($this->createAuthSignatureHandler($keyring, $cryptService), $schemaValidator);
+        return new RequestBuilder(
+            $this->createAuthSignatureHandler($base64Service, $keyring, $cryptService),
+            $schemaValidator
+        );
     }
 }

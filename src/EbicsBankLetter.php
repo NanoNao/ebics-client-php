@@ -15,6 +15,7 @@ use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\BankLetter;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\HtmlBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\PdfBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\TxtBankLetterFormatter;
@@ -44,7 +45,8 @@ final class EbicsBankLetter
         $this->cryptService = new CryptService(
             new RSAFactory($options['rsa_class_map'] ?? null),
             new AESFactory(),
-            new RandomService()
+            new RandomService(),
+            new Base64Service()
         );
         $this->bankLetterService = new BankLetterService(
             $this->cryptService,

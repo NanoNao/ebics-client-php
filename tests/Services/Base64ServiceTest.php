@@ -1,0 +1,381 @@
+<?php
+
+namespace EbicsApi\Ebics\Tests\Services;
+
+use EbicsApi\Ebics\Models\Buffer;
+use EbicsApi\Ebics\Services\Base64Service;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Unit tests for Base64Service.
+ *
+ * @license http://www.opensource.org/licenses/mit-license.html MIT License
+ * @author Andrew Svirin
+ */
+class Base64ServiceTest extends TestCase
+{
+    private Base64Service $base64Service;
+
+    protected function setUp(): void
+    {
+        $this->base64Service = new Base64Service();
+    }
+
+    public function testEncodeReturnsBase64String(): void
+    {
+        $data = 'Hello World';
+
+        $encoded = $this->base64Service->encode($data);
+
+        self::assertEquals(base64_encode($data), $encoded);
+    }
+
+    public function testEncodeEmptyString(): void
+    {
+        $encoded = $this->base64Service->encode('');
+
+        self::assertEquals('', $encoded);
+    }
+
+    public function testEncodeBinaryData(): void
+    {
+        $data = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09";
+
+        $encoded = $this->base64Service->encode($data);
+
+        self::assertEquals(base64_encode($data), $encoded);
+    }
+
+    public function testDecodeReturnsRawString(): void
+    {
+        $data = 'Hello World';
+        $encoded = base64_encode($data);
+
+        $decoded = $this->base64Service->decode($encoded);
+
+        self::assertEquals($data, $decoded);
+    }
+
+    public function testDecodeEmptyString(): void
+    {
+        $decoded = $this->base64Service->decode('');
+
+        self::assertEquals('', $decoded);
+    }
+
+    public function testEncodeDecodeRoundtrip(): void
+    {
+        $data = 'Roundtrip test data that should survive encoding and decoding';
+
+        $encoded = $this->base64Service->encode($data);
+        $decoded = $this->base64Service->decode($encoded);
+
+        self::assertEquals($data, $decoded);
+    }
+
+    public function testEncodeDecodeBinaryRoundtrip(): void
+    {
+        $data = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\xff\xfe\xfd";
+
+        $encoded = $this->base64Service->encode($data);
+        $decoded = $this->base64Service->decode($encoded);
+
+        self::assertEquals($data, $decoded);
+    }
+
+    public function testEncodeBufferEmptyInput(): void
+    {
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->encodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $result = $outputBuffer->readContent();
+
+        self::assertEquals('', $result);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    public function testDecodeBufferEmptyInput(): void
+    {
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $result = $outputBuffer->readContent();
+
+        self::assertEquals('', $result);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    public function testEncodeBufferWithBinaryData(): void
+    {
+        $originalData = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\xff\xfe\xfd";
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->write($originalData);
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->encodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $bufferedResult = $outputBuffer->readContent();
+
+        $nonBufferedResult = $this->base64Service->encode($originalData);
+
+        self::assertEquals($nonBufferedResult, $bufferedResult);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    public function testDecodeBufferWithBinaryData(): void
+    {
+        $originalData = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\xff\xfe\xfd";
+        $encodedData = $this->base64Service->encode($originalData);
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->write($encodedData);
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $bufferedResult = $outputBuffer->readContent();
+
+        $nonBufferedResult = $this->base64Service->decode($encodedData);
+
+        self::assertEquals($nonBufferedResult, $bufferedResult);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    public function testEncodeStringDecodeBufferCrossCompatibility(): void
+    {
+        $data = 'Cross-compatibility test: encode string, decode buffer';
+
+        $encoded = $this->base64Service->encode($data);
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->write($encoded);
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $result = $outputBuffer->readContent();
+
+        self::assertEquals($data, $result);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    public function testEncodeBufferDecodeStringCrossCompatibility(): void
+    {
+        $data = 'Cross-compatibility test: encode buffer, decode string';
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->write($data);
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->encodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $encoded = $outputBuffer->readContent();
+
+        $decoded = $this->base64Service->decode($encoded);
+
+        self::assertEquals($data, $decoded);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    #[DataProvider('encodeBufferWithVariousSizesProvider')]
+    public function testEncodeBufferWithVariousSizes(int $dataLength): void
+    {
+        $originalData = str_repeat('A', $dataLength);
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->write($originalData);
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->encodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $bufferedResult = $outputBuffer->readContent();
+
+        $nonBufferedResult = $this->base64Service->encode($originalData);
+
+        self::assertEquals($nonBufferedResult, $bufferedResult);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    #[DataProvider('encodeBufferWithVariousSizesProvider')]
+    public function testDecodeBufferWithVariousSizes(int $dataLength): void
+    {
+        $originalData = str_repeat('B', $dataLength);
+        $encodedData = $this->base64Service->encode($originalData);
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->write($encodedData);
+        $inputBuffer->rewind();
+
+        $outputBuffer = new Buffer($outputFile);
+        $outputBuffer->open('w+');
+
+        $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+        $outputBuffer->rewind();
+        $bufferedResult = $outputBuffer->readContent();
+
+        $nonBufferedResult = $this->base64Service->decode($encodedData);
+
+        self::assertEquals($nonBufferedResult, $bufferedResult);
+
+        $inputBuffer->close();
+        $outputBuffer->close();
+        @unlink($inputFile);
+        @unlink($outputFile);
+    }
+
+    #[DataProvider('encodeBufferWithVariousSizesProvider')]
+    public function testEncodeBufferDecodeBufferRoundtrip(int $dataLength): void
+    {
+        $originalData = str_repeat('C', $dataLength);
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $encodedFile = tempnam(sys_get_temp_dir(), 'b64_enc_');
+        $decodedFile = tempnam(sys_get_temp_dir(), 'b64_dec_');
+
+        $inputBuffer = new Buffer($inputFile);
+        $inputBuffer->open('w+');
+        $inputBuffer->write($originalData);
+        $inputBuffer->rewind();
+
+        $encodedBuffer = new Buffer($encodedFile);
+        $encodedBuffer->open('w+');
+
+        $this->base64Service->encodeBuffer($inputBuffer, $encodedBuffer);
+
+        $encodedBuffer->rewind();
+
+        $decodedBuffer = new Buffer($decodedFile);
+        $decodedBuffer->open('w+');
+
+        $this->base64Service->decodeBuffer($encodedBuffer, $decodedBuffer);
+
+        $decodedBuffer->rewind();
+        $result = $decodedBuffer->readContent();
+
+        self::assertEquals($originalData, $result);
+
+        $inputBuffer->close();
+        $encodedBuffer->close();
+        $decodedBuffer->close();
+        @unlink($inputFile);
+        @unlink($encodedFile);
+        @unlink($decodedFile);
+    }
+
+    public static function encodeBufferWithVariousSizesProvider(): array
+    {
+        return [
+            '1 byte' => [1],
+            '16 bytes' => [16],
+            '17 bytes' => [17],
+            '31 bytes' => [31],
+            '32 bytes' => [32],
+            '33 bytes' => [33],
+            '100 bytes' => [100],
+            '1000 bytes' => [1000],
+            '1008 bytes (input = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1008],
+            '1009 bytes (input = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1009],
+            '1023 bytes (input = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1023],
+            '1024 bytes' => [1024],
+            '1025 bytes' => [1025],
+            '2000 bytes' => [2000],
+            '5000 bytes' => [5000],
+            '10000 bytes' => [10000],
+        ];
+    }
+}

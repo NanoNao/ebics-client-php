@@ -6,6 +6,7 @@ use DOMDocument;
 use DOMElement;
 use EbicsApi\Ebics\Exceptions\SignatureEbicsException;
 use EbicsApi\Ebics\Models\Keyring;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 
 /**
@@ -18,10 +19,12 @@ final class DataEncryptionInfoBuilder extends XmlBuilder
 {
     private DOMElement $instance;
     private readonly CryptService $cryptService;
+    private readonly Base64Service $base64Service;
 
-    public function __construct(CryptService $cryptService, DOMDocument $dom)
+    public function __construct(CryptService $cryptService, Base64Service $base64Service, DOMDocument $dom)
     {
         $this->cryptService = $cryptService;
+        $this->base64Service = $base64Service;
         parent::__construct($dom);
     }
 
@@ -60,7 +63,7 @@ final class DataEncryptionInfoBuilder extends XmlBuilder
         } else {
             $certificateEDigest = $this->cryptService->calculatePublicKeyDigest($signatureE, $algorithm);
         }
-        $encryptionPubKeyDigestNodeValue = base64_encode($certificateEDigest);
+        $encryptionPubKeyDigestNodeValue = $this->base64Service->encode($certificateEDigest);
 
         $this->appendElementTo('EncryptionPubKeyDigest', $encryptionPubKeyDigestNodeValue, $this->instance, [
             'Version' => $keyring->getBankSignatureEVersion(),
@@ -80,7 +83,7 @@ final class DataEncryptionInfoBuilder extends XmlBuilder
             $bankSignatureE->getPublicKey(),
             $transactionKey
         );
-        $transactionKeyNodeValue = base64_encode($transactionKeyEncrypted);
+        $transactionKeyNodeValue = $this->base64Service->encode($transactionKeyEncrypted);
 
         $this->appendElementTo('TransactionKey', $transactionKeyNodeValue, $this->instance);
 

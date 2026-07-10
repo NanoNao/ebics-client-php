@@ -15,6 +15,7 @@ use EbicsApi\Ebics\Handlers\UserSignatureHandlerV3;
 use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolver;
 use EbicsApi\Ebics\Services\DigestResolverV3;
@@ -38,7 +39,8 @@ final class EbicsFactoryV30 extends EbicsFactory
         DigestResolver $digestResolver,
         RequestBuilder $requestBuilder,
         CryptService $cryptService,
-        ZipService $zipService
+        ZipService $zipService,
+        Base64Service $base64Service
     ): RequestFactory {
         return new RequestFactoryV30(
             $bank,
@@ -49,27 +51,31 @@ final class EbicsFactoryV30 extends EbicsFactory
             $digestResolver,
             $requestBuilder,
             $cryptService,
-            $zipService
+            $zipService,
+            $base64Service
         );
     }
 
     public function createAuthSignatureHandler(
+        Base64Service $base64Service,
         Keyring $keyring,
         CryptService $cryptService
     ): AuthSignatureHandler {
-        return new AuthSignatureHandlerV30($keyring, $cryptService);
+        return new AuthSignatureHandlerV30($base64Service, $keyring, $cryptService);
     }
 
     public function createUserSignatureHandler(
+        Base64Service $base64Service,
         User $user,
         Keyring $keyring,
         CryptService $cryptService,
         SchemaValidator $schemaValidator
     ): UserSignatureHandler {
-        return new UserSignatureHandlerV3($user, $keyring, $cryptService, $schemaValidator);
+        return new UserSignatureHandlerV3($base64Service, $user, $keyring, $cryptService, $schemaValidator);
     }
 
     public function createOrderDataHandler(
+        Base64Service $base64Service,
         User $user,
         Keyring $keyring,
         CryptService $cryptService,
@@ -78,6 +84,7 @@ final class EbicsFactoryV30 extends EbicsFactory
         BigIntegerFactory $bigIntegerFactory
     ): OrderDataHandler {
         return new OrderDataHandlerV30(
+            $base64Service,
             $user,
             $cryptService,
             $signatureFactory,
@@ -90,12 +97,14 @@ final class EbicsFactoryV30 extends EbicsFactory
         SegmentFactory $segmentFactory,
         CryptService $cryptService,
         ZipService $zipService,
+        Base64Service $base64Service,
         BufferFactory $bufferFactory
     ): ResponseHandler {
         return new ResponseHandlerV30(
             $segmentFactory,
             $cryptService,
             $zipService,
+            $base64Service,
             $bufferFactory
         );
     }

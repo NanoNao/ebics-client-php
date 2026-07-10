@@ -9,6 +9,7 @@ use EbicsApi\Ebics\Models\Buffer;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\Keyring;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
@@ -37,7 +38,7 @@ class CryptServiceTest extends AbstractEbicsTestCase
         $this->rsaFactory = new RSAFactory();
         $this->aesFactory = new AESFactory();
         $this->randomService = new RandomService();
-        $this->cryptService = new CryptService($this->rsaFactory, $this->aesFactory, $this->randomService);
+        $this->cryptService = new CryptService($this->rsaFactory, $this->aesFactory, $this->randomService, new Base64Service());
     }
 
     /**

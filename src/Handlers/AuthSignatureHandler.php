@@ -8,6 +8,7 @@ use EbicsApi\Ebics\Contracts\AuthSignatureHandlerInterface;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Keyring;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DOMHelper;
 
@@ -25,6 +26,7 @@ abstract class AuthSignatureHandler implements AuthSignatureHandlerInterface
     use H00XTrait;
 
     public function __construct(
+        private readonly Base64Service $base64Service,
         private readonly Keyring $keyring,
         private readonly CryptService $cryptService
     ) {
@@ -104,7 +106,7 @@ abstract class AuthSignatureHandler implements AuthSignatureHandlerInterface
             $canonicalizationMethodAlgorithm
         );
         $canonicalizedHeaderHash = $this->cryptService->hash($canonicalizedHeader, $digestMethodAlgorithm);
-        $digestValueNodeValue = base64_encode($canonicalizedHeaderHash);
+        $digestValueNodeValue = $this->base64Service->encode($canonicalizedHeaderHash);
 
         $xmlDigestValue->nodeValue = $digestValueNodeValue;
         $xmlReference->appendChild($xmlDigestValue);
@@ -125,7 +127,7 @@ abstract class AuthSignatureHandler implements AuthSignatureHandlerInterface
             $this->keyring->getUserSignatureXVersion(),
             $canonicalizedSignedInfoHash
         );
-        $signatureValueNodeValue = base64_encode($canonicalizedSignedInfoHashEncrypted);
+        $signatureValueNodeValue = $this->base64Service->encode($canonicalizedSignedInfoHashEncrypted);
 
         $xmlSignatureValue->nodeValue = $signatureValueNodeValue;
         $xmlAuthSignature->appendChild($xmlSignatureValue);

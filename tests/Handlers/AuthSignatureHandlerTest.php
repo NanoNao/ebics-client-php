@@ -10,6 +10,7 @@ use EbicsApi\Ebics\Handlers\AuthSignatureHandler;
 use EbicsApi\Ebics\Handlers\Traits\H004Trait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Http\Request;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
@@ -41,8 +42,9 @@ class AuthSignatureHandlerTest extends AbstractEbicsTestCase
 
         $ebicsFactory = new EbicsFactoryV25();
         $this->authSignatureHandler = $ebicsFactory->createAuthSignatureHandler(
+            new Base64Service(),
             $client->getKeyring(),
-            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+            new CryptService(new RSAFactory(), new AESFactory, new RandomService, new Base64Service)
         );
     }
 

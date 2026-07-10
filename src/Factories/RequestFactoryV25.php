@@ -19,7 +19,7 @@ final class RequestFactoryV25 extends RequestFactory
     {
         return $this->requestBuilder
             ->createInstance(function (Request $request) {
-                return new RootBuilderV25($this->zipService, $this->cryptService, $request);
+                return new RootBuilderV25($this->zipService, $this->cryptService, $this->base64Service, $request);
             });
     }
 

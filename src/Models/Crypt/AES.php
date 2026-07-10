@@ -184,39 +184,72 @@ final class AES implements AESInterface
         return $result;
     }
 
-    /**
-     * Applies ANSI X.923 padding to $text so its length is a multiple of the block size.
-     *
-     * Padding bytes are all 0x00 except for the final byte, which encodes
-     * the total number of padding bytes added.
-     *
-     * When padding is disabled and the input is not block-aligned, a
-     * LogicException is thrown.
-     *
-     * @param string $text Plaintext to pad.
-     *
-     * @return string Padded plaintext.
-     *
-     * @throws LogicException If padding is disabled and $text length is not block-aligned.
-     */
-    private function pad(string $text): string
+    public function encryptBuffer(BufferInterface $plaintext, BufferInterface $ciphertext): void
     {
-        $length = strlen($text);
-
-        if (!$this->padding) {
-            if ($length % $this->block_size == 0) {
-                return $text;
-            } else {
-                throw new LogicException(
-                    "The plaintext's length ($length) is not a multiple of the block size ({$this->block_size})"
-                );
-            }
+        if ($this->changed) {
+            $this->clearBuffers();
+            $this->changed = false;
         }
 
-        $paddingSize = $this->block_size - (strlen($text) % $this->block_size);
-        $padding = str_repeat(chr(0), $paddingSize - 1) . chr($paddingSize & 0xFF);
+        while (!$plaintext->eof()) {
+            $chunk = $plaintext->read();
 
-        return $text . $padding;
+            if ($chunk === '') {
+                break;
+            }
+
+            if ($plaintext->length() === 0 && $this->paddable) {
+                $chunk = $this->pad($chunk);
+            }
+
+            $ciphertextChunk = openssl_encrypt(
+                $chunk,
+                $this->cipherNameOpenssl,
+                $this->key,
+                $this->opensslOptions,
+                $this->encryptIV
+            );
+
+            if (!$ciphertextChunk) {
+                throw new LogicException('Encryption failed.');
+            }
+
+            $ciphertext->write($ciphertextChunk);
+
+            $this->encryptIV = substr($ciphertextChunk, -16);
+        }
+
+        $this->clearBuffers();
+
+        $ciphertext->rewind();
+    }
+
+    public function decrypt($ciphertext): string
+    {
+        if ($this->paddable) {
+            $ciphertext = str_pad(
+                $ciphertext,
+                strlen($ciphertext) + ($this->block_size - strlen($ciphertext) % $this->block_size) % $this->block_size,
+                chr(0)
+            );
+        }
+
+        if ($this->changed) {
+            $this->clearBuffers();
+            $this->changed = false;
+        }
+
+        if (!($plaintext = openssl_decrypt(
+            $ciphertext,
+            $this->cipherNameOpenssl,
+            $this->key,
+            $this->opensslOptions,
+            $this->decryptIV
+        ))) {
+            throw new LogicException('Decryption failed.');
+        }
+
+        return $this->paddable ? $this->unpad($plaintext) : $plaintext;
     }
 
     public function decryptBuffer(BufferInterface $ciphertext, BufferInterface $plaintext): void
@@ -268,32 +301,39 @@ final class AES implements AESInterface
         $plaintext->rewind();
     }
 
-    public function decrypt($ciphertext): string
+    /**
+     * Applies ANSI X.923 padding to $text so its length is a multiple of the block size.
+     *
+     * Padding bytes are all 0x00 except for the final byte, which encodes
+     * the total number of padding bytes added.
+     *
+     * When padding is disabled and the input is not block-aligned, a
+     * LogicException is thrown.
+     *
+     * @param string $text Plaintext to pad.
+     *
+     * @return string Padded plaintext.
+     *
+     * @throws LogicException If padding is disabled and $text length is not block-aligned.
+     */
+    private function pad(string $text): string
     {
-        if ($this->paddable) {
-            $ciphertext = str_pad(
-                $ciphertext,
-                strlen($ciphertext) + ($this->block_size - strlen($ciphertext) % $this->block_size) % $this->block_size,
-                chr(0)
-            );
+        $length = strlen($text);
+
+        if (!$this->padding) {
+            if ($length % $this->block_size == 0) {
+                return $text;
+            } else {
+                throw new LogicException(
+                    "The plaintext's length ($length) is not a multiple of the block size ({$this->block_size})"
+                );
+            }
         }
 
-        if ($this->changed) {
-            $this->clearBuffers();
-            $this->changed = false;
-        }
+        $paddingSize = $this->block_size - (strlen($text) % $this->block_size);
+        $padding = str_repeat(chr(0), $paddingSize - 1) . chr($paddingSize & 0xFF);
 
-        if (!($plaintext = openssl_decrypt(
-            $ciphertext,
-            $this->cipherNameOpenssl,
-            $this->key,
-            $this->opensslOptions,
-            $this->decryptIV
-        ))) {
-            throw new LogicException('Decryption failed.');
-        }
-
-        return $this->paddable ? $this->unpad($plaintext) : $plaintext;
+        return $text . $padding;
     }
 
     /**

@@ -25,7 +25,7 @@ class AESTest extends AbstractEbicsTestCase
 
     protected function tearDown(): void
     {
-        foreach ([$this->aesFilename, $this->aesFilename . '_cipher', $this->aesFilename . '_plain'] as $filename) {
+        foreach ([$this->aesFilename, $this->aesFilename . '_cipher', $this->aesFilename . '_plain', $this->aesFilename . '_dec'] as $filename) {
             if ($filename !== '' && file_exists($filename)) {
                 unlink($filename);
             }
@@ -152,9 +152,100 @@ class AESTest extends AbstractEbicsTestCase
         $decryptAes->decryptBuffer($ciphertextBuffer, $plaintextBuffer);
 
         self::assertEquals($plaintext, $plaintextBuffer->readContent());
+        self::assertEquals($plaintext, $decryptAes->decrypt($ciphertext));
 
         $ciphertextBuffer->close();
         $plaintextBuffer->close();
+    }
+
+    #[DataProvider('encryptBufferProvider')]
+    public function testEncryptBufferWithVariousSizes(int $plaintextLength): void
+    {
+        $key = '1234567890123456';
+        $iv = '1234567890123456';
+        $plaintext = random_bytes($plaintextLength);
+
+        $aes = new AES();
+        $aes->setKey($key);
+        $aes->setIV($iv);
+
+        $plainFactory = new BufferFactory($this->aesFilename . '_plain');
+        $plaintextBuffer = $plainFactory->createFromContent($plaintext);
+
+        $cipherFactory = new BufferFactory($this->aesFilename . '_cipher');
+        $ciphertextBuffer = $cipherFactory->create();
+
+        $aes->encryptBuffer($plaintextBuffer, $ciphertextBuffer);
+
+        $ciphertextBuffer->rewind();
+        $bufferedCiphertext = $ciphertextBuffer->readContent();
+
+        $stringCiphertext = $aes->encrypt($plaintext);
+
+        self::assertEquals($stringCiphertext, $bufferedCiphertext);
+
+        $plaintextBuffer->close();
+        $ciphertextBuffer->close();
+    }
+
+    #[DataProvider('encryptBufferProvider')]
+    public function testEncryptBufferDecryptBufferRoundtrip(int $plaintextLength): void
+    {
+        $key = '1234567890123456';
+        $iv = '1234567890123456';
+        $plaintext = random_bytes($plaintextLength);
+
+        $plainFactory = new BufferFactory($this->aesFilename . '_plain');
+        $plaintextBuffer = $plainFactory->createFromContent($plaintext);
+
+        $cipherFactory = new BufferFactory($this->aesFilename . '_cipher');
+        $ciphertextBuffer = $cipherFactory->create();
+
+        $encryptAes = new AES();
+        $encryptAes->setKey($key);
+        $encryptAes->setIV($iv);
+        $encryptAes->encryptBuffer($plaintextBuffer, $ciphertextBuffer);
+
+        $ciphertextBuffer->rewind();
+
+        $decryptAes = new AES();
+        $decryptAes->setKey($key);
+        $decryptAes->setIV($iv);
+
+        $decryptedFactory = new BufferFactory($this->aesFilename . '_dec');
+        $decryptedBuffer = $decryptedFactory->create();
+        $decryptAes->decryptBuffer($ciphertextBuffer, $decryptedBuffer);
+
+        $decryptedBuffer->rewind();
+        $result = $decryptedBuffer->readContent();
+
+        self::assertEquals($plaintext, $result);
+
+        $plaintextBuffer->close();
+        $ciphertextBuffer->close();
+        $decryptedBuffer->close();
+    }
+
+    public static function encryptBufferProvider(): array
+    {
+        return [
+            '1 byte' => [1],
+            '16 bytes' => [16],
+            '17 bytes' => [17],
+            '31 bytes' => [31],
+            '32 bytes' => [32],
+            '33 bytes' => [33],
+            '100 bytes' => [100],
+            '1000 bytes' => [1000],
+            '1008 bytes (plaintext = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1008],
+            '1009 bytes (plaintext = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1009],
+            '1023 bytes (plaintext = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1023],
+            '1024 bytes' => [1024],
+            '1025 bytes' => [1025],
+            '2000 bytes' => [2000],
+            '5000 bytes' => [5000],
+            '10000 bytes' => [10000],
+        ];
     }
 
     public static function decryptBufferProvider(): array

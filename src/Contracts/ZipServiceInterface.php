@@ -57,7 +57,21 @@ interface ZipServiceInterface
      *
      * @return void
      */
-    public function uncompress(Buffer $compressed, Buffer $uncompressed): void;
+    public function uncompressBuffer(Buffer $compressed, Buffer $uncompressed): void;
+
+    /**
+     * Decompress zlib-compressed data.
+     *
+     * Uses PHP's gzuncompress() function (zlib inflate format) to decompress
+     * the input data received from EBICS banks.
+     *
+     * @param string $compressed The zlib-compressed data as binary string
+     *
+     * @return string The decompressed data
+     *
+     * @throws RuntimeException If decompression fails
+     */
+    public function uncompress(string $compressed): string;
 
     /**
      * Compress data using zlib compression.
@@ -73,4 +87,20 @@ interface ZipServiceInterface
      * @throws RuntimeException If compression fails
      */
     public function compress(string $uncompressed): string;
+
+    /**
+     * Compress data from one Buffer to another using streaming deflate.
+     *
+     * Uses PHP's deflate_init/deflate_add for memory-efficient streaming
+     * compression. Produces raw deflate data compatible with the uncompressBuffer()
+     * method.
+     *
+     * @param Buffer $uncompressed Buffer containing the raw data (input)
+     * @param Buffer $compressed Buffer to write the compressed data to (output)
+     *
+     * @return void
+     *
+     * @throws RuntimeException If compression fails
+     */
+    public function compressBuffer(Buffer $uncompressed, Buffer $compressed): void;
 }

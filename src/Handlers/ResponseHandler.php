@@ -14,6 +14,7 @@ use EbicsApi\Ebics\Models\Http\Response;
 use EbicsApi\Ebics\Models\InitializationSegment;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\UploadSegment;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DOMHelper;
 use EbicsApi\Ebics\Services\ZipService;
@@ -32,6 +33,7 @@ abstract class ResponseHandler implements ResponseHandlerInterface
         protected readonly SegmentFactory $segmentFactory,
         protected readonly CryptService $cryptService,
         protected readonly ZipService $zipService,
+        protected readonly Base64Service $base64Service,
         protected readonly BufferFactory $bufferFactory
     ) {
     }
@@ -124,9 +126,9 @@ abstract class ResponseHandler implements ResponseHandlerInterface
     public function extractInitializationSegment(Response $response, Keyring $keyring): InitializationSegment
     {
         $transactionKeyEncoded = $this->retrieveH00XTransactionKey($response);
-        $transactionKey = base64_decode($transactionKeyEncoded);
+        $transactionKey = $this->base64Service->decode($transactionKeyEncoded);
         $orderDataEncrypted = $this->bufferFactory->createFromContent(
-            base64_decode($this->retrieveH00XOrderData($response))
+            $this->base64Service->decode($this->retrieveH00XOrderData($response))
         );
         $orderDataCompressed = $this->bufferFactory->create();
         $this->cryptService->decryptOrderDataCompressed(
@@ -138,7 +140,7 @@ abstract class ResponseHandler implements ResponseHandlerInterface
         unset($orderDataEncrypted);
 
         $orderData = $this->bufferFactory->create();
-        $this->zipService->uncompress($orderDataCompressed, $orderData);
+        $this->zipService->uncompressBuffer($orderDataCompressed, $orderData);
         unset($orderDataCompressed);
 
         $segment = $this->segmentFactory->createInitializationSegment();
@@ -155,7 +157,7 @@ abstract class ResponseHandler implements ResponseHandlerInterface
         $transactionId = $this->retrieveH00XTransactionId($response);
         $transactionPhase = $this->retrieveH00XTransactionPhase($response);
         $transactionKeyEncoded = $this->retrieveH00XTransactionKey($response);
-        $transactionKey = base64_decode($transactionKeyEncoded);
+        $transactionKey = $this->base64Service->decode($transactionKeyEncoded);
         $numSegments = $this->retrieveH00XNumSegments($response);
         $segmentNumber = $this->retrieveH00XSegmentNumber($response);
         $orderDataEncrypted = $this->retrieveH00XOrderData($response);

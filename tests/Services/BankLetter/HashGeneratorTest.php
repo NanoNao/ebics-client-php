@@ -11,6 +11,7 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolverV2;
 use EbicsApi\Ebics\Services\DigestResolverV3;
@@ -34,7 +35,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
     public function testGenerateCertificateHashV2()
     {
         $digestResolver = new DigestResolverV2(
-            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
+            new CryptService(new RSAFactory(), new AESFactory(), new RandomService(), new Base64Service())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
@@ -72,7 +73,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
     public function testGenerateCertificateHashV3()
     {
         $digestResolver = new DigestResolverV3(
-            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
+            new CryptService(new RSAFactory(), new AESFactory(), new RandomService(), new Base64Service())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
@@ -110,7 +111,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
     public function testGeneratePublicKeyHash()
     {
         $digestResolver = new DigestResolverV2(
-            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
+            new CryptService(new RSAFactory(), new AESFactory(), new RandomService(), new Base64Service())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);

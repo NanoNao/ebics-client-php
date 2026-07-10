@@ -70,17 +70,18 @@ interface AESInterface
     public function encrypt(string $plaintext);
 
     /**
-     * Decrypts a message.
+     * Encrypts a message from one Buffer to another.
      *
-     * If strlen($ciphertext) is not a multiple of the block size, null bytes will be added
-     * to the end of the string until it is.
+     * Reads plaintext from $plaintext buffer, encrypts in chunks, and writes
+     * ciphertext to $ciphertext buffer. ANSI X.923 padding is applied to the
+     * last chunk if padding is enabled.
      *
-     * @param BufferInterface $ciphertext
-     * @param BufferInterface $plaintext
+     * @param BufferInterface $plaintext Buffer containing the plaintext (input)
+     * @param BufferInterface $ciphertext Buffer to write the ciphertext to (output)
      *
      * @return void
      */
-    public function decryptBuffer(BufferInterface $ciphertext, BufferInterface $plaintext);
+    public function encryptBuffer(BufferInterface $plaintext, BufferInterface $ciphertext);
 
     /**
      * Decrypts a message.
@@ -93,6 +94,19 @@ interface AESInterface
      * @return string $plaintext
      */
     public function decrypt(string $ciphertext);
+
+    /**
+     * Decrypts a message.
+     *
+     * If strlen($ciphertext) is not a multiple of the block size, null bytes will be added
+     * to the end of the string until it is.
+     *
+     * @param BufferInterface $ciphertext
+     * @param BufferInterface $plaintext
+     *
+     * @return void
+     */
+    public function decryptBuffer(BufferInterface $ciphertext, BufferInterface $plaintext);
 
     /**
      * Set options.

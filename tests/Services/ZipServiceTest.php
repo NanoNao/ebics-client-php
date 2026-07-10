@@ -4,6 +4,7 @@ namespace EbicsApi\Ebics\Tests\Services;
 
 use EbicsApi\Ebics\Models\Buffer;
 use EbicsApi\Ebics\Services\ZipService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -128,7 +129,7 @@ class ZipServiceTest extends TestCase
     }
 
     /**
-     * Test uncompress gzip-compressed data.
+     * Test uncompressBuffer gzip-compressed data.
      */
     public function testUncompressGzipData(): void
     {
@@ -153,7 +154,7 @@ class ZipServiceTest extends TestCase
         $uncompressedBuffer = new Buffer($uncompressedFile);
         $uncompressedBuffer->open('w+');
 
-        $this->zipService->uncompress($compressedBuffer, $uncompressedBuffer);
+        $this->zipService->uncompressBuffer($compressedBuffer, $uncompressedBuffer);
 
         $uncompressedBuffer->rewind();
         $result = $uncompressedBuffer->readContent();
@@ -168,7 +169,7 @@ class ZipServiceTest extends TestCase
     }
 
     /**
-     * Test compress and uncompress roundtrip.
+     * Test compress and uncompressBuffer roundtrip.
      */
     public function testCompressUncompressRoundtrip(): void
     {
@@ -177,7 +178,7 @@ class ZipServiceTest extends TestCase
         // Compress
         $compressedData = $this->zipService->compress($originalData);
 
-        // Create buffers for uncompress
+        // Create buffers for uncompressBuffer
         $compressedFile = tempnam(sys_get_temp_dir(), 'compressed_');
         $uncompressedFile = tempnam(sys_get_temp_dir(), 'uncompressed_');
 
@@ -189,7 +190,7 @@ class ZipServiceTest extends TestCase
         $uncompressedBuffer = new Buffer($uncompressedFile);
         $uncompressedBuffer->open('w+');
 
-        $this->zipService->uncompress($compressedBuffer, $uncompressedBuffer);
+        $this->zipService->uncompressBuffer($compressedBuffer, $uncompressedBuffer);
 
         $uncompressedBuffer->rewind();
         $result = $uncompressedBuffer->readContent();
@@ -201,5 +202,122 @@ class ZipServiceTest extends TestCase
         $uncompressedBuffer->close();
         @unlink($compressedFile);
         @unlink($uncompressedFile);
+    }
+
+    #[DataProvider('uncompressWithVariousSizesProvider')]
+    public function testUncompressWithVariousSizes(int $dataLength): void
+    {
+        $originalData = str_repeat('A', $dataLength);
+
+        $compressedData = $this->zipService->compress($originalData);
+
+        $compressedFile = tempnam(sys_get_temp_dir(), 'compressed_');
+        $uncompressedFile = tempnam(sys_get_temp_dir(), 'uncompressed_');
+
+        $compressedBuffer = new Buffer($compressedFile);
+        $compressedBuffer->open('w+');
+        $compressedBuffer->write($compressedData);
+        $compressedBuffer->rewind();
+
+        $uncompressedBuffer = new Buffer($uncompressedFile);
+        $uncompressedBuffer->open('w+');
+
+        $this->zipService->uncompressBuffer($compressedBuffer, $uncompressedBuffer);
+
+        $uncompressedBuffer->rewind();
+        $bufferedResult = $uncompressedBuffer->readContent();
+
+        $nonBufferedResult = $this->zipService->uncompress($compressedData);
+
+        self::assertEquals($originalData, $bufferedResult);
+        self::assertEquals($nonBufferedResult, $bufferedResult);
+
+        $compressedBuffer->close();
+        $uncompressedBuffer->close();
+        @unlink($compressedFile);
+        @unlink($uncompressedFile);
+    }
+
+    public static function uncompressWithVariousSizesProvider(): array
+    {
+        return [
+            '1 byte' => [1],
+            '16 bytes' => [16],
+            '17 bytes' => [17],
+            '31 bytes' => [31],
+            '32 bytes' => [32],
+            '33 bytes' => [33],
+            '100 bytes' => [100],
+            '1000 bytes' => [1000],
+            '1008 bytes (compressed = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1008],
+            '1009 bytes (compressed = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1009],
+            '1023 bytes (compressed = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1023],
+            '1024 bytes' => [1024],
+            '1025 bytes' => [1025],
+            '2000 bytes' => [2000],
+            '5000 bytes' => [5000],
+            '10000 bytes' => [10000],
+        ];
+    }
+
+    #[DataProvider('compressBufferWithVariousSizesProvider')]
+    public function testCompressBufferUncompressRoundtrip(int $dataLength): void
+    {
+        $originalData = str_repeat('B', $dataLength);
+
+        $uncompressedFile = tempnam(sys_get_temp_dir(), 'uncompressed_');
+        $compressedFile = tempnam(sys_get_temp_dir(), 'compressed_');
+        $decompressedFile = tempnam(sys_get_temp_dir(), 'decompressed_');
+
+        $uncompressedBuffer = new Buffer($uncompressedFile);
+        $uncompressedBuffer->open('w+');
+        $uncompressedBuffer->write($originalData);
+        $uncompressedBuffer->rewind();
+
+        $compressedBuffer = new Buffer($compressedFile);
+        $compressedBuffer->open('w+');
+
+        $this->zipService->compressBuffer($uncompressedBuffer, $compressedBuffer);
+
+        $compressedBuffer->rewind();
+
+        $decompressedBuffer = new Buffer($decompressedFile);
+        $decompressedBuffer->open('w+');
+
+        $this->zipService->uncompressBuffer($compressedBuffer, $decompressedBuffer);
+
+        $decompressedBuffer->rewind();
+        $result = $decompressedBuffer->readContent();
+
+        self::assertEquals($originalData, $result);
+
+        $uncompressedBuffer->close();
+        $compressedBuffer->close();
+        $decompressedBuffer->close();
+        @unlink($uncompressedFile);
+        @unlink($compressedFile);
+        @unlink($decompressedFile);
+    }
+
+    public static function compressBufferWithVariousSizesProvider(): array
+    {
+        return [
+            '1 byte' => [1],
+            '16 bytes' => [16],
+            '17 bytes' => [17],
+            '31 bytes' => [31],
+            '32 bytes' => [32],
+            '33 bytes' => [33],
+            '100 bytes' => [100],
+            '1000 bytes' => [1000],
+            '1008 bytes (compressed = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1008],
+            '1009 bytes (compressed = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1009],
+            '1023 bytes (compressed = 1024 = DEFAULT_READ_LENGTH => feof quirk)' => [1023],
+            '1024 bytes' => [1024],
+            '1025 bytes' => [1025],
+            '2000 bytes' => [2000],
+            '5000 bytes' => [5000],
+            '10000 bytes' => [10000],
+        ];
     }
 }

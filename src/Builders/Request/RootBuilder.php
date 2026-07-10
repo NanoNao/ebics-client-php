@@ -5,6 +5,7 @@ namespace EbicsApi\Ebics\Builders\Request;
 use Closure;
 use DOMDocument;
 use DOMElement;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\ZipService;
 
@@ -32,15 +33,18 @@ abstract class RootBuilder extends XmlBuilder
 
     protected readonly ZipService $zipService;
     protected readonly CryptService $cryptService;
+    protected readonly Base64Service $base64Service;
     protected DOMElement $instance;
 
     public function __construct(
         ZipService $zipService,
         CryptService $cryptService,
+        Base64Service $base64Service,
         DOMDocument $dom
     ) {
         $this->zipService = $zipService;
         $this->cryptService = $cryptService;
+        $this->base64Service = $base64Service;
         parent::__construct($dom);
     }
 

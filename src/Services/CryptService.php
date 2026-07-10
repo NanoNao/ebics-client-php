@@ -52,7 +52,8 @@ final class CryptService implements CryptServiceInterface
     public function __construct(
         private readonly RSAFactory $rsaFactory,
         private readonly AESFactory $aesFactory,
-        private readonly RandomService $randomService
+        private readonly RandomService $randomService,
+        private readonly Base64Service $base64Service
     ) {
     }
 
@@ -366,7 +367,7 @@ final class CryptService implements CryptServiceInterface
 
         return sprintf(
             "-----BEGIN CERTIFICATE-----\n%s-----END CERTIFICATE-----\n",
-            chunk_split(base64_encode($certContent), 64, "\n")
+            chunk_split($this->base64Service->encode($certContent), 64, "\n")
         );
     }
 

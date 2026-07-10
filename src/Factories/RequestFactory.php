@@ -20,6 +20,7 @@ use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolver;
 use EbicsApi\Ebics\Services\ZipService;
@@ -41,7 +42,8 @@ abstract class RequestFactory
         protected readonly DigestResolver $digestResolver,
         protected readonly RequestBuilder $requestBuilder,
         protected readonly CryptService $cryptService,
-        protected readonly ZipService $zipService
+        protected readonly ZipService $zipService,
+        protected readonly Base64Service $base64Service
     ) {
     }
 

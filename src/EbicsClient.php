@@ -53,6 +53,7 @@ use EbicsApi\Ebics\Models\UploadTransaction;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\X509\ContentX509Generator;
 use EbicsApi\Ebics\Services\ArrayLogger;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\CurlHttpClient;
 use EbicsApi\Ebics\Services\RandomService;
@@ -78,6 +79,7 @@ final class EbicsClient implements EbicsClientInterface
     private readonly RequestFactory $requestFactory;
     private readonly CryptService $cryptService;
     private readonly ZipService $zipService;
+    private readonly Base64Service $base64Service;
     private readonly XmlService $xmlService;
     private readonly DocumentFactory $documentFactory;
     private readonly OrderResultFactory $orderResultFactory;
@@ -121,12 +123,19 @@ final class EbicsClient implements EbicsClientInterface
         $this->rsaFactory = new RSAFactory($options->getRsaClassMap());
 
         $this->segmentFactory = new SegmentFactory();
-        $this->cryptService = new CryptService($this->rsaFactory, new AESFactory(), new RandomService());
+        $this->base64Service = new Base64Service();
+        $this->cryptService = new CryptService(
+            $this->rsaFactory,
+            new AESFactory(),
+            new RandomService(),
+            $this->base64Service
+        );
         $this->zipService = new ZipService();
         $this->signatureFactory = new SignatureFactory($this->rsaFactory);
         $this->bufferFactory = new BufferFactory($options->getBufferFilename());
 
         $this->orderDataHandler = $ebicsFactory->createOrderDataHandler(
+            $this->base64Service,
             $user,
             $keyring,
             $this->cryptService,
@@ -138,6 +147,7 @@ final class EbicsClient implements EbicsClientInterface
         $this->schemaValidator = new SchemaValidator($options->getSchemaDir());
 
         $this->userSignatureHandler = $ebicsFactory->createUserSignatureHandler(
+            $this->base64Service,
             $user,
             $keyring,
             $this->cryptService,
@@ -151,15 +161,22 @@ final class EbicsClient implements EbicsClientInterface
             $this->userSignatureHandler,
             $this->orderDataHandler,
             $ebicsFactory->createDigestResolver($this->cryptService),
-            $ebicsFactory->createRequestBuilder($keyring, $this->cryptService, $this->schemaValidator),
+            $ebicsFactory->createRequestBuilder(
+                $keyring,
+                $this->cryptService,
+                $this->base64Service,
+                $this->schemaValidator
+            ),
             $this->cryptService,
-            $this->zipService
+            $this->zipService,
+            $this->base64Service
         );
 
         $this->responseHandler = $ebicsFactory->createResponseHandler(
             $this->segmentFactory,
             $this->cryptService,
             $this->zipService,
+            $this->base64Service,
             $this->bufferFactory
         );
 
@@ -748,10 +765,7 @@ final class EbicsClient implements EbicsClientInterface
         $orderDataEncoded->rewind();
 
         $orderDataDecoded = $this->bufferFactory->create();
-        while (!$orderDataEncoded->eof()) {
-            $orderDataDecoded->write(base64_decode($orderDataEncoded->read()));
-        }
-        $orderDataDecoded->rewind();
+        $this->base64Service->decodeBuffer($orderDataEncoded, $orderDataDecoded);
         unset($orderDataEncoded);
 
         $orderDataCompressed = $this->bufferFactory->create();
@@ -764,7 +778,7 @@ final class EbicsClient implements EbicsClientInterface
         unset($orderDataDecoded);
 
         $orderData = $this->bufferFactory->create();
-        $this->zipService->uncompress($orderDataCompressed, $orderData);
+        $this->zipService->uncompressBuffer($orderDataCompressed, $orderData);
         unset($orderDataCompressed);
 
         $transaction->setOrderData($orderData->readContent());

@@ -76,12 +76,12 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
 
         // Add ds:Modulus to ds:RSAKeyValue.
         $xmlModulus = $xml->createElement('ds:Modulus');
-        $xmlModulus->nodeValue = base64_encode($publicKeyDetails['m']);
+        $xmlModulus->nodeValue = $this->base64Service->encode($publicKeyDetails['m']);
         $xmlRSAKeyValue->appendChild($xmlModulus);
 
         // Add ds:Exponent to ds:RSAKeyValue.
         $xmlExponent = $xml->createElement('ds:Exponent');
-        $xmlExponent->nodeValue = base64_encode($publicKeyDetails['e']);
+        $xmlExponent->nodeValue = $this->base64Service->encode($publicKeyDetails['e']);
         $xmlRSAKeyValue->appendChild($xmlExponent);
 
         // Add TimeStamp to PubKeyValue.
@@ -98,7 +98,7 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         $x509Certificate = $xpath->query("//$h00x:AuthenticationPubKeyInfo/ds:X509Data/ds:X509Certificate");
         if ($x509Certificate instanceof DOMNodeList && 0 !== $x509Certificate->length) {
             $x509CertificateValue = DOMHelper::safeItemValue($x509Certificate);
-            $x509CertificateValueDe = base64_decode($x509CertificateValue);
+            $x509CertificateValueDe = $this->base64Service->decode($x509CertificateValue);
 
             $certificateContent
                 = "-----BEGIN CERTIFICATE-----\n" .
@@ -119,10 +119,10 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         } else {
             $modulus = $xpath->query("//$h00x:AuthenticationPubKeyInfo/$h00x:PubKeyValue/ds:RSAKeyValue/ds:Modulus");
             $modulusValue = DOMHelper::safeItemValue($modulus);
-            $modulusValueDe = base64_decode($modulusValue);
+            $modulusValueDe = $this->base64Service->decode($modulusValue);
             $exponent = $xpath->query("//$h00x:AuthenticationPubKeyInfo/$h00x:PubKeyValue/ds:RSAKeyValue/ds:Exponent");
             $exponentValue = DOMHelper::safeItemValue($exponent);
-            $exponentValueDe = base64_decode($exponentValue);
+            $exponentValueDe = $this->base64Service->decode($exponentValue);
 
             $signature = $this->signatureFactory->createSignatureXFromDetails(
                 $this->bigIntegerFactory->create($modulusValueDe, 256),
@@ -141,7 +141,7 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         $x509Certificate = $xpath->query("//$h00x:EncryptionPubKeyInfo/ds:X509Data/ds:X509Certificate");
         if ($x509Certificate instanceof DOMNodeList && 0 !== $x509Certificate->length) {
             $x509CertificateValue = DOMHelper::safeItemValue($x509Certificate);
-            $x509CertificateValueDe = base64_decode($x509CertificateValue);
+            $x509CertificateValueDe = $this->base64Service->decode($x509CertificateValue);
 
             $certificateContent
                 = "-----BEGIN CERTIFICATE-----\n" .
@@ -162,10 +162,10 @@ abstract class OrderDataHandlerV2 extends OrderDataHandler
         } else {
             $modulus = $xpath->query("//$h00x:EncryptionPubKeyInfo/$h00x:PubKeyValue/ds:RSAKeyValue/ds:Modulus");
             $modulusValue = DOMHelper::safeItemValue($modulus);
-            $modulusValueDe = base64_decode($modulusValue);
+            $modulusValueDe = $this->base64Service->decode($modulusValue);
             $exponent = $xpath->query("//$h00x:EncryptionPubKeyInfo/$h00x:PubKeyValue/ds:RSAKeyValue/ds:Exponent");
             $exponentValue = DOMHelper::safeItemValue($exponent);
-            $exponentValueDe = base64_decode($exponentValue);
+            $exponentValueDe = $this->base64Service->decode($exponentValue);
 
             $signature = $this->signatureFactory->createSignatureEFromDetails(
                 $this->bigIntegerFactory->create($modulusValueDe, 256),

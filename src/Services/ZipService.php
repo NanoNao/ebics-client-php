@@ -66,18 +66,34 @@ final class ZipService implements ZipServiceInterface
         return $fileContentItems;
     }
 
-    public function uncompress(Buffer $compressed, Buffer $uncompressed): void
+    public function uncompressBuffer(Buffer $compressed, Buffer $uncompressed): void
     {
-        // Skip metadata.
         $compressed->fseek(2);
 
-        $compressed->filterAppend('zlib.inflate', STREAM_FILTER_READ);
-
-        while (!$compressed->eof()) {
-            $string = $compressed->read();
-            $uncompressed->write($string);
+        $context = inflate_init(ZLIB_ENCODING_RAW);
+        if (false === $context) {
+            throw new RuntimeException('Failed to initialize inflate context.');
         }
+        while (!$compressed->eof()) {
+            $output = inflate_add($context, $compressed->read());
+            if (false === $output) {
+                throw new RuntimeException('Failed to inflate data.');
+            }
+            if ('' !== $output) {
+                $uncompressed->write($output);
+            }
+        }
+        inflate_add($context, '');
         $uncompressed->rewind();
+    }
+
+    public function uncompress(string $compressed): string
+    {
+        if (false === ($result = gzuncompress($compressed))) {
+            throw new RuntimeException('Data can not be uncompressed.');
+        }
+
+        return $result;
     }
 
     public function compress(string $uncompressed): string
@@ -87,5 +103,27 @@ final class ZipService implements ZipServiceInterface
         }
 
         return $compressed;
+    }
+
+    public function compressBuffer(Buffer $uncompressed, Buffer $compressed): void
+    {
+        $context = deflate_init(ZLIB_ENCODING_DEFLATE);
+        if (false === $context) {
+            throw new RuntimeException('Failed to initialize deflate context.');
+        }
+        while (!$uncompressed->eof()) {
+            $output = deflate_add($context, $uncompressed->read());
+            if (false === $output) {
+                throw new RuntimeException('Failed to deflate data.');
+            }
+            if ('' !== $output) {
+                $compressed->write($output);
+            }
+        }
+        $output = deflate_add($context, '');
+        if (false !== $output && '' !== $output) {
+            $compressed->write($output);
+        }
+        $compressed->rewind();
     }
 }

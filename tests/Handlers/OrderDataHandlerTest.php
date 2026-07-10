@@ -13,6 +13,7 @@ use EbicsApi\Ebics\Handlers\Traits\H004Trait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Customer;
 use EbicsApi\Ebics\Models\Http\Request;
+use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
@@ -42,9 +43,10 @@ class OrderDataHandlerTest extends AbstractEbicsTestCase
         $this->setupKeys($client->getKeyring());
         $ebicsFactory = new EbicsFactoryV25();
         $this->orderDataHandler = $ebicsFactory->createOrderDataHandler(
+            new Base64Service(),
             $client->getUser(),
             $client->getKeyring(),
-            new CryptService(new RSAFactory(), new AESFactory, new RandomService),
+            new CryptService(new RSAFactory(), new AESFactory, new RandomService, new Base64Service),
             new SignatureFactory(new RSAFactory()),
             new CertificateX509Factory(),
             new BigIntegerFactory()
