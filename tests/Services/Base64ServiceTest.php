@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
  *
  * @license http://www.opensource.org/licenses/mit-license.html MIT License
  * @author Andrew Svirin
+ *
+ * @group base64-service
  */
 class Base64ServiceTest extends TestCase
 {
@@ -521,37 +523,10 @@ class Base64ServiceTest extends TestCase
             '10000 bytes' => [10000],
         ];
     }
-}
-<?php
 
-namespace EbicsApi\Ebics\Tests\Services;
-
-use EbicsApi\Ebics\Models\Buffer;
-use EbicsApi\Ebics\Services\Base64Service;
-use PHPUnit\Framework\TestCase;
-
-/**
- * Unit tests for Base64Service::decodeBuffer() chunked decoding.
- *
- * These tests target the bug where decodeBuffer() silently loses the final
- * 1–3 Base64 characters at EOF when the total stream length is not a
- * multiple of 4. Because read() returns up to 1024 bytes, a remainder of
- * 1–3 chars ends up in the final $remainder variable and base64_decode()
- * on an incomplete group returns an empty string (PHP 8+), dropping data.
- *
- * @license http://www.opensource.org/licenses/mit-license.html  MIT License
- * @author Andrew Svirin
- *
- * @group base64-service
- */
-class Base64ServiceTest extends TestCase
-{
-    private Base64Service $base64Service;
-
-    protected function setUp(): void
-    {
-        $this->base64Service = new Base64Service();
-    }
+    /* --------------------------------------------------------------------- */
+    /*  Chunked decodeBuffer edge-case tests (regression for remainder bug)   */
+    /* --------------------------------------------------------------------- */
 
     private function createBufferFromString(string $content): Buffer
     {
@@ -600,7 +575,7 @@ class Base64ServiceTest extends TestCase
     }
 
     /**
-     * BUG: total base64 length = 1024 + 1 = 1025 characters.
+     * Regression: total base64 length = 1024 + 1 = 1025 characters.
      *
      * The first chunk decodes perfectly (1024 chars → 768 bytes).
      * The second (last) chunk contains a single leftover character.
@@ -634,7 +609,7 @@ class Base64ServiceTest extends TestCase
     }
 
     /**
-     * BUG: total base64 length = 1024 + 2 = 1026 characters.
+     * Regression: total base64 length = 1024 + 2 = 1026 characters.
      *
      * The final 2-char remainder is passed to base64_decode(), which
      * returns 1 incorrect byte in PHP 8+. Two raw bytes are lost.
@@ -660,7 +635,7 @@ class Base64ServiceTest extends TestCase
     }
 
     /**
-     * BUG: total base64 length = 1024 + 3 = 1027 characters.
+     * Regression: total base64 length = 1024 + 3 = 1027 characters.
      *
      * The final 3-char remainder decodes to 2 bytes (often garbage) in
      * PHP 8+, so 1 raw byte is lost.
