@@ -120,7 +120,7 @@ final class ZipService implements ZipServiceInterface
                 $compressed->write($output);
             }
         }
-        $output = deflate_add($context, '');
+        $output = deflate_add($context, '', ZLIB_FINISH);
         if (false !== $output && '' !== $output) {
             $compressed->write($output);
         }

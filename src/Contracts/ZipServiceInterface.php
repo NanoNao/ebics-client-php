@@ -92,8 +92,8 @@ interface ZipServiceInterface
      * Compress data from one Buffer to another using streaming deflate.
      *
      * Uses PHP's deflate_init/deflate_add for memory-efficient streaming
-     * compression. Produces raw deflate data compatible with the uncompressBuffer()
-     * method.
+     * compression. Produces zlib-compressed data compatible with both
+     * uncompress() and uncompressBuffer().
      *
      * @param Buffer $uncompressed Buffer containing the raw data (input)
      * @param Buffer $compressed Buffer to write the compressed data to (output)

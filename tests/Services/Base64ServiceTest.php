@@ -2,6 +2,7 @@
 
 namespace EbicsApi\Ebics\Tests\Services;
 
+use EbicsApi\Ebics\Contracts\BufferInterface;
 use EbicsApi\Ebics\Models\Buffer;
 use EbicsApi\Ebics\Services\Base64Service;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -355,6 +356,148 @@ class Base64ServiceTest extends TestCase
         @unlink($inputFile);
         @unlink($encodedFile);
         @unlink($decodedFile);
+    }
+
+    #[DataProvider('decodeBufferChunkBoundaryProvider')]
+    public function testDecodeBufferLosesDataAtChunkBoundary(int $binaryLength): void
+    {
+        $originalData = random_bytes($binaryLength);
+        $encodedPadded = base64_encode($originalData);
+        $encodedUnpadded = rtrim($encodedPadded, '=');
+
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        try {
+            $inputBuffer = new Buffer($inputFile);
+            $inputBuffer->open('w+');
+            $inputBuffer->write($encodedUnpadded);
+            $inputBuffer->rewind();
+
+            $outputBuffer = new Buffer($outputFile);
+            $outputBuffer->open('w+');
+
+            $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+            $outputBuffer->rewind();
+            $result = $outputBuffer->readContent();
+
+            $expected = base64_decode($encodedUnpadded);
+
+            self::assertSame(
+                $expected,
+                $result,
+                sprintf(
+                    'decodeBuffer lost %d bytes: unpadded base64 length %d, remainder %d',
+                    strlen($expected) - strlen($result),
+                    strlen($encodedUnpadded),
+                    strlen($encodedUnpadded) % BufferInterface::DEFAULT_READ_LENGTH
+                )
+            );
+        } finally {
+            @unlink($inputFile);
+            @unlink($outputFile);
+        }
+    }
+
+    public static function decodeBufferChunkBoundaryProvider(): array
+    {
+        return [
+            '768 bytes binary → 1024 base64 chars (no remainder)' => [768],
+            '769 bytes binary → 1026 unpadded chars (2-byte remainder)' => [769],
+            '770 bytes binary → 1027 unpadded chars (3-byte remainder)' => [770],
+            '771 bytes binary → 1028 base64 chars (4-byte remainder, no bug)' => [771],
+            '772 bytes binary → 1030 unpadded chars (6-byte remainder)' => [772],
+            '1025 bytes binary → 1367 unpadded chars (343-byte remainder)' => [1025],
+            '2048 bytes binary → 2731 unpadded chars (683-byte remainder)' => [2048],
+            '3072 bytes binary → 4096 base64 chars (no remainder)' => [3072],
+            '3073 bytes binary → 4098 unpadded chars (2-byte remainder)' => [3073],
+            '5000 bytes binary → 6667 unpadded chars (523-byte remainder)' => [5000],
+        ];
+    }
+
+    public function testDecodeBufferSmallUnpaddedRemainder1Byte(): void
+    {
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        try {
+            $inputBuffer = new Buffer($inputFile);
+            $inputBuffer->open('w+');
+            $inputBuffer->write(str_repeat('A', 1024) . 'Q');
+            $inputBuffer->rewind();
+
+            $outputBuffer = new Buffer($outputFile);
+            $outputBuffer->open('w+');
+
+            $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+            $outputBuffer->rewind();
+            $result = $outputBuffer->readContent();
+
+            $expected = base64_decode(str_repeat('A', 1024) . 'Q');
+
+            self::assertSame($expected, $result);
+        } finally {
+            @unlink($inputFile);
+            @unlink($outputFile);
+        }
+    }
+
+    public function testDecodeBufferSmallUnpaddedRemainder2Bytes(): void
+    {
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        try {
+            $inputBuffer = new Buffer($inputFile);
+            $inputBuffer->open('w+');
+            $inputBuffer->write(str_repeat('A', 1024) . 'QQ');
+            $inputBuffer->rewind();
+
+            $outputBuffer = new Buffer($outputFile);
+            $outputBuffer->open('w+');
+
+            $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+            $outputBuffer->rewind();
+            $result = $outputBuffer->readContent();
+
+            $expected = base64_decode(str_repeat('A', 1024) . 'QQ');
+
+            self::assertSame($expected, $result);
+        } finally {
+            @unlink($inputFile);
+            @unlink($outputFile);
+        }
+    }
+
+    public function testDecodeBufferSmallUnpaddedRemainder3Bytes(): void
+    {
+        $inputFile = tempnam(sys_get_temp_dir(), 'b64_in_');
+        $outputFile = tempnam(sys_get_temp_dir(), 'b64_out_');
+
+        try {
+            $inputBuffer = new Buffer($inputFile);
+            $inputBuffer->open('w+');
+            $inputBuffer->write(str_repeat('A', 1024) . 'QQQ');
+            $inputBuffer->rewind();
+
+            $outputBuffer = new Buffer($outputFile);
+            $outputBuffer->open('w+');
+
+            $this->base64Service->decodeBuffer($inputBuffer, $outputBuffer);
+
+            $outputBuffer->rewind();
+            $result = $outputBuffer->readContent();
+
+            $expected = base64_decode(str_repeat('A', 1024) . 'QQQ');
+
+            self::assertSame($expected, $result);
+        } finally {
+            @unlink($inputFile);
+            @unlink($outputFile);
+        }
     }
 
     public static function encodeBufferWithVariousSizesProvider(): array

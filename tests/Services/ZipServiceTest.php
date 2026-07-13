@@ -299,6 +299,35 @@ class ZipServiceTest extends TestCase
         @unlink($decompressedFile);
     }
 
+    #[DataProvider('compressBufferCompatibleWithGzuncompressProvider')]
+    public function testCompressBufferProducesGzuncompressCompatibleOutput(int $dataLength): void
+    {
+        $originalData = str_repeat('C', $dataLength);
+
+        $uncompressedFile = tempnam(sys_get_temp_dir(), 'uncompressed_');
+        $compressedFile = tempnam(sys_get_temp_dir(), 'compressed_');
+
+        $uncompressedBuffer = new Buffer($uncompressedFile);
+        $uncompressedBuffer->open('w+');
+        $uncompressedBuffer->write($originalData);
+        $uncompressedBuffer->rewind();
+
+        $compressedBuffer = new Buffer($compressedFile);
+        $compressedBuffer->open('w+');
+
+        $this->zipService->compressBuffer($uncompressedBuffer, $compressedBuffer);
+
+        $compressedBuffer->rewind();
+        $compressedData = $compressedBuffer->readContent();
+
+        self::assertSame($originalData, gzuncompress($compressedData));
+
+        $uncompressedBuffer->close();
+        $compressedBuffer->close();
+        @unlink($uncompressedFile);
+        @unlink($compressedFile);
+    }
+
     public static function compressBufferWithVariousSizesProvider(): array
     {
         return [
@@ -318,6 +347,19 @@ class ZipServiceTest extends TestCase
             '2000 bytes' => [2000],
             '5000 bytes' => [5000],
             '10000 bytes' => [10000],
+        ];
+    }
+
+    public static function compressBufferCompatibleWithGzuncompressProvider(): array
+    {
+        return [
+            '1 byte' => [1],
+            '16 bytes' => [16],
+            '1023 bytes' => [1023],
+            '1024 bytes' => [1024],
+            '1025 bytes' => [1025],
+            '2000 bytes' => [2000],
+            '5000 bytes' => [5000],
         ];
     }
 }
