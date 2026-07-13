@@ -3,6 +3,7 @@
 namespace EbicsApi\Ebics\Tests\Services;
 
 use EbicsApi\Ebics\Contracts\BufferInterface;
+use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Models\Buffer;
 use EbicsApi\Ebics\Services\Base64Service;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,8 +14,6 @@ use PHPUnit\Framework\TestCase;
  *
  * @license http://www.opensource.org/licenses/mit-license.html MIT License
  * @author Andrew Svirin
- *
- * @group base64-service
  */
 class Base64ServiceTest extends TestCase
 {
@@ -23,6 +22,26 @@ class Base64ServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->base64Service = new Base64Service();
+    }
+
+    private function createBufferFromString(string $content): Buffer
+    {
+        $filename = tempnam(sys_get_temp_dir(), 'ebics_base64_test_');
+        file_put_contents($filename, $content);
+        $buffer = new Buffer($filename);
+        $buffer->open('r');
+        $buffer->rewind();
+
+        return $buffer;
+    }
+
+    private function createEmptyBuffer(): Buffer
+    {
+        $filename = tempnam(sys_get_temp_dir(), 'ebics_base64_test_');
+        $buffer = new Buffer($filename);
+        $buffer->open('w+');
+
+        return $buffer;
     }
 
     public function testEncodeReturnsBase64String(): void
@@ -524,78 +543,20 @@ class Base64ServiceTest extends TestCase
         ];
     }
 
-    /* --------------------------------------------------------------------- */
-    /*  Chunked decodeBuffer edge-case tests (regression for remainder bug)   */
-    /* --------------------------------------------------------------------- */
-
-    private function createBufferFromString(string $content): Buffer
-    {
-        $filename = tempnam(sys_get_temp_dir(), 'ebics_base64_test_');
-        file_put_contents($filename, $content);
-        $buffer = new Buffer($filename);
-        $buffer->open('r');
-        $buffer->rewind();
-
-        return $buffer;
-    }
-
-    private function createEmptyBuffer(): Buffer
-    {
-        $filename = tempnam(sys_get_temp_dir(), 'ebics_base64_test_');
-        $buffer = new Buffer($filename);
-        $buffer->open('w+');
-
-        return $buffer;
-    }
-
     /**
-     * Well-formed padded base64 whose length is a clean multiple of 1024.
-     * This is the "happy path" and should round-trip correctly even with the
-     * buggy chunked decoder (because every chunk boundary aligns on a 4-char
-     * group).
-     */
-    public function testDecodeBufferWithMultipleOf1024Length(): void
-    {
-        // 768 raw bytes → 1024 base64 chars (exactly one chunk)
-        $original = str_repeat('A', 768);
-        $base64 = base64_encode($original);
-
-        self::assertEquals(1024, strlen($base64));
-        self::assertEquals(0, strlen($base64) % 4);
-
-        $input = $this->createBufferFromString($base64);
-        $output = $this->createEmptyBuffer();
-
-        $this->base64Service->decodeBuffer($input, $output);
-
-        $output->rewind();
-        $decoded = $output->readContent();
-
-        self::assertEquals($original, $decoded);
-    }
-
-    /**
-     * Regression: total base64 length = 1024 + 1 = 1025 characters.
+     * Core correctness check: decodeBuffer() must match base64_decode() on the
+     * exact same input for every size listed.
      *
-     * The first chunk decodes perfectly (1024 chars → 768 bytes).
-     * The second (last) chunk contains a single leftover character.
-     * base64_decode('x') returns '' in PHP 8+, so 6 bits (0.75 byte)
-     * are silently discarded.
+     * We use unpadded base64 (rtrim(..., '=')) because that is the realistic
+     * EBICS scenario where a trailing group of 1–3 characters can appear.
      */
-    public function testDecodeBufferWithOneByteRemainderLosesData(): void
+    #[DataProvider('variousSizesProvider')]
+    public function testDecodeBufferMatchesOneshotBase64Decode(int $rawSize): void
     {
-        // 768 raw bytes → 1024 base64 chars. Truncate 3 chars and append 1
-        // so the total becomes 1022 chars... wait, we need 1025.
-        // Let's just start from raw=1023 → 1364 base64 chars (already >1024).
-        // Truncate to 1025 chars: 1364 - 339 = 1025.
-        $original = str_repeat('X', 1023);
-        $base64 = base64_encode($original);
-        $truncatedBase64 = substr($base64, 0, 1025);
+        $original = random_bytes($rawSize);
+        $unpaddedBase64 = rtrim(base64_encode($original), '=');
 
-        self::assertEquals(1025, strlen($truncatedBase64));
-        self::assertEquals(1, strlen($truncatedBase64) % 4);
-
-        $input = $this->createBufferFromString($truncatedBase64);
+        $input = $this->createBufferFromString($unpaddedBase64);
         $output = $this->createEmptyBuffer();
 
         $this->base64Service->decodeBuffer($input, $output);
@@ -603,60 +564,136 @@ class Base64ServiceTest extends TestCase
         $output->rewind();
         $decoded = $output->readContent();
 
-        // The buggy implementation loses the last 3 raw bytes because the
-        // final 1-char remainder decodes to an empty string.
-        self::assertEquals($original, $decoded);
+        // Reference: native base64_decode on the exact same string.
+        $expected = base64_decode($unpaddedBase64);
+
+        self::assertEquals(
+            $expected,
+            $decoded,
+            sprintf(
+                "decodeBuffer() output (%d bytes) differs from base64_decode() (%d bytes) for rawSize=%d, b64Len=%d, b64Mod4=%d",
+                strlen($decoded),
+                strlen($expected),
+                $rawSize,
+                strlen($unpaddedBase64),
+                strlen($unpaddedBase64) % 4
+            )
+        );
+    }
+
+    public static function variousSizesProvider(): array
+    {
+        return [
+            // Small remainders that never cross a chunk boundary
+            '1 byte raw' => [1],
+            '2 bytes raw' => [2],
+            '3 bytes raw' => [3],
+
+            // Sizes where base64 length mod 4 == 0 (clean groups)
+            '6 bytes raw (b64 mod4=0)' => [6],
+            '1023 bytes raw (b64 mod4=0)' => [1023],
+
+            // Sizes that produce a base64 remainder of 1–3 at EOF
+            '7 bytes raw (b64 mod4=3)' => [7],
+            '8 bytes raw (b64 mod4=2)' => [8],
+            '9 bytes raw (b64 mod4=1)' => [9],
+
+            // Sizes around the internal 1024-byte read chunk
+            '768 bytes raw (b64 = 1024 chars)' => [768],
+            '1024 bytes raw' => [1024],
+            '1025 bytes raw' => [1025],
+
+            // Large sizes that cross multiple chunk boundaries
+            '2000 bytes raw' => [2000],
+            '5000 bytes raw' => [5000],
+        ];
     }
 
     /**
-     * Regression: total base64 length = 1024 + 2 = 1026 characters.
+     * Demonstrate the bug that occurs when base64_decode() is applied to
+     * fixed-size chunks without carrying a remainder across boundaries.
      *
-     * The final 2-char remainder is passed to base64_decode(), which
-     * returns 1 incorrect byte in PHP 8+. Two raw bytes are lost.
+     * Because base64 groups are 4 characters, a chunk size that is NOT a
+     * multiple of 4 (e.g. 1023) cuts through a group at every boundary.
+     * The leftover 1–3 characters at the end of each chunk are decoded
+     * independently and therefore produce incorrect / truncated bytes.
+     *
+     * The current Base64Service avoids this by accumulating $remainder and
+     * prepending it to the next chunk, so group boundaries are never split.
      */
-    public function testDecodeBufferWithTwoByteRemainderLosesData(): void
+    public function testChunkedDecodeWithoutRemainderLosesBytesWhenChunkSizeNotAligned(): void
     {
-        $original = str_repeat('Y', 1023);
-        $base64 = base64_encode($original);
-        $truncatedBase64 = substr($base64, 0, 1026);
+        $original = random_bytes(1023); // unpadded b64 length = 1364
+        $unpaddedBase64 = rtrim(base64_encode($original), '=');
 
-        self::assertEquals(1026, strlen($truncatedBase64));
-        self::assertEquals(2, strlen($truncatedBase64) % 4);
+        $chunkSize = 1023; // NOT a multiple of 4 → group boundaries are split
 
-        $input = $this->createBufferFromString($truncatedBase64);
-        $output = $this->createEmptyBuffer();
+        $buggyDecoded = '';
+        $pos = 0;
+        $len = strlen($unpaddedBase64);
+        while ($pos < $len) {
+            $chunk = substr($unpaddedBase64, $pos, $chunkSize);
+            $buggyDecoded .= base64_decode($chunk);
+            $pos += $chunkSize;
+        }
 
-        $this->base64Service->decodeBuffer($input, $output);
+        $correctDecoded = base64_decode($unpaddedBase64);
 
-        $output->rewind();
-        $decoded = $output->readContent();
-
-        self::assertEquals($original, $decoded);
+        self::assertNotEquals(
+            $correctDecoded,
+            $buggyDecoded,
+            "Chunked decode without remainder must lose bytes when chunk size ($chunkSize) is not a multiple of 4"
+        );
     }
 
     /**
-     * Regression: total base64 length = 1024 + 3 = 1027 characters.
+     * BUG: truncated ciphertext after buggy chunked base64 decode causes
+     * AES::unpad() to throw LogicException: "Length incorrect."
      *
-     * The final 3-char remainder decodes to 2 bytes (often garbage) in
-     * PHP 8+, so 1 raw byte is lost.
+     * Flow:
+     *   1. Encrypt a plaintext with AES-128-CBC.
+     *   2. Encode the ciphertext to unpadded base64.
+     *   3. Decode with the buggy no-remainder approach (chunk size 1023).
+     *      This drops 1-3 bytes from the ciphertext.
+     *   4. Feed the truncated ciphertext to AES::decryptBuffer().
+     *   5. The ciphertext is no longer a multiple of 16, so unpad() fails.
      */
-    public function testDecodeBufferWithThreeByteRemainderLosesData(): void
+    public function testBuggyChunkedBase64DecodeCorruptsAesCiphertext(): void
     {
-        $original = str_repeat('Z', 1023);
-        $base64 = base64_encode($original);
-        $truncatedBase64 = substr($base64, 0, 1027);
+        $aesFactory = new AESFactory();
+        $aes = $aesFactory->create();
+        $aes->setKeyLength(128);
+        $key = str_repeat('K', 16);
+        $aes->setKey($key);
+        $aes->setOpenSSLOptions(OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING);
 
-        self::assertEquals(1027, strlen($truncatedBase64));
-        self::assertEquals(3, strlen($truncatedBase64) % 4);
+        $plaintext = str_repeat('A', 2000); // 2000 bytes → padded to 2000+16 = 2016-byte ciphertext
+        $ciphertext = $aes->encrypt($plaintext);
+        self::assertGreaterThanOrEqual(1025, strlen($ciphertext));
 
-        $input = $this->createBufferFromString($truncatedBase64);
-        $output = $this->createEmptyBuffer();
+        $unpaddedBase64 = rtrim(base64_encode($ciphertext), '=');
+        self::assertGreaterThan(1024, strlen($unpaddedBase64), 'Need b64 > 1024 to span multiple chunks');
 
-        $this->base64Service->decodeBuffer($input, $output);
+        // Buggy decode: chunk size NOT a multiple of 4 → bytes lost at every boundary
+        $buggyCiphertext = '';
+        $pos = 0;
+        $len = strlen($unpaddedBase64);
+        $chunkSize = 1023;
+        while ($pos < $len) {
+            $chunk = substr($unpaddedBase64, $pos, $chunkSize);
+            $buggyCiphertext .= base64_decode($chunk);
+            $pos += $chunkSize;
+        }
 
-        $output->rewind();
-        $decoded = $output->readContent();
+        // The buggy ciphertext is shorter → no longer a block-aligned size
+        self::assertLessThan(strlen($ciphertext), strlen($buggyCiphertext));
 
-        self::assertEquals($original, $decoded);
+        $cipherBuffer = $this->createBufferFromString($buggyCiphertext);
+        $plainBuffer = $this->createEmptyBuffer();
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Length incorrect.');
+
+        $aes->decryptBuffer($cipherBuffer, $plainBuffer);
     }
 }
