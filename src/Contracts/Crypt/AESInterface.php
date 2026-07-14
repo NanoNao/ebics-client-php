@@ -2,118 +2,93 @@
 
 namespace EbicsApi\Ebics\Contracts\Crypt;
 
-use EbicsApi\Ebics\Contracts\BufferInterface;
-
 /**
- * Crypt AES representation.
+ * AES cipher operations for EBICS protocol encryption and decryption.
+ *
+ * Provides block-level AES encrypt/decrypt in CBC mode (backed by OpenSSL),
+ * ANSI X.923 padding/unpadding, and block-size queries.
+ *
+ * Typical EBICS usage:
+ *  1. Pad plaintext with {@see pad()} to make it block-aligned.
+ *  2. Encrypt each block with {@see encryptBlock()} using a transaction key.
+ *  3. On receipt, decrypt with {@see decryptBlock()} then strip padding with {@see unpad()}.
+ *
+ * @see \EbicsApi\Ebics\Services\Processor\AESEncryptor  Uses this interface for AES operations.
+ * @see \App\Model\Ebics\BufferedAESEncryptor  Streaming variant.
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
  */
 interface AESInterface
 {
+    /**
+     * Returns the AES block size in bytes.
+     *
+     * AES uses a fixed 128-bit (16-byte) block size regardless of key length.
+     *
+     * @return int Block size in bytes (always 16).
+     */
+    public function getBlockSize(): int;
 
     /**
-     * Sets the key length
+     * Apply ANSI X.923 padding to make the data a multiple of the block size.
      *
-     * Valid key lengths are 128, 192, and 256.  If the length is less than 128, it will be rounded up to
-     * 128.  If the length is greater than 128 and invalid, it will be rounded down to the closest valid amount.
+     * X.923 pads with zero bytes and stores the padding length in the final byte.
+     * When the input is already block-aligned, a full 16-byte padding block is appended.
      *
-     * @param int $length
+     * Padding length is always between 1 and 16 (inclusive).
      *
-     * @return void
+     * @param string $text Plaintext to pad (any length, including empty).
+     *
+     * @return string Padded data whose length is a multiple of 16.
      */
-    public function setKeyLength(int $length);
+    public function pad(string $text);
 
     /**
-     * Sets the key.
+     * Strip ANSI X.923 padding from decrypted data.
      *
-     * Rijndael supports five different key lengths, AES only supports three.
+     * Reads the final byte as the padding length, then removes that many bytes
+     * from the end of the string.
      *
-     * @param string $key
+     * @param string $text Decrypted data with X.923 padding at the end.
      *
-     * @return void
+     * @return string Original unpadded plaintext.
+     *
+     * @throws \LogicException If the padding length byte is 0 or exceeds the block size.
      */
-    public function setKey(string $key);
+    public function unpad(string $text);
 
     /**
-     * Sets the initialization vector. (optional)
+     * Encrypt block-aligned data with AES in CBC mode (no internal padding).
      *
-     * SetIV is not required when self::MODE_ECB (or ie for AES: AES::MODE_ECB) is being used.
-     * If not explicitly set, it'll be assumed to be all zero's.
+     * Delegates to {@see \openssl_encrypt()} with `OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING`.
+     * The caller is responsible for padding the input before calling this method.
      *
-     * @param string $iv
+     * @param string $data   Block-aligned plaintext (length must be a multiple of the block size).
+     * @param string $key    Raw AES key (16 bytes for AES-128, 32 bytes for AES-256).
+     * @param string $cipher OpenSSL cipher method (e.g. 'aes-128-cbc', 'aes-256-cbc').
+     * @param string $iv     Initialization vector (must be $block_size bytes).
      *
-     * @return void
+     * @return string Ciphertext block (same length as input).
+     *
+     * @throws \LogicException If OpenSSL encryption fails (bad key length, invalid cipher, etc.).
      */
-    public function setIV(string $iv);
+    public function encryptBlock(string $data, string $key, string $cipher, string $iv);
 
     /**
-     * Encrypts a message.
+     * Decrypt AES-CBC ciphertext without stripping padding.
      *
-     * $plaintext will be padded with additional bytes such that it's length is a multiple of
-     * the block size. Other cipher implementations may or may not pad in the same manner.
-     * Other common approaches to padding and the reasons why it's necessary are discussed in
-     * the following URL:
+     * Delegates to {@see \openssl_decrypt()} with `OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING`.
+     * The caller must call {@see unpad()} afterward to remove X.923 padding.
      *
-     * {@link http://www.di-mgt.com.au/cryptopad.html http://www.di-mgt.com.au/cryptopad.html}
+     * @param string $data   Ciphertext block to decrypt.
+     * @param string $key    Raw AES key (16 bytes for AES-128, 32 bytes for AES-256).
+     * @param string $cipher OpenSSL cipher method (e.g. 'aes-128-cbc', 'aes-256-cbc').
+     * @param string $iv     Initialization vector (must be $block_size bytes).
      *
-     * An alternative to padding is to, separately, send the length of the file.  This is what
-     * SSH, in fact, does. strlen($plaintext) will still need to be a multiple of the block size,
-     * however, arbitrary values can be added to make it that length.
+     * @return string Decrypted block (same length as input, may contain padding bytes).
      *
-     * @param string $plaintext
-     *
-     * @return string $ciphertext
-     * @internal Could, but not must, extend by the child Crypt_* class
+     * @throws \LogicException If OpenSSL decryption fails (bad key length, invalid cipher, etc.).
      */
-    public function encrypt(string $plaintext);
-
-    /**
-     * Encrypts a message from one Buffer to another.
-     *
-     * Reads plaintext from $plaintext buffer, encrypts in chunks, and writes
-     * ciphertext to $ciphertext buffer. ANSI X.923 padding is applied to the
-     * last chunk if padding is enabled.
-     *
-     * @param BufferInterface $plaintext Buffer containing the plaintext (input)
-     * @param BufferInterface $ciphertext Buffer to write the ciphertext to (output)
-     *
-     * @return void
-     */
-    public function encryptBuffer(BufferInterface $plaintext, BufferInterface $ciphertext);
-
-    /**
-     * Decrypts a message.
-     *
-     * If strlen($ciphertext) is not a multiple of the block size, null bytes will be added
-     * to the end of the string until it is.
-     *
-     * @param string $ciphertext
-     *
-     * @return string $plaintext
-     */
-    public function decrypt(string $ciphertext);
-
-    /**
-     * Decrypts a message.
-     *
-     * If strlen($ciphertext) is not a multiple of the block size, null bytes will be added
-     * to the end of the string until it is.
-     *
-     * @param BufferInterface $ciphertext
-     * @param BufferInterface $plaintext
-     *
-     * @return void
-     */
-    public function decryptBuffer(BufferInterface $ciphertext, BufferInterface $plaintext);
-
-    /**
-     * Set options.
-     *
-     * @param mixed $options
-     *
-     * @return void
-     */
-    public function setOpenSSLOptions($options);
+    public function decryptBlock(string $data, string $key, string $cipher, string $iv);
 }

@@ -5,6 +5,9 @@ namespace EbicsApi\Ebics\Models;
 use EbicsApi\Ebics\Contracts\EbicsClientOptionsInterface;
 use EbicsApi\Ebics\Contracts\HttpClientInterface;
 use EbicsApi\Ebics\Contracts\LoggerInterface;
+use EbicsApi\Ebics\Contracts\Processor\AESEncryptorInterface;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
+use EbicsApi\Ebics\Contracts\Processor\ZipCompressorInterface;
 
 /**
  * Default implementation of EBICS client options.
@@ -23,12 +26,15 @@ final class EbicsClientOptions implements EbicsClientOptionsInterface
     public ?array $rsaClassMap = null;
 
     public ?string $schemaDir = null;
-    public string $bufferFilename = 'php://memory';
 
     /**
      * @var array<int, mixed> cURL options (CURLOPT_* constants as keys)
      */
     public array $curlOptions = [];
+
+    public ?Base64EncoderInterface $base64Pipe = null;
+    public ?AESEncryptorInterface $aesPipe = null;
+    public ?ZipCompressorInterface $gzipPipe = null;
 
     public function getHttpClient(): ?HttpClientInterface
     {
@@ -81,18 +87,6 @@ final class EbicsClientOptions implements EbicsClientOptionsInterface
         return $this;
     }
 
-    public function getBufferFilename(): string
-    {
-        return $this->bufferFilename;
-    }
-
-    public function setBufferFilename(string $bufferFilename): self
-    {
-        $this->bufferFilename = $bufferFilename;
-
-        return $this;
-    }
-
     /**
      * @return array<int, mixed> CURLOPT_* constants as keys
      */
@@ -107,6 +101,42 @@ final class EbicsClientOptions implements EbicsClientOptionsInterface
     public function setCurlOptions(array $curlOptions): self
     {
         $this->curlOptions = $curlOptions;
+
+        return $this;
+    }
+
+    public function getBase64Encoder(): ?Base64EncoderInterface
+    {
+        return $this->base64Pipe;
+    }
+
+    public function setBase64Encoder(?Base64EncoderInterface $base64Pipe): self
+    {
+        $this->base64Pipe = $base64Pipe;
+
+        return $this;
+    }
+
+    public function getAesEncryptor(): ?AESEncryptorInterface
+    {
+        return $this->aesPipe;
+    }
+
+    public function setAesEncryptor(?AESEncryptorInterface $aesPipe): self
+    {
+        $this->aesPipe = $aesPipe;
+
+        return $this;
+    }
+
+    public function getZipCompressor(): ?ZipCompressorInterface
+    {
+        return $this->gzipPipe;
+    }
+
+    public function setZipCompressor(?ZipCompressorInterface $gzipPipe): self
+    {
+        $this->gzipPipe = $gzipPipe;
 
         return $this;
     }

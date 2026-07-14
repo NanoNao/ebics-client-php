@@ -7,6 +7,7 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use EbicsApi\Ebics\Contracts\OrderDataHandlerInterface;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\CertificateEbicsException;
 use EbicsApi\Ebics\Factories\CertificateX509Factory;
@@ -16,7 +17,6 @@ use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\XmlData;
 use EbicsApi\Ebics\Models\XmlDocument;
-use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 
 /**
@@ -32,7 +32,7 @@ abstract class OrderDataHandler implements OrderDataHandlerInterface
     use H00XTrait;
 
     public function __construct(
-        protected readonly Base64Service $base64Service,
+        protected readonly Base64EncoderInterface $base64Service,
         private readonly User $user,
         protected readonly CryptService $cryptService,
         protected readonly SignatureFactory $signatureFactory,

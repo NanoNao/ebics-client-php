@@ -7,6 +7,7 @@ use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\KeyringFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Keyring;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
 
 /**
  * Abstract base class for managing EBICS keyring lifecycle.
@@ -44,7 +45,7 @@ abstract class KeyringManager implements KeyringManagerInterface
     public function __construct(?KeyringFactory $keyringFactory = null)
     {
         $this->keyringFactory = $keyringFactory ?? new KeyringFactory(
-            new SignatureFactory(new RSAFactory()),
+            new SignatureFactory(new RSAFactory(new AESEncryptor(new TransactionKeyResolver()))),
             new CryptoStorage(new KeyStorageLocator())
         );
     }

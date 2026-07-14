@@ -3,8 +3,10 @@
 namespace EbicsApi\Ebics\Services;
 
 use EbicsApi\Ebics\Contracts\KeyStorageInterface;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
+use EbicsApi\Ebics\Services\Processor\Base64Encoder;
 
 /**
  * Key storage implementation using base64-encoded strings.
@@ -27,11 +29,11 @@ use EbicsApi\Ebics\Models\Crypt\RSA;
  */
 final class StringKeyStorage implements KeyStorageInterface
 {
-    private readonly Base64Service $base64Service;
+    private readonly Base64EncoderInterface $base64Service;
 
     public function __construct()
     {
-        $this->base64Service = new Base64Service();
+        $this->base64Service = new Base64Encoder();
     }
 
     /**

@@ -5,9 +5,9 @@ namespace EbicsApi\Ebics\Builders\Request;
 use Closure;
 use DOMDocument;
 use DOMElement;
-use EbicsApi\Ebics\Services\Base64Service;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
+use EbicsApi\Ebics\Contracts\Processor\ZipCompressorInterface;
 use EbicsApi\Ebics\Services\CryptService;
-use EbicsApi\Ebics\Services\ZipService;
 
 /**
  * Class BodyBuilder builder for request container.
@@ -17,15 +17,15 @@ use EbicsApi\Ebics\Services\ZipService;
  */
 abstract class BodyBuilder extends XmlBuilder
 {
-    protected readonly ZipService $zipService;
+    protected readonly ZipCompressorInterface $zipService;
     protected readonly CryptService $cryptService;
-    protected readonly Base64Service $base64Service;
+    protected readonly Base64EncoderInterface $base64Service;
     protected DOMElement $instance;
 
     public function __construct(
-        ZipService $zipService,
+        ZipCompressorInterface $zipService,
         CryptService $cryptService,
-        Base64Service $base64Service,
+        Base64EncoderInterface $base64Service,
         DOMDocument $dom
     ) {
         $this->zipService = $zipService;

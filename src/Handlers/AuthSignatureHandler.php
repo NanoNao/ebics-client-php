@@ -5,10 +5,10 @@ namespace EbicsApi\Ebics\Handlers;
 use DOMDocument;
 use DOMNode;
 use EbicsApi\Ebics\Contracts\AuthSignatureHandlerInterface;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Keyring;
-use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DOMHelper;
 
@@ -26,7 +26,7 @@ abstract class AuthSignatureHandler implements AuthSignatureHandlerInterface
     use H00XTrait;
 
     public function __construct(
-        private readonly Base64Service $base64Service,
+        private readonly Base64EncoderInterface $base64Service,
         private readonly Keyring $keyring,
         private readonly CryptService $cryptService
     ) {

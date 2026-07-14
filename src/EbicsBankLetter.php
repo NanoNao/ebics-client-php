@@ -5,7 +5,6 @@ namespace EbicsApi\Ebics;
 use EbicsApi\Ebics\Contracts\BankLetter\FormatterInterface;
 use EbicsApi\Ebics\Factories\BankLetterFactory;
 use EbicsApi\Ebics\Factories\CertificateX509Factory;
-use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\EbicsFactoryV24;
 use EbicsApi\Ebics\Factories\EbicsFactoryV25;
@@ -15,13 +14,15 @@ use EbicsApi\Ebics\Models\Bank;
 use EbicsApi\Ebics\Models\BankLetter;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
-use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\HtmlBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\PdfBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetter\Formatter\TxtBankLetterFormatter;
 use EbicsApi\Ebics\Services\BankLetterService;
 use EbicsApi\Ebics\Services\CryptService;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\Processor\Base64Encoder;
 use EbicsApi\Ebics\Services\RandomService;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use LogicException;
 
 /**
@@ -42,11 +43,13 @@ final class EbicsBankLetter
      */
     public function __construct(array $options = [])
     {
+        $transactionKeyResolver = new TransactionKeyResolver();
+        $aesEncryptor = new AESEncryptor($transactionKeyResolver);
         $this->cryptService = new CryptService(
-            new RSAFactory($options['rsa_class_map'] ?? null),
-            new AESFactory(),
+            new RSAFactory($aesEncryptor, $options['rsa_class_map'] ?? null),
+            $aesEncryptor,
             new RandomService(),
-            new Base64Service()
+            new Base64Encoder()
         );
         $this->bankLetterService = new BankLetterService(
             $this->cryptService,

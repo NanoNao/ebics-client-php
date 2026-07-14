@@ -3,15 +3,15 @@
 namespace EbicsApi\Ebics\Tests\Services;
 
 use EbicsApi\Ebics\Contracts\SignatureInterface;
-use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
-use EbicsApi\Ebics\Models\Buffer;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\Keyring;
-use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\Processor\Base64Encoder;
 use EbicsApi\Ebics\Services\RandomService;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -30,59 +30,47 @@ class CryptServiceTest extends AbstractEbicsTestCase
 {
     private CryptService $cryptService;
     private RSAFactory $rsaFactory;
-    private AESFactory $aesFactory;
+    private AESEncryptor $aesEncryptor;
     private RandomService $randomService;
 
     protected function setUp(): void
     {
-        $this->rsaFactory = new RSAFactory();
-        $this->aesFactory = new AESFactory();
+        $this->aesEncryptor = new AESEncryptor(new TransactionKeyResolver());
+        $this->rsaFactory = new RSAFactory($this->aesEncryptor);
         $this->randomService = new RandomService();
-        $this->cryptService = new CryptService($this->rsaFactory, $this->aesFactory, $this->randomService, new Base64Service());
+        $this->cryptService = new CryptService($this->rsaFactory, $this->aesEncryptor, $this->randomService, new Base64Encoder());
     }
 
-    /**
-     * Test hash calculation with default SHA-256.
-     */
     public function testHashWithDefaultAlgorithm(): void
     {
         $text = 'test data';
         $hash = $this->cryptService->hash($text);
 
         self::assertNotEmpty($hash);
-        self::assertEquals(32, strlen($hash)); // SHA-256 binary output
+        self::assertEquals(32, strlen($hash));
     }
 
-    /**
-     * Test hash calculation with hex output.
-     */
     public function testHashWithHexOutput(): void
     {
         $text = 'test data';
         $hash = $this->cryptService->hash($text, 'sha256', false);
 
         self::assertNotEmpty($hash);
-        self::assertEquals(64, strlen($hash)); // SHA-256 hex output
+        self::assertEquals(64, strlen($hash));
         self::assertEquals(hash('sha256', $text), $hash);
     }
 
-    /**
-     * Test hash calculation with different algorithms.
-     */
     public function testHashWithDifferentAlgorithms(): void
     {
         $text = 'test data';
 
         $sha1Hash = $this->cryptService->hash($text, 'sha1');
-        self::assertEquals(20, strlen($sha1Hash)); // SHA-1 binary
+        self::assertEquals(20, strlen($sha1Hash));
 
         $sha512Hash = $this->cryptService->hash($text, 'sha512');
-        self::assertEquals(64, strlen($sha512Hash)); // SHA-512 binary
+        self::assertEquals(64, strlen($sha512Hash));
     }
 
-    /**
-     * Test key pair generation.
-     */
     public function testGenerateKeyPair(): void
     {
         $password = 'testpassword';
@@ -95,9 +83,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertEquals($password, $keyPair->getPassword());
     }
 
-    /**
-     * Test key pair generation with custom parameters.
-     */
     public function testGenerateKeyPairWithCustomParameters(): void
     {
         $password = 'testpassword';
@@ -108,9 +93,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertInstanceOf(Key::class, $keyPair->getPublicKey());
     }
 
-    /**
-     * Test nonce generation.
-     */
     public function testGenerateNonce(): void
     {
         $nonce1 = $this->cryptService->generateNonce();
@@ -118,40 +100,27 @@ class CryptServiceTest extends AbstractEbicsTestCase
 
         self::assertEquals(32, strlen($nonce1));
         self::assertMatchesRegularExpression('/^[0-9A-F]{32}$/', $nonce1);
-        // Nonces should be different (with very high probability)
         self::assertNotEquals($nonce1, $nonce2);
     }
 
-    /**
-     * Test transaction key generation.
-     */
     public function testGenerateTransactionKey(): void
     {
         $key1 = $this->cryptService->generateTransactionKey();
         $key2 = $this->cryptService->generateTransactionKey();
 
         self::assertEquals(16, strlen($key1));
-        // Keys should be different (with very high probability)
         self::assertNotEquals($key1, $key2);
     }
 
-    /**
-     * Test order ID generation format.
-     */
     public function testGenerateOrderIdFormat(): void
     {
         $orderId = $this->cryptService->generateOrderId();
 
         self::assertEquals(4, strlen($orderId));
-        // First character should be A-Z
         self::assertMatchesRegularExpression('/^[A-Z]/', $orderId);
-        // All characters should be alphanumeric
         self::assertMatchesRegularExpression('/^[A-Z][0-9A-Z]{3}$/', $orderId);
     }
 
-    /**
-     * Test multiple order IDs are unique.
-     */
     public function testGenerateOrderIdUniqueness(): void
     {
         $orderIds = [];
@@ -159,28 +128,19 @@ class CryptServiceTest extends AbstractEbicsTestCase
             $orderIds[] = $this->cryptService->generateOrderId();
         }
 
-        // Most order IDs should be unique (with very high probability)
-        // Due to randomness, we expect at least 95% uniqueness
         $uniqueCount = count(array_unique($orderIds));
         self::assertGreaterThanOrEqual(95, $uniqueCount);
     }
 
-    /**
-     * Test binary to array conversion.
-     */
     public function testBinToArray(): void
     {
-        $binary = "\x41\x42\x43"; // ABC
+        $binary = "\x41\x42\x43";
         $array = $this->cryptService->binToArray($binary);
 
         self::assertIsArray($array);
-        // unpack returns 1-indexed array
         self::assertEquals([1 => 65, 2 => 66, 3 => 67], $array);
     }
 
-    /**
-     * Test calculate key from exponent and modulus.
-     */
     public function testCalculateKey(): void
     {
         $exponent = '00010001';
@@ -191,9 +151,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertEquals('10001 C4B1D2E3F4', $key);
     }
 
-    /**
-     * Test calculate key removes multiple leading zeros.
-     */
     public function testCalculateKeyRemovesLeadingZeros(): void
     {
         $exponent = '000001';
@@ -204,9 +161,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertEquals('1 ABCD', $key);
     }
 
-    /**
-     * Test calculate key with no leading zeros.
-     */
     public function testCalculateKeyWithNoLeadingZeros(): void
     {
         $exponent = '1234';
@@ -217,47 +171,19 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertEquals('1234 ABCD', $key);
     }
 
-    /**
-     * Test encrypt and decrypt roundtrip with AES.
-     */
     public function testEncryptDecryptRoundtrip(): void
     {
         $key = $this->cryptService->generateTransactionKey();
         $data = 'Sensitive data to encrypt';
 
-        // Encrypt
         $encrypted = $this->cryptService->encryptByKey($key, $data);
         self::assertNotEmpty($encrypted);
 
-        // Decrypt
-        $tempFile = tempnam(sys_get_temp_dir(), 'ebics_test_');
-        $encryptedBuffer = new Buffer($tempFile);
-        $encryptedBuffer->open('w+');
-        $encryptedBuffer->write($encrypted);
-        $encryptedBuffer->rewind();
-
-        $decryptedBuffer = new Buffer($tempFile . '_decrypted');
-        $decryptedBuffer->open('w+');
-
-        // Reset encrypted buffer position
-        $encryptedBuffer->rewind();
-        $this->cryptService->decryptByKey($key, $encryptedBuffer, $decryptedBuffer);
-
-        $decryptedBuffer->rewind();
-        $decrypted = $decryptedBuffer->readContent();
+        $decrypted = $this->cryptService->decryptByKey($key, $encrypted);
 
         self::assertEquals($data, $decrypted);
-
-        // Cleanup
-        $encryptedBuffer->close();
-        $decryptedBuffer->close();
-        @unlink($tempFile);
-        @unlink($tempFile . '_decrypted');
     }
 
-    /**
-     * Test public key decomposition.
-     */
     public function testDecomposePublicKey(): void
     {
         $password = 'testpassword';
@@ -274,9 +200,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertNotEmpty($components['m']);
     }
 
-    /**
-     * Test private key validation with correct password.
-     */
     public function testCheckPrivateKeyWithCorrectPassword(): void
     {
         $password = 'testpassword';
@@ -287,9 +210,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertTrue($isValid);
     }
 
-    /**
-     * Test private key validation with wrong password.
-     */
     public function testCheckPrivateKeyWithWrongPassword(): void
     {
         $password = 'testpassword';
@@ -300,9 +220,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertFalse($isValid);
     }
 
-    /**
-     * Test change private key password.
-     */
     public function testChangePrivateKeyPassword(): void
     {
         $oldPassword = 'oldpassword';
@@ -310,7 +227,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
 
         $keyPair = $this->cryptService->generateKeyPair($oldPassword);
 
-        // Change password
         $newKeyPair = $this->cryptService->changePrivateKeyPassword(
             $keyPair,
             $oldPassword,
@@ -318,17 +234,10 @@ class CryptServiceTest extends AbstractEbicsTestCase
         );
 
         self::assertInstanceOf(KeyPair::class, $newKeyPair);
-
-        // Old password should fail
         self::assertFalse($this->cryptService->checkPrivateKey($newKeyPair->getPrivateKey(), $oldPassword));
-
-        // New password should work
         self::assertTrue($this->cryptService->checkPrivateKey($newKeyPair->getPrivateKey(), $newPassword));
     }
 
-    /**
-     * Test signing with A005 version.
-     */
     public function testSignWithA005(): void
     {
         $password = 'testpassword';
@@ -346,9 +255,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertIsString($signature);
     }
 
-    /**
-     * Test signing with A006 version.
-     */
     public function testSignWithA006(): void
     {
         $password = 'testpassword';
@@ -366,9 +272,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertIsString($signature);
     }
 
-    /**
-     * Test signing with unsupported version.
-     */
     public function testSignWithUnsupportedVersion(): void
     {
         $password = 'testpassword';
@@ -386,9 +289,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         );
     }
 
-    /**
-     * Test encrypt transaction key.
-     */
     public function testEncryptTransactionKey(): void
     {
         $password = 'testpassword';
@@ -402,13 +302,9 @@ class CryptServiceTest extends AbstractEbicsTestCase
 
         self::assertNotEmpty($encryptedKey);
         self::assertIsString($encryptedKey);
-        // Encrypted key should be different from original
         self::assertNotEquals($transactionKey, $encryptedKey);
     }
 
-    /**
-     * Test encrypt method with A005 version.
-     */
     public function testEncryptWithA005(): void
     {
         $password = 'testpassword';
@@ -426,9 +322,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertIsString($encrypted);
     }
 
-    /**
-     * Test encrypt method with A006 version.
-     */
     public function testEncryptWithA006(): void
     {
         $password = 'testpassword';
@@ -446,13 +339,8 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertIsString($encrypted);
     }
 
-    /**
-     * Test certificate fingerprint calculation.
-     */
     public function testCalculateCertificateFingerprint(): void
     {
-        // Skip if openssl_x509_fingerprint doesn't work with test data
-        // Using a self-signed certificate for testing
         $dn = [
             "countryName" => "US",
             "stateOrProvinceName" => "Test",
@@ -485,9 +373,8 @@ class CryptServiceTest extends AbstractEbicsTestCase
         );
 
         self::assertNotEmpty($fingerprint);
-        self::assertEquals(32, strlen($fingerprint)); // SHA-256 binary
+        self::assertEquals(32, strlen($fingerprint));
 
-        // Test hex output
         $fingerprintHex = $this->cryptService->calculateCertificateFingerprint(
             $certContent,
             'sha256',
@@ -495,18 +382,14 @@ class CryptServiceTest extends AbstractEbicsTestCase
         );
 
         self::assertNotEmpty($fingerprintHex);
-        self::assertEquals(64, strlen($fingerprintHex)); // SHA-256 hex
+        self::assertEquals(64, strlen($fingerprintHex));
     }
 
-    /**
-     * Test certificate fingerprint with invalid certificate.
-     */
     public function testCalculateCertificateFingerprintWithInvalidCert(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Can not calculate fingerprint for certificate.');
 
-        // @ Suppress PHP warning from openssl_x509_fingerprint when given invalid input
         @$this->cryptService->calculateCertificateFingerprint(
             'invalid certificate content',
             'sha256',
@@ -514,31 +397,127 @@ class CryptServiceTest extends AbstractEbicsTestCase
         );
     }
 
-    /**
-     * Test decrypt order data without signature E throws exception.
-     */
     public function testDecryptOrderDataCompressedWithoutSignatureE(): void
     {
         $keyring = new Keyring(Keyring::VERSION_25);
         $keyring->setPassword('testpassword');
-
-        $orderDataEncrypted = new Buffer(tempnam(sys_get_temp_dir(), 'ebics_test_'));
-        $orderDataCompressed = new Buffer(tempnam(sys_get_temp_dir(), 'ebics_test_'));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Signature E is not set.');
 
         $this->cryptService->decryptOrderDataCompressed(
             $keyring,
-            $orderDataEncrypted,
-            $orderDataCompressed,
+            'encrypted_data',
             'encrypted_transaction_key'
         );
     }
 
-    /**
-     * Generate a self-signed test certificate in PEM format.
-     */
+    public function testDecryptOrderDataCompressedWithoutPrivateKey(): void
+    {
+        $keyring = new Keyring(Keyring::VERSION_25);
+        $keyring->setPassword('testpassword');
+
+        $publicKey = new Key('-----BEGIN PUBLIC KEY-----', 1);
+        $signature = new \EbicsApi\Ebics\Models\Signature('E', $publicKey, null);
+        $keyring->setUserSignatureE($signature);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Signature E private key is not set.');
+
+        $this->cryptService->decryptOrderDataCompressed(
+            $keyring,
+            'encrypted_data',
+            'encrypted_transaction_key'
+        );
+    }
+
+    public function testDecryptOrderDataCompressedHappyPath(): void
+    {
+        $password = 'test_password';
+        $orderData = 'This is the order data payload to encrypt and decrypt.';
+        $keyring = new Keyring(Keyring::VERSION_25);
+        $keyring->setPassword($password);
+
+        $keyPair = $this->cryptService->generateKeyPair($password);
+
+        $aesKey = $this->cryptService->generateTransactionKey();
+        $encryptedTransactionKey = $this->cryptService->encryptTransactionKey(
+            $keyPair->getPublicKey(),
+            $aesKey
+        );
+
+        $encryptedOrderData = $this->cryptService->encryptByKey($aesKey, $orderData);
+
+        $signature = new \EbicsApi\Ebics\Models\Signature(
+            \EbicsApi\Ebics\Contracts\SignatureInterface::TYPE_E,
+            $keyPair->getPublicKey(),
+            $keyPair->getPrivateKey()
+        );
+        $keyring->setUserSignatureE($signature);
+
+        $decrypted = $this->cryptService->decryptOrderDataCompressed(
+            $keyring,
+            $encryptedOrderData,
+            $encryptedTransactionKey
+        );
+
+        self::assertEquals($orderData, $decrypted);
+    }
+
+    public function testCalculatePublicKeyDigest(): void
+    {
+        $password = 'testpassword';
+        $keyPair = $this->cryptService->generateKeyPair($password);
+
+        $publicKey = $keyPair->getPublicKey();
+        $signature = new \EbicsApi\Ebics\Models\Signature(
+            \EbicsApi\Ebics\Contracts\SignatureInterface::TYPE_E,
+            $publicKey,
+            $keyPair->getPrivateKey()
+        );
+
+        $digest = $this->cryptService->calculatePublicKeyDigest($signature);
+
+        self::assertNotEmpty($digest);
+        self::assertEquals(32, strlen($digest));
+    }
+
+    public function testCalculatePublicKeyDigestWithDifferentAlgorithms(): void
+    {
+        $password = 'testpassword';
+        $keyPair = $this->cryptService->generateKeyPair($password);
+
+        $signature = new \EbicsApi\Ebics\Models\Signature(
+            \EbicsApi\Ebics\Contracts\SignatureInterface::TYPE_E,
+            $keyPair->getPublicKey(),
+            $keyPair->getPrivateKey()
+        );
+
+        $sha256 = $this->cryptService->calculatePublicKeyDigest($signature, 'sha256');
+        $sha512 = $this->cryptService->calculatePublicKeyDigest($signature, 'sha512');
+
+        self::assertEquals(32, strlen($sha256));
+        self::assertEquals(64, strlen($sha512));
+        self::assertNotEquals($sha256, $sha512);
+    }
+
+    public function testCalculatePublicKeyDigestIsConsistent(): void
+    {
+        $password = 'testpassword';
+        $keyPair = $this->cryptService->generateKeyPair($password);
+
+        $signature = new \EbicsApi\Ebics\Models\Signature(
+            \EbicsApi\Ebics\Contracts\SignatureInterface::TYPE_E,
+            $keyPair->getPublicKey(),
+            $keyPair->getPrivateKey()
+        );
+
+        $digest1 = $this->cryptService->calculatePublicKeyDigest($signature);
+        $digest2 = $this->cryptService->calculatePublicKeyDigest($signature);
+
+        self::assertEquals($digest1, $digest2);
+    }
+
     private function generateTestCertificate(): ?string
     {
         $dn = [
@@ -569,9 +548,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         return $certContent;
     }
 
-    /**
-     * Provide PEM transformation functions to test normalization.
-     */
     public static function malformedCertificateFormatsProvider(): array
     {
         return [
@@ -590,9 +566,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         ];
     }
 
-    /**
-     * Test that calculateCertificateFingerprint normalizes PEM before fingerprinting.
-     */
     #[DataProvider('malformedCertificateFormatsProvider')]
     #[Group('crypt-services')]
     public function testCalculateCertificateFingerprintNormalizesPem(callable $transform): void
@@ -626,9 +599,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertEquals($expectedFingerprint, $actualFingerprint);
     }
 
-    /**
-     * Test that calculateCertificateFingerprint keeps DER input unchanged.
-     */
     public function testCalculateCertificateFingerprintSupportsDerInput(): void
     {
         $certContent = $this->generateTestCertificate();
@@ -650,9 +620,6 @@ class CryptServiceTest extends AbstractEbicsTestCase
         self::assertSame($expectedFingerprint, $actualFingerprint);
     }
 
-    /**
-     * Convert PEM certificate content to raw DER bytes.
-     */
     private function convertPemToDer(string $certContent): string
     {
         $normalizedCert = preg_replace(

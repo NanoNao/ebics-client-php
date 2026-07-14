@@ -5,6 +5,7 @@ namespace EbicsApi\Ebics\Models\Crypt;
 use EbicsApi\Ebics\Contracts\Crypt\BigIntegerInterface;
 use EbicsApi\Ebics\Contracts\Crypt\HashInterface;
 use EbicsApi\Ebics\Contracts\Crypt\RSAInterface;
+use EbicsApi\Ebics\Contracts\Processor\AESEncryptorInterface;
 use EbicsApi\Ebics\Exceptions\DecryptionException;
 use LogicException;
 
@@ -182,9 +183,19 @@ final class RSA implements RSAInterface
      */
     protected BigInteger $zero;
 
+    /**
+     * AES encryptor for symmetric operations.
+     */
+    protected AESEncryptorInterface $aesEncryptor;
+
     public function __construct()
     {
         $this->zero = new BigInteger();
+    }
+
+    public function setAesEncryptor(AESEncryptorInterface $aesEncryptor): void
+    {
+        $this->aesEncryptor = $aesEncryptor;
     }
 
     public function getExponent(): BigIntegerInterface
@@ -359,18 +370,22 @@ final class RSA implements RSAInterface
                     $ciphertext = $this->extractBER($key);
                     switch ($matches[1]) {
                         case 'AES-256-CBC':
-                            $crypto = new AES();
+                            $decoded = $this->aesEncryptor->decrypt($ciphertext, [
+                                'key' => $symkey,
+                                'iv' => $iv,
+                                'cipher' => 'aes-256-cbc',
+                            ]);
                             break;
                         case 'DES-EDE3-CBC':
                             $symkey = substr($symkey, 0, 24);
                             $crypto = new TripleDES();
+                            $crypto->setKey($symkey);
+                            $crypto->setIV($iv);
+                            $decoded = $crypto->decrypt($ciphertext);
                             break;
                         default:
                             throw new LogicException('Wrong crypto.');
                     }
-                    $crypto->setKey($symkey);
-                    $crypto->setIV($iv);
-                    $decoded = $crypto->decrypt($ciphertext);
                 } else {
                     $decoded = $this->extractBER($key);
                 }

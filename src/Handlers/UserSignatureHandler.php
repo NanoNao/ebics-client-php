@@ -2,13 +2,13 @@
 
 namespace EbicsApi\Ebics\Handlers;
 
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
 use EbicsApi\Ebics\Contracts\UserSignatureHandlerInterface;
 use EbicsApi\Ebics\Handlers\Traits\C14NTrait;
 use EbicsApi\Ebics\Handlers\Traits\XPathTrait;
 use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Models\UserSignature;
-use EbicsApi\Ebics\Services\Base64Service;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\SchemaValidator;
 
@@ -26,7 +26,7 @@ abstract class UserSignatureHandler implements UserSignatureHandlerInterface
     use XPathTrait;
 
     public function __construct(
-        protected readonly Base64Service $base64Service,
+        protected readonly Base64EncoderInterface $base64Service,
         protected readonly User $user,
         protected readonly Keyring $keyring,
         protected readonly CryptService $cryptService,
