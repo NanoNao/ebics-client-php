@@ -103,4 +103,82 @@ class AESTest extends TestCase
     {
         self::assertEquals(16, $this->aes->getBlockSize());
     }
+
+    public function testEncryptBlockThrowsOnUnknownCipher(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Unknown cipher: invalid-cipher');
+
+        $this->aes->encryptBlock('test', '1234567890123456', 'invalid-cipher', str_repeat("\0", 16));
+    }
+
+    public function testDecryptBlockThrowsOnUnknownCipher(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Unknown cipher: invalid-cipher');
+
+        $this->aes->decryptBlock('test', '1234567890123456', 'invalid-cipher', str_repeat("\0", 16));
+    }
+
+    public function testEncryptBlockThrowsOnShortIv(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('IV length must be 16 bytes, got 12.');
+
+        $this->aes->encryptBlock('test', '1234567890123456', 'aes-128-cbc', 'too-short-iv');
+    }
+
+    public function testDecryptBlockThrowsOnShortIv(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('IV length must be 16 bytes, got 12.');
+
+        $this->aes->decryptBlock('test', '1234567890123456', 'aes-128-cbc', 'too-short-iv');
+    }
+
+    public function testEncryptBlockThrowsOnLongIv(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('IV length must be 16 bytes, got 20.');
+
+        $this->aes->encryptBlock('test', '1234567890123456', 'aes-128-cbc', str_repeat('x', 20));
+    }
+
+    public function testDecryptBlockThrowsOnLongIv(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('IV length must be 16 bytes, got 20.');
+
+        $this->aes->decryptBlock('test', '1234567890123456', 'aes-128-cbc', str_repeat('x', 20));
+    }
+
+    public function testEncryptBlockAcceptsValidIv(): void
+    {
+        $key = '1234567890123456';
+        $iv = str_repeat("\1", 16);
+        $block = str_repeat('A', 16);
+
+        $encrypted = $this->aes->encryptBlock($block, $key, 'aes-128-cbc', $iv);
+        $decrypted = $this->aes->decryptBlock($encrypted, $key, 'aes-128-cbc', $iv);
+
+        self::assertSame($block, $decrypted);
+    }
+
+    public function testEncryptBlockAcceptsValidCiphers(): void
+    {
+        $key16 = '1234567890123456';
+        $key24 = '123456789012345678901234';
+        $key32 = '12345678901234561234567890123456';
+        $iv = str_repeat("\0", 16);
+        $block = str_repeat('A', 16);
+
+        $encrypted128 = $this->aes->encryptBlock($block, $key16, 'aes-128-cbc', $iv);
+        self::assertNotEmpty($encrypted128);
+
+        $encrypted192 = $this->aes->encryptBlock($block, $key24, 'aes-192-cbc', $iv);
+        self::assertNotEmpty($encrypted192);
+
+        $encrypted256 = $this->aes->encryptBlock($block, $key32, 'aes-256-cbc', $iv);
+        self::assertNotEmpty($encrypted256);
+    }
 }

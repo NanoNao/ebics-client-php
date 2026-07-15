@@ -40,6 +40,9 @@ final class AES implements AESInterface
      */
     public function encryptBlock(string $data, string $key, string $cipher, string $iv): string
     {
+        $this->assertValidCipher($cipher);
+        $this->assertValidIv($cipher, $iv);
+
         $result = openssl_encrypt(
             $data,
             $cipher,
@@ -67,6 +70,9 @@ final class AES implements AESInterface
      */
     public function decryptBlock(string $data, string $key, string $cipher, string $iv): string
     {
+        $this->assertValidCipher($cipher);
+        $this->assertValidIv($cipher, $iv);
+
         $result = openssl_decrypt(
             $data,
             $cipher,
@@ -112,5 +118,25 @@ final class AES implements AESInterface
         }
 
         return substr($text, 0, -$length);
+    }
+
+    private function assertValidCipher(string $cipher): void
+    {
+        if (!in_array($cipher, openssl_get_cipher_methods(), true)) {
+            throw new LogicException(sprintf('Unknown cipher: %s.', $cipher));
+        }
+    }
+
+    private function assertValidIv(string $cipher, string $iv): void
+    {
+        $expectedLength = openssl_cipher_iv_length($cipher);
+
+        if ($expectedLength > 0 && strlen($iv) !== $expectedLength) {
+            throw new LogicException(sprintf(
+                'IV length must be %d bytes, got %d.',
+                $expectedLength,
+                strlen($iv),
+            ));
+        }
     }
 }
