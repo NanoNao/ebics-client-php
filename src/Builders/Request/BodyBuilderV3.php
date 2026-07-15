@@ -14,7 +14,12 @@ final class BodyBuilderV3 extends BodyBuilder
 {
     public function addDataTransfer(Closure $callback): BodyBuilder
     {
-        $dataTransferBuilder = new DataTransferBuilderV3($this->zipService, $this->cryptService, $this->dom);
+        $dataTransferBuilder = new DataTransferBuilderV3(
+            $this->zipService,
+            $this->cryptService,
+            $this->base64Service,
+            $this->dom
+        );
         $this->instance->appendChild($dataTransferBuilder->createInstance()->getInstance());
 
         call_user_func($callback, $dataTransferBuilder);

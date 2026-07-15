@@ -12,6 +12,8 @@ use EbicsApi\Ebics\Builders\Request\RootBuilder;
 use EbicsApi\Ebics\Builders\Request\StaticBuilder;
 use EbicsApi\Ebics\Builders\Request\TransferReceiptBuilder;
 use EbicsApi\Ebics\Contexts\RequestContext;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
+use EbicsApi\Ebics\Contracts\Processor\ZipCompressorInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Handlers\OrderDataHandler;
@@ -22,7 +24,6 @@ use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolver;
-use EbicsApi\Ebics\Services\ZipService;
 
 /**
  * Class RequestFactory represents producers for the @see Request.
@@ -41,7 +42,8 @@ abstract class RequestFactory
         protected readonly DigestResolver $digestResolver,
         protected readonly RequestBuilder $requestBuilder,
         protected readonly CryptService $cryptService,
-        protected readonly ZipService $zipService
+        protected readonly ZipCompressorInterface $zipService,
+        protected readonly Base64EncoderInterface $base64Service
     ) {
     }
 

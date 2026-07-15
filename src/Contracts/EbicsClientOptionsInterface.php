@@ -2,6 +2,10 @@
 
 namespace EbicsApi\Ebics\Contracts;
 
+use EbicsApi\Ebics\Contracts\Processor\AESEncryptorInterface;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
+use EbicsApi\Ebics\Contracts\Processor\ZipCompressorInterface;
+
 /**
  * Options for configuring the EBICS client.
  *
@@ -12,15 +16,11 @@ interface EbicsClientOptionsInterface
 {
     /**
      * Get the custom HTTP client implementation.
-     *
-     * @return HttpClientInterface|null
      */
     public function getHttpClient(): ?HttpClientInterface;
 
     /**
      * Get the PSR-3 compatible logger instance.
-     *
-     * @return LoggerInterface|null
      */
     public function getLogger(): ?LoggerInterface;
 
@@ -37,14 +37,24 @@ interface EbicsClientOptionsInterface
     public function getSchemaDir(): ?string;
 
     /**
-     * Get the filename for buffer-based operations.
-     */
-    public function getBufferFilename(): string;
-
-    /**
      * Get cURL options for CurlHttpClient.
      *
      * @return array<int, mixed> CURLOPT_* constants as keys
      */
     public function getCurlOptions(): array;
+
+    /**
+     * Get the base64 encoder for encoding/decoding.
+     */
+    public function getBase64Encoder(): ?Base64EncoderInterface;
+
+    /**
+     * Get the AES encryptor for encryption/decryption.
+     */
+    public function getAesEncryptor(): ?AESEncryptorInterface;
+
+    /**
+     * Get the zip compressor for compression/decompression.
+     */
+    public function getZipCompressor(): ?ZipCompressorInterface;
 }

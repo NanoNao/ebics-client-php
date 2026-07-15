@@ -11,13 +11,14 @@ use EbicsApi\Ebics\Contracts\Order\InitializationOrderInterface;
 use EbicsApi\Ebics\Contracts\Order\StandardOrderInterface;
 use EbicsApi\Ebics\Contracts\Order\UploadOrderInterface;
 use EbicsApi\Ebics\Contracts\OrderDataInterface;
+use EbicsApi\Ebics\Contracts\Processor\AESEncryptorInterface;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
+use EbicsApi\Ebics\Contracts\Processor\ZipCompressorInterface;
 use EbicsApi\Ebics\Contracts\SignatureInterface;
 use EbicsApi\Ebics\Exceptions\EbicsException;
 use EbicsApi\Ebics\Exceptions\EbicsResponseException;
 use EbicsApi\Ebics\Exceptions\PasswordEbicsException;
-use EbicsApi\Ebics\Factories\BufferFactory;
 use EbicsApi\Ebics\Factories\CertificateX509Factory;
-use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\BigIntegerFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\DocumentFactory;
@@ -55,10 +56,14 @@ use EbicsApi\Ebics\Models\X509\ContentX509Generator;
 use EbicsApi\Ebics\Services\ArrayLogger;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\CurlHttpClient;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\Processor\Base64Encoder;
+use EbicsApi\Ebics\Services\Processor\ZipCompressor;
 use EbicsApi\Ebics\Services\RandomService;
 use EbicsApi\Ebics\Services\SchemaValidator;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use EbicsApi\Ebics\Services\XmlService;
-use EbicsApi\Ebics\Services\ZipService;
+use EbicsApi\Ebics\Services\ZipArchiveExtractor;
 use LogicException;
 
 /**
@@ -77,7 +82,8 @@ final class EbicsClient implements EbicsClientInterface
     private readonly ResponseHandler $responseHandler;
     private readonly RequestFactory $requestFactory;
     private readonly CryptService $cryptService;
-    private readonly ZipService $zipService;
+    private readonly ZipArchiveExtractor $zipArchiveExtractor;
+    private readonly Base64EncoderInterface $base64Service;
     private readonly XmlService $xmlService;
     private readonly DocumentFactory $documentFactory;
     private readonly OrderResultFactory $orderResultFactory;
@@ -85,10 +91,13 @@ final class EbicsClient implements EbicsClientInterface
     private readonly HttpClientInterface $httpClient;
     private readonly TransactionFactory $transactionFactory;
     private readonly SegmentFactory $segmentFactory;
-    private readonly BufferFactory $bufferFactory;
     private readonly RSAFactory $rsaFactory;
     private readonly SchemaValidator $schemaValidator;
     private readonly LoggerInterface $logger;
+    private readonly Base64EncoderInterface $base64Encoder;
+    private readonly AESEncryptorInterface $aesEncryptor;
+    private readonly ZipCompressorInterface $zipCompressor;
+    private readonly TransactionKeyResolver $transactionKeyResolver;
 
     /**
      * Constructor.
@@ -118,15 +127,23 @@ final class EbicsClient implements EbicsClientInterface
             $options = new EbicsClientOptions();
         }
 
-        $this->rsaFactory = new RSAFactory($options->getRsaClassMap());
-
+        $this->transactionKeyResolver = new TransactionKeyResolver();
+        $this->aesEncryptor = $options->getAesEncryptor() ?? new AESEncryptor($this->transactionKeyResolver);
+        $this->rsaFactory = new RSAFactory($this->aesEncryptor, $options->getRsaClassMap());
         $this->segmentFactory = new SegmentFactory();
-        $this->cryptService = new CryptService($this->rsaFactory, new AESFactory(), new RandomService());
-        $this->zipService = new ZipService();
+        $this->base64Service = $options->getBase64Encoder() ?? new Base64Encoder();
+        $this->cryptService = new CryptService(
+            $this->rsaFactory,
+            $this->aesEncryptor,
+            new RandomService(),
+            $this->base64Service
+        );
+        $this->zipArchiveExtractor = new ZipArchiveExtractor();
+        $this->zipCompressor = $options->getZipCompressor() ?? new ZipCompressor();
         $this->signatureFactory = new SignatureFactory($this->rsaFactory);
-        $this->bufferFactory = new BufferFactory($options->getBufferFilename());
 
         $this->orderDataHandler = $ebicsFactory->createOrderDataHandler(
+            $this->base64Service,
             $user,
             $keyring,
             $this->cryptService,
@@ -138,6 +155,7 @@ final class EbicsClient implements EbicsClientInterface
         $this->schemaValidator = new SchemaValidator($options->getSchemaDir());
 
         $this->userSignatureHandler = $ebicsFactory->createUserSignatureHandler(
+            $this->base64Service,
             $user,
             $keyring,
             $this->cryptService,
@@ -151,16 +169,22 @@ final class EbicsClient implements EbicsClientInterface
             $this->userSignatureHandler,
             $this->orderDataHandler,
             $ebicsFactory->createDigestResolver($this->cryptService),
-            $ebicsFactory->createRequestBuilder($keyring, $this->cryptService, $this->schemaValidator),
+            $ebicsFactory->createRequestBuilder(
+                $keyring,
+                $this->cryptService,
+                $this->base64Service,
+                $this->schemaValidator
+            ),
             $this->cryptService,
-            $this->zipService
+            $this->zipCompressor,
+            $this->base64Service
         );
 
         $this->responseHandler = $ebicsFactory->createResponseHandler(
             $this->segmentFactory,
             $this->cryptService,
-            $this->zipService,
-            $this->bufferFactory
+            $this->zipCompressor,
+            $this->base64Service
         );
 
         $this->xmlService = new XmlService();
@@ -171,6 +195,7 @@ final class EbicsClient implements EbicsClientInterface
             $options->getCurlOptions()
         );
         $this->logger = $options->getLogger() ?? new ArrayLogger();
+        $this->base64Encoder = $this->base64Service;
     }
 
     /**
@@ -740,35 +765,20 @@ final class EbicsClient implements EbicsClientInterface
             'num_segments' => $lastSegment->getNumSegments(),
         ]);
 
-        $orderDataEncoded = $this->bufferFactory->create();
+        $segments = [];
         foreach ($transaction->getSegments() as $segment) {
-            $orderDataEncoded->write($segment->getOrderData());
+            $segments[] = $segment->getOrderData();
             $segment->setOrderData('');
         }
-        $orderDataEncoded->rewind();
 
-        $orderDataDecoded = $this->bufferFactory->create();
+        $orderDataEncoded = implode('', $segments);
 
-        $base64Content = $orderDataEncoded->readContent();
-        $orderDataDecoded->write(base64_decode($base64Content));
-        unset($orderDataEncoded);
-        $orderDataDecoded->rewind();
-
-        $orderDataCompressed = $this->bufferFactory->create();
-        $this->cryptService->decryptOrderDataCompressed(
-            $this->keyring,
-            $orderDataDecoded,
-            $orderDataCompressed,
-            $lastSegment->getTransactionKey()
-        );
-        unset($orderDataDecoded);
-
-        $orderData = $this->bufferFactory->create();
-        $this->zipService->uncompress($orderDataCompressed, $orderData);
-        unset($orderDataCompressed);
-
-        $transaction->setOrderData($orderData->readContent());
-        unset($orderData);
+        $orderDataDecoded = $this->base64Encoder->decode($orderDataEncoded);
+        $orderDataCompressed = $this->aesEncryptor->decrypt($orderDataDecoded, [
+            'keyring' => $this->keyring,
+            'transactionKey' => $lastSegment->getTransactionKey(),
+        ]);
+        $transaction->setOrderData($this->zipCompressor->uncompress($orderDataCompressed));
 
         $this->logger->debug('download_data_decrypted', [
             'transaction_id' => $lastSegment->getTransactionId(),
@@ -936,7 +946,7 @@ final class EbicsClient implements EbicsClientInterface
                 $orderResult->setDataFiles($this->documentFactory->createMultipleXml($files));
                 break;
             case self::FILE_PARSER_FORMAT_ZIP_FILES:
-                $zipFiles = $this->zipService->extractFilesFromString($orderResult->getData());
+                $zipFiles = $this->zipArchiveExtractor->extractFilesFromString($orderResult->getData());
                 $orderResult->setDataFiles(array_filter($zipFiles, fn($v) => $v !== false));
                 break;
             default:

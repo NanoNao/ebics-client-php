@@ -2,32 +2,22 @@
 
 namespace EbicsApi\Ebics\Contracts;
 
-use EbicsApi\Ebics\Exceptions\EbicsException;
-use EbicsApi\Ebics\Models\Buffer;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\Keyring;
+use LogicException;
 use RuntimeException;
 
 /**
  * Crypt Service interface.
  *
- * Provides all cryptographic operations required by the EBICS protocol,
- * including hashing, encryption/decryption, signing, and key management.
- *
- * EBICS Protocol Context:
- * The CryptService is the core cryptographic engine used throughout the
- * EBICS client library. It supports:
- *
- * - **Hashing**: SHA-256 and other algorithms for digest computation
- * - **AES-128-CBC**: Symmetric encryption for order data using transaction keys
- * - **RSA**: Asymmetric operations (sign, encrypt, decrypt) with key sizes
- *   from 1024 to 4096 bits, supporting both PKCS#1 v1.5 and PSS padding
- * - **Key Management**: Generation, validation, and password management
- *   for RSA key pairs used in EBICS signatures
- *
- * The service abstracts the underlying cryptographic libraries (phpseclib)
- * and provides a consistent API tailored to EBICS protocol requirements.
+ * Provides all cryptographic operations required by the EBICS protocol:
+ *  - Hashing (SHA-256)
+ *  - AES-128-CBC encrypt/decrypt
+ *  - RSA encrypt/decrypt and signature encoding (A005/A006)
+ *  - Key pair generation and management
+ *  - X.509 certificate fingerprinting
+ *  - Random value generation (nonces, transaction keys, order IDs)
  *
  * @license http://www.opensource.org/licenses/mit-license.html  MIT License
  * @author Andrew Svirin
@@ -37,94 +27,82 @@ interface CryptServiceInterface
     /**
      * Compute a cryptographic hash of the given text.
      *
-     * @param string $text The input data to hash
-     * @param string $algorithm Hash algorithm (default: 'sha256')
-     * @param bool $binary Whether to return raw binary (true) or hex string (false)
+     * @param string $text      The input data to hash.
+     * @param string $algorithm Hash algorithm name (default 'sha256').
+     * @param bool   $binary    If true, return raw binary; otherwise lowercase hex.
      *
-     * @return string The hash output (binary or hex, depending on $binary)
+     * @return string Hash output.
      */
     public function hash(string $text, string $algorithm = 'sha256', bool $binary = true): string;
 
     /**
-     * Decrypt compressed order data using a transaction key.
+     * Decrypt compressed order data received from the bank.
      *
-     * This is the primary decryption method for EBICS download and
-     * initialization responses. It performs:
-     * 1. RSA decryption of the transaction key with the user's E private key
-     * 2. AES-128-CBC decryption of the order data with the transaction key
+     * RSA-decrypts the transaction key using the user's Signature E private key,
+     * then AES-decrypts the order data with the recovered key.
      *
-     * @param Keyring $keyring The keyring containing the user's E signature
-     * @param Buffer $orderDataEncrypted The encrypted order data buffer (input)
-     * @param Buffer $orderDataCompressed The decrypted order data buffer (output)
-     * @param string $transactionKey The RSA-encrypted transaction key
+     * @param Keyring $keyring          Keyring containing Signature E private key
+     * @param string  $orderDataEncrypted AES-encrypted order data
+     * @param string  $transactionKey   RSA-encrypted transaction key (base64-decoded)
      *
-     * @return void
+     * @return string Decrypted (still compressed) order data
      *
-     * @throws EbicsException If decryption fails
+     * @throws RuntimeException If Signature E or private key is missing, or decryption fails
      */
     public function decryptOrderDataCompressed(
         Keyring $keyring,
-        Buffer $orderDataEncrypted,
-        Buffer $orderDataCompressed,
+        string $orderDataEncrypted,
         string $transactionKey
-    ): void;
+    ): string;
 
     /**
-     * Decrypt a buffer using a symmetric key (AES-128-CBC).
+     * Decrypt data using a raw AES key (AES-128-CBC).
      *
-     * @param string $key The AES decryption key
-     * @param Buffer $encrypted The encrypted data buffer (input, will be modified)
-     * @param Buffer $plaintext The decrypted data buffer (output)
+     * @param string $key  The raw AES decryption key
+     * @param string $data The AES-encrypted ciphertext
      *
-     * @return void
-     *
-     * @throws EbicsException If decryption fails
+     * @return string Decrypted plaintext
      */
-    public function decryptByKey(string $key, Buffer $encrypted, Buffer $plaintext): void;
+    public function decryptByKey(string $key, string $data): string;
 
     /**
-     * Encrypt data using a symmetric key (AES-128-CBC).
+     * Encrypt data using a raw AES key (AES-128-CBC).
      *
-     * @param string $key The AES encryption key
-     * @param string $data The plaintext data to encrypt
+     * @param string $key  The raw AES encryption key
+     * @param string $data The plaintext to encrypt
      *
-     * @return string The base64-encoded encrypted data
-     *
-     * @throws EbicsException If encryption fails
+     * @return string AES-encrypted ciphertext
      */
     public function encryptByKey(string $key, string $data): string;
 
     /**
-     * Encrypt data using RSA public key encryption.
+     * RSA-public-key encrypt a transaction key.
      *
-     * Used for encrypting transaction keys and other small data payloads
-     * that need to be securely transmitted to the bank.
+     * @param Key    $publicKey     RSA public key (Signature E)
+     * @param string $transactionKey The raw AES transaction key to encrypt
      *
-     * @param Key $publicKey The RSA public key for encryption
-     * @param string $transactionKey The AES transaction key to encrypt
-     *
-     * @return string The base64-encoded RSA-encrypted data
-     *
-     * @throws EbicsException If encryption fails
+     * @return string RSA-encrypted transaction key
      */
     public function encryptTransactionKey(Key $publicKey, string $transactionKey): string;
 
     /**
-     * Sign data using RSA private key with PKCS#1 v1.5 or PSS encoding.
+     * Encode data for RSA signature (does not perform the RSA operation).
      *
-     * Creates a digital signature for the given data using the user's private key.
-     * The signing method depends on the signature version:
-     * - A_VERSION5 (A005): Uses EMSA-PKCS1-v1_5 encoding with SHA-256
-     * - A_VERSION6 (A006): Uses EMSA-PSS encoding with SHA-256 hash and MGF
+     * Produces the encoded message representative that would be signed.
+     * The actual RSA private-key signing is performed by the caller afterward.
      *
-     * @param Key $privateKey The private key for signing
-     * @param string $password The password to decrypt the private key
-     * @param string $version The signature version (e.g., SignatureInterface::A_VERSION5, A_VERSION6)
-     * @param string $data The data to sign
+     *  - **A005**: EMSA-PKCS1-v1_5 encoding with SHA-256.
+     *  - **A006**: EMSA-PSS encoding with SHA-256 and MGF1-SHA-256.
+     *    Includes a self-verification step; throws if encoding is incorrect.
      *
-     * @return string The digital signature as binary string
+     * @param Key    $privateKey RSA private key (used for key parameters only)
+     * @param string $password   Password to decrypt the private key
+     * @param string $version    EBICS version constant (SignatureInterface::A_VERSION5 or A_VERSION6)
+     * @param string $data       Raw data to encode for signing
      *
-     * @throws EbicsException If signature version is not supported or PSS verification fails
+     * @return string The encoded message representative
+     *
+     * @throws LogicException If the version is unsupported or PSS self-verification fails
      */
     public function sign(
         Key $privateKey,
@@ -134,21 +112,22 @@ interface CryptServiceInterface
     ): string;
 
     /**
-     * Encrypt/sign data using RSA private key.
+     * Encrypt/sign data using RSA private key for EBICS authentication.
      *
-     * Performs RSA encryption or signing using the provided private key.
-     * The operation depends on the signature version:
-     * - A005: RSA-PKCS#1 v1.5 encryption
-     * - A006: RSA-PSS signing with SHA-256
+     * The behaviour depends on the EBICS authentication version:
      *
-     * @param Key $privateKey The private key for signing/encryption
-     * @param string $password The password to decrypt the private key
-     * @param string $version The signature version (e.g., SignatureInterface::A_VERSION5, A_VERSION6)
-     * @param string $data The data to sign/encrypt
+     *  - **A006** (RSA-PSS): Signs the raw data using EMSA-PSS with SHA-256.
+     *  - **A005** (RSA-PKCS#1 v1.5): Hashes the data with SHA-256, prepends
+     *    the DigestInfo ASN.1 prefix, then RSA-encrypts the result.
      *
-     * @return string The signed/encrypted data as binary string
+     * @param Key    $privateKey RSA private key (Signature A)
+     * @param string $password   Password to decrypt the private key
+     * @param string $version    EBICS version constant (SignatureInterface::A_VERSION5 or A_VERSION6)
+     * @param string $data       Raw data to encrypt/sign
      *
-     * @throws EbicsException If the operation fails
+     * @return string RSA-encrypted/signed output
+     *
+     * @throws RuntimeException If encryption fails
      */
     public function encrypt(
         Key $privateKey,
@@ -160,19 +139,11 @@ interface CryptServiceInterface
     /**
      * Generate an RSA key pair for EBICS signatures.
      *
-     * Creates a new RSA key pair with the specified algorithm and key length.
-     * The private key is encrypted with the provided password.
+     * @param string $password  Password to encrypt the private key
+     * @param string $algorithm Hash algorithm for the key (default 'sha256')
+     * @param int    $length    RSA key length in bits (default 2048)
      *
-     * Supported key sizes: 1024, 2048, 3072, 4096 bits.
-     * EBICS recommends minimum 2048 bits for production use.
-     *
-     * @param string $password Password to encrypt the private key
-     * @param string $algorithm Hash algorithm to use (default: 'sha256')
-     * @param int $length Key size in bits (default: 2048)
-     *
-     * @return KeyPair The generated key pair
-     *
-     * @throws EbicsException If key generation fails
+     * @return KeyPair Generated key pair with PEM-encoded keys
      */
     public function generateKeyPair(
         string $password,
@@ -181,57 +152,44 @@ interface CryptServiceInterface
     ): KeyPair;
 
     /**
-     * Convert a binary string to an array of byte values.
-     *
-     * Each character in the binary string is converted to its ASCII value (0-255).
+     * Unpack a binary string into an array of unsigned byte values.
      *
      * @param string $bytes Binary string to convert
      *
-     * @return array<int, int> Array of byte values
-     *
-     * @throws EbicsException If conversion fails
+     * @return array<int, int> Array of byte values (0-255), 1-indexed
      */
     public function binToArray(string $bytes): array;
 
     /**
-     * Calculate the digest of a public key from a signature.
-     *
-     * Extracts the modulus and exponent from the signature's public key,
-     * formats them, and calculates a hash digest. This is used for key
-     * identification and verification purposes.
+     * Calculate the hash digest of an RSA public key from a signature.
      *
      * @param SignatureInterface $signature The signature containing the public key
-     * @param string $algorithm Hash algorithm (default: 'sha256')
+     * @param string             $algorithm Hash algorithm (default 'sha256')
      *
-     * @return string The calculated public key digest as binary data
+     * @return string Raw binary hash of the public key
      */
     public function calculatePublicKeyDigest(SignatureInterface $signature, string $algorithm = 'sha256'): string;
 
     /**
-     * Create a formatted key string from exponent and modulus.
+     * Format a public key string from hex-encoded exponent and modulus.
      *
-     * Removes leading zeros from both hex values and combines them with
-     * a space separator. This format is used for key identification
-     * and digest calculations.
+     * @param string $exponent Hex-encoded RSA exponent
+     * @param string $modulus  Hex-encoded RSA modulus
      *
-     * @param string $exponent The hex-encoded exponent value
-     * @param string $modulus The hex-encoded modulus value
-     *
-     * @return string The formatted key string (e.g., "010001 C4...")
+     * @return string Formatted string "<exponent> <modulus>"
      */
     public function calculateKey(string $exponent, string $modulus): string;
 
     /**
      * Calculate the X.509 certificate fingerprint.
      *
-     * Computes SHA-256 hash of the raw certificate bytes.
+     * Accepts either PEM-encoded or raw DER certificate content.
      *
-     * @param string $certContent The PEM or DER-encoded certificate
-     * @param string $algorithm Hash algorithm (default: 'sha256')
-     * @param bool $rawOutput If true, returns raw binary data; if false, returns hex string
+     * @param string $certContent PEM or DER certificate content
+     * @param string $algorithm   Hash algorithm (default 'sha256')
+     * @param bool   $rawOutput   If true, return raw binary; otherwise lowercase hex
      *
-     * @return string The certificate fingerprint
-     * @throws RuntimeException If the certificate fingerprint cannot be calculated
+     * @return string Certificate fingerprint
      */
     public function calculateCertificateFingerprint(
         string $certContent,
@@ -240,69 +198,55 @@ interface CryptServiceInterface
     ): string;
 
     /**
-     * Generate a cryptographically secure random nonce.
+     * Generate a random 32-character uppercase hex string (16 bytes of entropy).
      *
-     * Nonces are used in EBICS requests to prevent replay attacks.
-     *
-     * @return string The base64-encoded nonce value
+     * @return string Hex nonce
      */
     public function generateNonce(): string;
 
     /**
-     * Generate a cryptographically secure random transaction key.
+     * Generate a 16-byte random AES transaction key.
      *
-     * Transaction keys are 128-bit AES keys used to encrypt order data
-     * during transmission.
-     *
-     * @return string The raw binary transaction key (16 bytes)
+     * @return string Raw 16-byte binary key
      */
     public function generateTransactionKey(): string;
 
     /**
-     * Extract modulus and exponent from an RSA public key.
+     * Extract the RSA exponent and modulus from a public key as raw byte strings.
      *
-     * Decomposes an RSA public key into its constituent parts (modulus and exponent)
-     * for use in key exchange or verification operations.
+     * @param Key $publicKey RSA public key in PEM format
      *
-     * @param Key $publicKey The RSA public key to decompose
-     *
-     * @return array{e: string, m: string} Associative array with 'e' (exponent) and 'm' (modulus) as bytes
+     * @return array{e: string, m: string} Exponent and modulus as raw byte strings
      */
     public function decomposePublicKey(Key $publicKey): array;
 
     /**
-     * Generate a unique order ID for EBICS upload orders.
+     * Generate a random 4-character EBICS order ID.
      *
-     * Order IDs must be unique per transaction to prevent duplicate
-     * processing at the bank.
+     * Format: one uppercase letter (A-Z) followed by three alphanumeric characters.
      *
-     * @return string The generated order ID
+     * @return string 4-character order ID
      */
     public function generateOrderId(): string;
 
     /**
-     * Verify that a private key can be decrypted with the given password.
+     * Verify that an RSA private key can be decrypted with the given password.
      *
-     * @param Key $privateKey The encrypted private key to check
-     * @param string $password The password to attempt decryption with
+     * @param Key    $privateKey RSA private key in PEM format
+     * @param string $password   Password to attempt decryption with
      *
-     * @return bool True if the password is correct, false otherwise
+     * @return bool True if the key loads successfully, false otherwise
      */
     public function checkPrivateKey(Key $privateKey, string $password): bool;
 
     /**
-     * Change the encryption password of a private key.
+     * Re-encrypt an RSA key pair with a new password.
      *
-     * Re-encrypts the private key with a new password without changing
-     * the underlying cryptographic key material.
+     * @param KeyPair $keyPair    The key pair to re-encrypt
+     * @param string  $oldPassword Current password
+     * @param string  $newPassword New password to apply
      *
-     * @param KeyPair $keyPair The key pair containing the private key to re-encrypt
-     * @param string $oldPassword The current encryption password
-     * @param string $newPassword The new encryption password
-     *
-     * @return KeyPair A new KeyPair with the re-encrypted private key
-     *
-     * @throws EbicsException If password change fails
+     * @return KeyPair New key pair encrypted with the new password
      */
     public function changePrivateKeyPassword(KeyPair $keyPair, string $oldPassword, string $newPassword): KeyPair;
 }

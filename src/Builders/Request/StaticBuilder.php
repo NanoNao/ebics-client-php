@@ -6,6 +6,7 @@ use Closure;
 use DateTimeInterface;
 use DOMDocument;
 use DOMElement;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
 use EbicsApi\Ebics\Services\CryptService;
 
 /**
@@ -21,10 +22,12 @@ abstract class StaticBuilder extends XmlBuilder
 
     protected DOMElement $instance;
     protected readonly CryptService $cryptService;
+    protected readonly Base64EncoderInterface $base64Service;
 
-    public function __construct(CryptService $cryptService, DOMDocument $dom)
+    public function __construct(CryptService $cryptService, Base64EncoderInterface $base64Service, DOMDocument $dom)
     {
         $this->cryptService = $cryptService;
+        $this->base64Service = $base64Service;
         parent::__construct($dom);
     }
 
@@ -108,7 +111,7 @@ abstract class StaticBuilder extends XmlBuilder
 
         $this->appendElementTo(
             'Authentication',
-            base64_encode($signXDigest),
+            $this->base64Service->encode($signXDigest),
             $xmlBankPubKeyDigests,
             [
                 'Version' => $versionX,
@@ -118,7 +121,7 @@ abstract class StaticBuilder extends XmlBuilder
 
         $this->appendElementTo(
             'Encryption',
-            base64_encode($signEDigest),
+            $this->base64Service->encode($signEDigest),
             $xmlBankPubKeyDigests,
             [
                 'Version' => $versionE,

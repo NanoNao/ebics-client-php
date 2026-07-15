@@ -3,8 +3,10 @@
 namespace EbicsApi\Ebics\Services;
 
 use EbicsApi\Ebics\Contracts\KeyStorageInterface;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
+use EbicsApi\Ebics\Services\Processor\Base64Encoder;
 
 /**
  * Key storage implementation using base64-encoded strings.
@@ -27,12 +29,19 @@ use EbicsApi\Ebics\Models\Crypt\RSA;
  */
 final class StringKeyStorage implements KeyStorageInterface
 {
+    private readonly Base64EncoderInterface $base64Service;
+
+    public function __construct()
+    {
+        $this->base64Service = new Base64Encoder();
+    }
+
     /**
      * @inheritDoc
      */
     public function writePublicKey(Key $key): string
     {
-        return base64_encode($key->getKey());
+        return $this->base64Service->encode($key->getKey());
     }
 
     /**
@@ -40,7 +49,7 @@ final class StringKeyStorage implements KeyStorageInterface
      */
     public function readPublicKey(string $key): Key
     {
-        return new Key(base64_decode($key), RSA::PUBLIC_FORMAT_PKCS1);
+        return new Key($this->base64Service->decode($key), RSA::PUBLIC_FORMAT_PKCS1);
     }
 
     /**
@@ -48,7 +57,7 @@ final class StringKeyStorage implements KeyStorageInterface
      */
     public function writePrivateKey(Key $key): string
     {
-        return base64_encode($key->getKey());
+        return $this->base64Service->encode($key->getKey());
     }
 
     /**
@@ -56,7 +65,7 @@ final class StringKeyStorage implements KeyStorageInterface
      */
     public function readPrivateKey(string $key): Key
     {
-        return new Key(base64_decode($key), RSA::PRIVATE_FORMAT_PKCS1);
+        return new Key($this->base64Service->decode($key), RSA::PRIVATE_FORMAT_PKCS1);
     }
 
     /**
@@ -64,7 +73,7 @@ final class StringKeyStorage implements KeyStorageInterface
      */
     public function writeCertificate(string $certificate): string
     {
-        return base64_encode($certificate);
+        return $this->base64Service->encode($certificate);
     }
 
     /**
@@ -72,6 +81,6 @@ final class StringKeyStorage implements KeyStorageInterface
      */
     public function readCertificate(string $certificate): string
     {
-        return base64_decode($certificate);
+        return $this->base64Service->decode($certificate);
     }
 }

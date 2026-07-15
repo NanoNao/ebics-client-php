@@ -9,6 +9,8 @@ use EbicsApi\Ebics\Models\Keyring;
 use EbicsApi\Ebics\Services\ArrayKeyringManager;
 use EbicsApi\Ebics\Services\CryptoStorage;
 use EbicsApi\Ebics\Services\KeyStorageLocator;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +26,7 @@ class ArrayKeyringManagerTest extends TestCase
 
     protected function setUp(): void
     {
-        $signatureFactory = new SignatureFactory(new RSAFactory());
+        $signatureFactory = new SignatureFactory(new RSAFactory(new AESEncryptor(new TransactionKeyResolver())));
         $cryptoStorage = new CryptoStorage(new KeyStorageLocator());
         $keyringFactory = new KeyringFactory($signatureFactory, $cryptoStorage);
 

@@ -50,7 +50,7 @@ final class UserSignatureHandlerV2 extends UserSignatureHandler
             $this->keyring->getUserSignatureAVersion(),
             $digest
         );
-        $signatureValueNodeValue = base64_encode($canonicalizedUserSignatureDataHashSigned);
+        $signatureValueNodeValue = $this->base64Service->encode($canonicalizedUserSignatureDataHashSigned);
 
         // Add SignatureValue to OrderSignatureData.
         $xmlSignatureValue = $xml->createElementNS($ns, 'SignatureValue');

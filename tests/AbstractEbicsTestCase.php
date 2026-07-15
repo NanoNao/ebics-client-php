@@ -3,8 +3,8 @@
 namespace EbicsApi\Ebics\Tests;
 
 use EbicsApi\Ebics\Contracts\EbicsClientInterface;
-use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
 use EbicsApi\Ebics\Contracts\LoggerInterface;
+use EbicsApi\Ebics\Contracts\X509GeneratorInterface;
 use EbicsApi\Ebics\EbicsClient;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\Crypt\X509Factory;
@@ -21,6 +21,8 @@ use EbicsApi\Ebics\Models\X509\BankX509Generator;
 use EbicsApi\Ebics\Services\DebuggerHttpClient;
 use EbicsApi\Ebics\Services\FakerHttpClient;
 use EbicsApi\Ebics\Services\FileKeyringManager;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -142,7 +144,7 @@ abstract class AbstractEbicsTestCase extends TestCase
     {
         $keys = json_decode(file_get_contents($this->fixtures . '/keys.json'));
         $keyring->setPassword('mysecret');
-        $signatureFactory = new SignatureFactory(new RSAFactory());
+        $signatureFactory = new SignatureFactory(new RSAFactory(new AESEncryptor(new TransactionKeyResolver())));
 
         $userSignatureA = $signatureFactory->createSignatureA(
             $keyring->getUserSignatureA()->getPublicKey(),
@@ -168,7 +170,7 @@ abstract class AbstractEbicsTestCase extends TestCase
 
     protected function setupIssuer(X509GeneratorInterface $x509Generator, array $issuer, string $password): void
     {
-        $rsaFactory = new RSAFactory();
+        $rsaFactory = new RSAFactory(new AESEncryptor(new TransactionKeyResolver()));
         $x509Factory = new X509Factory();
         $x509 = $x509Factory->create();
         $x509->loadX509($issuer['certificate']);

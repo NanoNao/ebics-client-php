@@ -3,7 +3,6 @@
 namespace EbicsApi\Ebics\Tests\Services\BankLetter;
 
 use DateTime;
-use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\SignatureFactory;
 use EbicsApi\Ebics\Models\Bank;
@@ -14,7 +13,10 @@ use EbicsApi\Ebics\Models\X509\BankX509Generator;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolverV2;
 use EbicsApi\Ebics\Services\DigestResolverV3;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\Processor\Base64Encoder;
 use EbicsApi\Ebics\Services\RandomService;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**
@@ -33,8 +35,10 @@ class HashGeneratorTest extends AbstractEbicsTestCase
      */
     public function testGenerateCertificateHashV2()
     {
+        $aesEncryptor = new AESEncryptor(new TransactionKeyResolver());
+
         $digestResolver = new DigestResolverV2(
-            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
+            new CryptService(new RSAFactory($aesEncryptor), $aesEncryptor, new RandomService(), new Base64Encoder())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
@@ -48,7 +52,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
         $x509Generator->getAX509Context()->setSerialNumber(
             '37376365613564393736653364353135633333333932376336366134393663336133663135323432'
         );
-        $rsaFactory = new RSAFactory();
+        $rsaFactory = new RSAFactory($aesEncryptor);
         $x509Generator->getAX509Context()->setSubjectPublicKey($rsaFactory->createPublic($publicKey));
         $x509Generator->getAX509Context()->setIssuerPublicKey($rsaFactory->createPublic($publicKey));
         $x509Generator->getAX509Context()->setIssuerPrivateKey($rsaFactory->createPrivate($privateKey, 'test123'));
@@ -71,8 +75,10 @@ class HashGeneratorTest extends AbstractEbicsTestCase
      */
     public function testGenerateCertificateHashV3()
     {
+        $aesEncryptor = new AESEncryptor(new TransactionKeyResolver());
+
         $digestResolver = new DigestResolverV3(
-            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
+            new CryptService(new RSAFactory($aesEncryptor), $aesEncryptor, new RandomService(), new Base64Encoder())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
@@ -86,7 +92,7 @@ class HashGeneratorTest extends AbstractEbicsTestCase
         $x509Generator->getAX509Context()->setSerialNumber(
             '37376365613564393736653364353135633333333932376336366134393663336133663135323432'
         );
-        $rsaFactory = new RSAFactory();
+        $rsaFactory = new RSAFactory($aesEncryptor);
         $x509Generator->getAX509Context()->setSubjectPublicKey($rsaFactory->createPublic($publicKey));
         $x509Generator->getAX509Context()->setIssuerPublicKey($rsaFactory->createPublic($publicKey));
         $x509Generator->getAX509Context()->setIssuerPrivateKey($rsaFactory->createPrivate($privateKey, 'test123'));
@@ -109,14 +115,16 @@ class HashGeneratorTest extends AbstractEbicsTestCase
      */
     public function testGeneratePublicKeyHash()
     {
+        $aesEncryptor = new AESEncryptor(new TransactionKeyResolver());
+
         $digestResolver = new DigestResolverV2(
-            new CryptService(new RSAFactory(), new AESFactory(), new RandomService())
+            new CryptService(new RSAFactory($aesEncryptor), $aesEncryptor, new RandomService(), new Base64Encoder())
         );
 
         $privateKey = new Key($this->getPrivateKey(), RSA::PRIVATE_FORMAT_PKCS1);
         $publicKey = new Key($this->getPublicKey(), RSA::PUBLIC_FORMAT_PKCS1);
 
-        $rsaFactory = new RSAFactory();
+        $rsaFactory = new RSAFactory($aesEncryptor);
 
         $certificateFactory = new SignatureFactory($rsaFactory);
 

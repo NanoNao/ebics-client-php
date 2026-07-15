@@ -61,7 +61,7 @@ final class OrderDataHandlerV30 extends OrderDataHandler
 
         $x509Certificate = $xpath->query("//$h00x:AuthenticationPubKeyInfo/ds:X509Data/ds:X509Certificate");
         $x509CertificateValue = DOMHelper::safeItemValueOrNull($x509Certificate);
-        $x509CertificateValueDe = base64_decode($x509CertificateValue);
+        $x509CertificateValueDe = $this->base64Service->decode($x509CertificateValue);
 
         if (null === $x509CertificateValue) {
             throw new RuntimeException('Version 3.0 is not supported for not certified banks yet.');
@@ -94,7 +94,7 @@ final class OrderDataHandlerV30 extends OrderDataHandler
 
         $x509Certificate = $xpath->query("//$h00x:EncryptionPubKeyInfo/ds:X509Data/ds:X509Certificate");
         $x509CertificateValue = DOMHelper::safeItemValueOrNull($x509Certificate);
-        $x509CertificateValueDe = base64_decode($x509CertificateValue);
+        $x509CertificateValueDe = $this->base64Service->decode($x509CertificateValue);
 
         if (null === $x509CertificateValue) {
             throw new RuntimeException('Version 3.0 is not supported for not certified banks yet.');

@@ -4,6 +4,7 @@ namespace EbicsApi\Ebics\Factories\Crypt;
 
 use EbicsApi\Ebics\Contracts\Crypt\BigIntegerInterface;
 use EbicsApi\Ebics\Contracts\Crypt\RSAInterface;
+use EbicsApi\Ebics\Contracts\Processor\AESEncryptorInterface;
 use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 
@@ -24,15 +25,18 @@ final class RSAFactory
      */
     private readonly array $classMap;
 
+    private readonly AESEncryptorInterface $aesEncryptor;
+
     /**
      * @param array<int, class-string<RSAInterface>> $classMap
      */
-    public function __construct(?array $classMap = null)
+    public function __construct(AESEncryptorInterface $aesEncryptor, ?array $classMap = null)
     {
         $this->classMap = $classMap ?? [
             RSA::PRIVATE_FORMAT_PKCS1 => RSA::class,
             RSA::PUBLIC_FORMAT_PKCS1 => RSA::class,
         ];
+        $this->aesEncryptor = $aesEncryptor;
     }
 
     /**
@@ -43,7 +47,13 @@ final class RSAFactory
      */
     public function create(int $type): RSAInterface
     {
-        return new $this->classMap[$type]();
+        $rsa = new $this->classMap[$type]();
+
+        if ($rsa instanceof RSA) {
+            $rsa->setAesEncryptor($this->aesEncryptor);
+        }
+
+        return $rsa;
     }
 
     /**

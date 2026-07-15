@@ -10,6 +10,8 @@ use EbicsApi\Ebics\Models\Crypt\Key;
 use EbicsApi\Ebics\Models\Crypt\KeyPair;
 use EbicsApi\Ebics\Models\Crypt\RSA;
 use EbicsApi\Ebics\Models\X509\BankX509Generator;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**
@@ -38,11 +40,11 @@ class X509GeneratorTest extends AbstractEbicsTestCase
         $x509Context->setStartDate(new DateTime('2020-03-21'));
         $x509Context->setEndDate(new DateTime('2021-03-22'));
         $x509Context->setSerialNumber('539453510852155194065233908413342789156542395956670254476154968597583055940');
-        $rsaFactory = new RSAFactory();
+        $rsaFactory = new RSAFactory(new AESEncryptor(new TransactionKeyResolver()));
         $x509Context->setIssuerPublicKey($rsaFactory->createPublic($publicKey));
         $x509Context->setIssuerPrivateKey($rsaFactory->createPrivate($privateKey, 'test123'));
 
-        $signatureFactory = new SignatureFactory(new RSAFactory());
+        $signatureFactory = new SignatureFactory(new RSAFactory(new AESEncryptor(new TransactionKeyResolver())));
         $signature = $signatureFactory->createSignatureAFromKeys(
             new KeyPair($publicKey, $privateKey, 'test123'),
             $x509Generator

@@ -3,7 +3,6 @@
 namespace EbicsApi\Ebics\Tests\Handlers;
 
 use EbicsApi\Ebics\Exceptions\EbicsException;
-use EbicsApi\Ebics\Factories\Crypt\AESFactory;
 use EbicsApi\Ebics\Factories\Crypt\RSAFactory;
 use EbicsApi\Ebics\Factories\EbicsFactoryV25;
 use EbicsApi\Ebics\Handlers\AuthSignatureHandler;
@@ -11,7 +10,10 @@ use EbicsApi\Ebics\Handlers\Traits\H004Trait;
 use EbicsApi\Ebics\Handlers\Traits\H00XTrait;
 use EbicsApi\Ebics\Models\Http\Request;
 use EbicsApi\Ebics\Services\CryptService;
+use EbicsApi\Ebics\Services\Processor\AESEncryptor;
+use EbicsApi\Ebics\Services\Processor\Base64Encoder;
 use EbicsApi\Ebics\Services\RandomService;
+use EbicsApi\Ebics\Services\TransactionKeyResolver;
 use EbicsApi\Ebics\Tests\AbstractEbicsTestCase;
 
 /**
@@ -40,9 +42,11 @@ class AuthSignatureHandlerTest extends AbstractEbicsTestCase
         $this->setupKeys($client->getKeyring());
 
         $ebicsFactory = new EbicsFactoryV25();
+        $aesEncryptor = new AESEncryptor(new TransactionKeyResolver());
         $this->authSignatureHandler = $ebicsFactory->createAuthSignatureHandler(
+            new Base64Encoder(),
             $client->getKeyring(),
-            new CryptService(new RSAFactory(), new AESFactory, new RandomService)
+            new CryptService(new RSAFactory($aesEncryptor), $aesEncryptor, new RandomService, new Base64Encoder)
         );
     }
 

@@ -17,7 +17,7 @@ final class RootBuilderV24 extends RootBuilder
 
     public function addHeader(Closure $callback): RootBuilder
     {
-        $headerBuilder = new HeaderBuilderV2($this->cryptService, $this->dom);
+        $headerBuilder = new HeaderBuilderV2($this->cryptService, $this->base64Service, $this->dom);
         $header = $headerBuilder->createInstance()->getInstance();
         $this->instance->appendChild($header);
 
@@ -28,7 +28,7 @@ final class RootBuilderV24 extends RootBuilder
 
     public function addBody(?Closure $callback = null): RootBuilder
     {
-        $bodyBuilder = new BodyBuilderV2($this->zipService, $this->cryptService, $this->dom);
+        $bodyBuilder = new BodyBuilderV2($this->zipService, $this->cryptService, $this->base64Service, $this->dom);
         $body = $bodyBuilder->createInstance()->getInstance();
         $this->instance->appendChild($body);
 

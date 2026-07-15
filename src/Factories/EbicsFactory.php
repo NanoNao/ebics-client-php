@@ -3,6 +3,8 @@
 namespace EbicsApi\Ebics\Factories;
 
 use EbicsApi\Ebics\Builders\Request\RequestBuilder;
+use EbicsApi\Ebics\Contracts\Processor\Base64EncoderInterface;
+use EbicsApi\Ebics\Contracts\Processor\ZipCompressorInterface;
 use EbicsApi\Ebics\Factories\Crypt\BigIntegerFactory;
 use EbicsApi\Ebics\Handlers\AuthSignatureHandler;
 use EbicsApi\Ebics\Handlers\OrderDataHandler;
@@ -14,7 +16,6 @@ use EbicsApi\Ebics\Models\User;
 use EbicsApi\Ebics\Services\CryptService;
 use EbicsApi\Ebics\Services\DigestResolver;
 use EbicsApi\Ebics\Services\SchemaValidator;
-use EbicsApi\Ebics\Services\ZipService;
 
 /**
  * Abstract Class EbicsFactory.
@@ -33,15 +34,18 @@ abstract class EbicsFactory
         DigestResolver $digestResolver,
         RequestBuilder $requestBuilder,
         CryptService $cryptService,
-        ZipService $zipService
+        ZipCompressorInterface $zipService,
+        Base64EncoderInterface $base64Service
     ): RequestFactory;
 
     abstract public function createAuthSignatureHandler(
+        Base64EncoderInterface $base64Service,
         Keyring $keyring,
         CryptService $cryptService
     ): AuthSignatureHandler;
 
     abstract public function createUserSignatureHandler(
+        Base64EncoderInterface $base64Service,
         User $user,
         Keyring $keyring,
         CryptService $cryptService,
@@ -49,6 +53,7 @@ abstract class EbicsFactory
     ): UserSignatureHandler;
 
     abstract public function createOrderDataHandler(
+        Base64EncoderInterface $base64Service,
         User $user,
         Keyring $keyring,
         CryptService $cryptService,
@@ -60,8 +65,8 @@ abstract class EbicsFactory
     abstract public function createResponseHandler(
         SegmentFactory $segmentFactory,
         CryptService $cryptService,
-        ZipService $zipService,
-        BufferFactory $bufferFactory
+        ZipCompressorInterface $zipService,
+        Base64EncoderInterface $base64Service
     ): ResponseHandler;
 
     abstract public function createDigestResolver(CryptService $cryptService): DigestResolver;
@@ -69,8 +74,12 @@ abstract class EbicsFactory
     public function createRequestBuilder(
         Keyring $keyring,
         CryptService $cryptService,
+        Base64EncoderInterface $base64Service,
         SchemaValidator $schemaValidator
     ): RequestBuilder {
-        return new RequestBuilder($this->createAuthSignatureHandler($keyring, $cryptService), $schemaValidator);
+        return new RequestBuilder(
+            $this->createAuthSignatureHandler($base64Service, $keyring, $cryptService),
+            $schemaValidator
+        );
     }
 }

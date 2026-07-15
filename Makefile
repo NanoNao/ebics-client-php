@@ -25,7 +25,7 @@ docker-php php:
 check:
 	$(DC) exec php-cli-ebics-client-php ./vendor/bin/phpcbf
 	$(DC) exec php-cli-ebics-client-php ./vendor/bin/phpcs
-	$(DC) exec php-cli-ebics-client-php ./vendor/bin/phpstan --xdebug
+	$(DC) exec php-cli-ebics-client-php ./vendor/bin/phpstan
 	$(DC) exec php-cli-ebics-client-php ./vendor/bin/phpunit
 
 credentials-pack:
