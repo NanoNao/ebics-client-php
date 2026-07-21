@@ -12,7 +12,7 @@ final class DownloadSegment extends Segment
 {
     private string $transactionId;
     private ?string $transactionPhase;
-    private string $transactionKey;
+    private ?string $transactionKey;
     private ?int $segmentNumber;
     private ?int $numSegments;
     private string $orderData;
@@ -37,12 +37,12 @@ final class DownloadSegment extends Segment
         $this->transactionPhase = $phase;
     }
 
-    public function getTransactionKey(): string
+    public function getTransactionKey(): ?string
     {
         return $this->transactionKey;
     }
 
-    public function setTransactionKey(string $transactionKey): void
+    public function setTransactionKey(?string $transactionKey): void
     {
         $this->transactionKey = $transactionKey;
     }

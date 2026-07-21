@@ -47,7 +47,11 @@ abstract class HttpClient implements HttpClientInterface
         }
 
         $response = new Response();
-        $response->loadXML($contents);
+        $loaded = @$response->loadXML($contents);
+
+        if (false === $loaded) {
+            throw new RuntimeException('Failed to parse EBICS XML response. Response may be truncated or malformed.');
+        }
 
         return $response;
     }

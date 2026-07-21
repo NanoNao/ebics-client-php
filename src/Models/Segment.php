@@ -12,15 +12,15 @@ use EbicsApi\Ebics\Models\Http\Response;
  */
 abstract class Segment
 {
-    private string $transactionKey;
+    private ?string $transactionKey;
     private Response $response;
 
-    public function getTransactionKey(): string
+    public function getTransactionKey(): ?string
     {
         return $this->transactionKey;
     }
 
-    public function setTransactionKey(string $transactionKey): void
+    public function setTransactionKey(?string $transactionKey): void
     {
         $this->transactionKey = $transactionKey;
     }

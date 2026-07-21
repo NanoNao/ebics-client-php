@@ -124,6 +124,11 @@ abstract class ResponseHandler implements ResponseHandlerInterface
     public function extractInitializationSegment(Response $response, Keyring $keyring): InitializationSegment
     {
         $transactionKeyEncoded = $this->retrieveH00XTransactionKey($response);
+
+        if (null === $transactionKeyEncoded) {
+            throw new \RuntimeException('EBICS initialization segment is missing TransactionKey. Response may be truncated.');
+        }
+
         $transactionKey = $this->base64Service->decode($transactionKeyEncoded);
         $orderDataEncrypted = $this->base64Service->decode($this->retrieveH00XOrderData($response));
 
@@ -148,7 +153,10 @@ abstract class ResponseHandler implements ResponseHandlerInterface
         $transactionId = $this->retrieveH00XTransactionId($response);
         $transactionPhase = $this->retrieveH00XTransactionPhase($response);
         $transactionKeyEncoded = $this->retrieveH00XTransactionKey($response);
-        $transactionKey = $this->base64Service->decode($transactionKeyEncoded);
+
+        $transactionKey = null !== $transactionKeyEncoded
+            ? $this->base64Service->decode($transactionKeyEncoded)
+            : null;
         $numSegments = $this->retrieveH00XNumSegments($response);
         $segmentNumber = $this->retrieveH00XSegmentNumber($response);
         $orderDataEncrypted = $this->retrieveH00XOrderData($response);
